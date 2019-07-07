@@ -1,0 +1,61 @@
+package ikama.batchc3.cli;
+
+import ikama.batchc3.core.C3Manager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.shell.standard.ShellComponent;
+import org.springframework.shell.standard.ShellMethod;
+
+import javax.annotation.PostConstruct;
+import java.util.Collection;
+
+@ShellComponent
+public class CommandShell {
+
+    @Autowired
+    C3Manager c3Manager;
+
+    @PostConstruct
+    public void init() {
+        System.out.println("Starting shell");
+    }
+
+
+    @ShellMethod("Job status")
+    public String status() throws Exception {
+        // invoke service
+        StringBuilder sb = new StringBuilder();
+        Collection<String> jobs = c3Manager.listJobSummaries();
+
+        int jobShortId = 0;
+        for (String job:jobs) {
+            sb.append(job);
+            sb.append(" [").append(jobShortId++).append("]");
+            sb.append(System.lineSeparator());
+        }
+
+        return sb.toString();
+    }
+    @ShellMethod("List job names")
+    public String list() throws Exception {
+        // invoke service
+        StringBuilder sb = new StringBuilder();
+        Collection<String> jobs = c3Manager.listJobNames();
+
+        int jobShortId = 0;
+        for (String job:jobs) {
+            sb.append(job);
+            sb.append(" [").append(jobShortId++).append("]");
+            sb.append(System.lineSeparator());
+        }
+
+        return sb.toString();
+    }
+
+    @ShellMethod("Start a job")
+    public String start(String jobName) {
+        Long executionId = null;
+        executionId = c3Manager.startJob(jobName);
+        return "Started: " + jobName + " with execution id " + executionId;
+    }
+
+}

@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+ikama.batchc3.autoconfigure.C3AutoConfiguration
