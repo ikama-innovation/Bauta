@@ -57,11 +57,11 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     private long timeout = 0;
 
     private long checkInterval = 300;
-    
+
     private JobExplorer jobExplorer;
-    
+
     private boolean sendExitCommand = true;
-    
+
     private volatile boolean stopping = true;
 
     @Autowired
@@ -290,8 +290,8 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
      * Will interrupt the thread executing the system executable only if {@link #setInterruptOnCancel(boolean)} has been set to true. Otherwise the
      * underlying executable will be allowed to finish before the tasklet ends.
      *
-     * @since 3.0
      * @see StoppableTasklet#stop()
+     * @since 3.0
      */
     @Override
     public void stop() {
@@ -328,7 +328,7 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
      * A list of script parameters to be passed to the script. Equivalent to "sqlplus @myscript.sql param1 param2".
      *
      * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
-     * jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
+     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
      */
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;

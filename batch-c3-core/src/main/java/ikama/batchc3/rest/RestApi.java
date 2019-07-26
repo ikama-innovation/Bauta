@@ -10,6 +10,6 @@ public class RestApi {
 
     @RequestMapping("/ping")
     public String ping(@RequestParam(value = "requestId") String requestId) {
-        return "Hello "+ requestId;
+        return "Hello " + requestId;
     }
 }

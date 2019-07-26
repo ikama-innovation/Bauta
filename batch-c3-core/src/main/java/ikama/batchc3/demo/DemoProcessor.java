@@ -8,13 +8,14 @@ package ikama.batchc3.demo;
 import org.springframework.batch.item.ItemProcessor;
 
 /**
+ *
  */
-public class DemoProcessor implements ItemProcessor<DemoEntity, DemoEntity>  {
+public class DemoProcessor implements ItemProcessor<DemoEntity, DemoEntity> {
 
     @Override
     public DemoEntity process(DemoEntity item) throws Exception {
         item.setMessage(item.getMessage() + "_processed");
         return item;
     }
-    
+
 }

@@ -31,7 +31,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
-            <version>14.0.0.rc3</version>
+            <version>14.0.0.rc5</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -57,6 +57,7 @@
             <artifactId>commons-dbcp2</artifactId>
             <version>2.5.0</version>
         </dependency>
+
     </dependencies>
     <dependencyManagement>
         <dependencies>

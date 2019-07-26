@@ -46,15 +46,14 @@ public class BatchConfiguration {
     @Value("${batchc3.homeDir}")
     String homeDir;
 
-    @Value("${batchc3.stagingDB.url}" )
+    @Value("${batchc3.stagingDB.url}")
     String stagingDbUrl;
 
-    @Value("${batchc3.stagingDB.username}" )
+    @Value("${batchc3.stagingDB.username}")
     String stagingDbUsername;
 
-    @Value("${batchc3.stagingDB.password}" )
+    @Value("${batchc3.stagingDB.password}")
     String stagingDbPassword;
-
 
 
     @Bean()
@@ -62,14 +61,13 @@ public class BatchConfiguration {
     DataSource batchDataSource() {
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
-        dataSource.setUrl("jdbc:hsqldb:file:"+homeDir+"/db/data");
+        dataSource.setUrl("jdbc:hsqldb:file:" + homeDir + "/db/data");
         dataSource.setUsername("sa");
         dataSource.setPassword("");
 
         log.info("Creating batch datasource {}", dataSource);
         return dataSource;
     }
-
 
 
     @Bean
@@ -96,6 +94,7 @@ public class BatchConfiguration {
             public PlatformTransactionManager getTransactionManager() {
                 return batchTransactionManager();
             }
+
             @Override
             protected JobRepository createJobRepository() throws Exception {
                 JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
@@ -117,6 +116,7 @@ public class BatchConfiguration {
                 return jobExplorer.getObject();
 
             }
+
             @Override
             public JobLauncher createJobLauncher() throws Exception {
                 SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
@@ -130,16 +130,16 @@ public class BatchConfiguration {
 
     }
 
-/*
-    @Bean
-    JobExplorer jobExplorer(DataSource dataSource) throws Exception {
-        JobExplorerFactoryBean jobExplorer = new JobExplorerFactoryBean();
-        jobExplorer.setDataSource(dataSource);
-        jobExplorer.setTablePrefix("BATCH_");
-        jobExplorer.afterPropertiesSet();
-        return jobExplorer.getObject();
-    }
-*/
+    /*
+        @Bean
+        JobExplorer jobExplorer(DataSource dataSource) throws Exception {
+            JobExplorerFactoryBean jobExplorer = new JobExplorerFactoryBean();
+            jobExplorer.setDataSource(dataSource);
+            jobExplorer.setTablePrefix("BATCH_");
+            jobExplorer.afterPropertiesSet();
+            return jobExplorer.getObject();
+        }
+    */
     @Bean
     JobOperator jobOperator(JobExplorer jobExplorer,
                             JobRepository jobRepository,
@@ -158,7 +158,7 @@ public class BatchConfiguration {
 
     //@Bean
     //public JobRegistry jobRegistry() throws Exception {
-     //   return new MapJobRegistry();
+    //   return new MapJobRegistry();
     //}
     @Bean
     public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
@@ -169,7 +169,7 @@ public class BatchConfiguration {
 
     // Staging database
     @Bean()
-    @ConditionalOnProperty(prefix = "batchc3",name="stagingDB.host")
+    @ConditionalOnProperty(prefix = "batchc3", name = "stagingDB.host")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
         BasicDataSource dataSource = new BasicDataSource();

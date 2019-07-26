@@ -16,9 +16,9 @@ public class ReportUtils {
         File file = new File(path);
         return file;
     }
-    
+
     public static String generateReportUrl(StepExecution stepExecution, String filename) {
-        String reportUrl = "reports/" + stepExecution.getJobExecution().getJobInstance().getJobName() + "/" + stepExecution.getJobExecution().getJobId() + "/" + stepExecution.getStepName() +"/"+ filename;
+        String reportUrl = "reports/" + stepExecution.getJobExecution().getJobInstance().getJobName() + "/" + stepExecution.getJobExecution().getJobId() + "/" + stepExecution.getStepName() + "/" + filename;
         return reportUrl;
     }
 }

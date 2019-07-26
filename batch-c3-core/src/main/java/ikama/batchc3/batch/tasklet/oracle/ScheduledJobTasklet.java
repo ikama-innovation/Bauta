@@ -48,7 +48,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     Map<String, Object> outParams = new HashMap<>();
 
     /* Interval (in ms) between status checks.  */
-    private final Long statusCheckInterval = 30000L;
+    private Long statusCheckInterval = 30000L;
 
     /* Sleep time (in ms) within the execute method */
     private Long sleepTimeMs = 250L;
@@ -74,6 +74,19 @@ public class ScheduledJobTasklet implements StoppableTasklet {
      */
     public void setAction(String action) {
         this.action = action;
+    }
+
+    /**
+     * How often to query Oracle and check the status of the scheduled job.
+     * In ms. Valid values are 10000 - 300000
+     *
+     * @param statusCheckInterval
+     */
+    public void setStatusCheckInterval(Long statusCheckInterval) {
+        if (statusCheckInterval < 10000 || statusCheckInterval > 300000) {
+            throw new IllegalArgumentException("Illegal vaue for statusCheckInterval. Valid values are 10000 - 300000");
+        }
+        this.statusCheckInterval = statusCheckInterval;
     }
 
     @Override

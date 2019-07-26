@@ -2,21 +2,15 @@ package ikama.batchc3.core;
 
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateUtils;
-import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
-import org.springframework.batch.core.configuration.xml.SimpleFlowFactoryBean;
 import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.job.flow.*;
-import org.springframework.batch.core.job.flow.support.state.StepState;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.batch.core.launch.NoSuchJobExecutionException;
 import org.springframework.batch.core.launch.NoSuchJobInstanceException;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.step.tasklet.TaskletStep;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -26,7 +20,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class C3Manager implements StepExecutionListener, JobExecutionListener , ApplicationContextAware {
+public class C3Manager implements StepExecutionListener, JobExecutionListener, ApplicationContextAware {
 
     Logger log = LoggerFactory.getLogger(this.getClass().getName());
     private C3Config c3Config;
@@ -39,6 +33,11 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
     private HashSet<JobEventListener> jobEventListeners = new HashSet<>();
     private ApplicationContext applicationContext;
 
+    /**
+     * Holds last known information about the steps of a job
+     */
+    private TreeMap<String, JobInstanceInfo> cachedJobInstanceInfos = new TreeMap<>();
+
     public C3Manager(C3Config c3Config, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer) {
         this.c3Config = c3Config;
         this.jobRepository = jobRepository;
@@ -47,30 +46,27 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
     }
 
 
-
     @PostConstruct
     public void init() {
         log.info("Home is {}", c3Config.getProperty(C3ConfigParams.HOME_DIR));
     }
 
 
-
-    public Long startJob(String jobName)  {
+    public Long startJob(String jobName) {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
             jobName = listJobNames().get(i);
         }
         DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
-        String params = "start="+dtf.format(LocalDateTime.now());
+        String params = "start=" + dtf.format(LocalDateTime.now());
         try {
             return jobOperator.start(jobName, params);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to start job", e);
         }
     }
 
-    public void stopJob(String jobName)  {
+    public void stopJob(String jobName) {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
             jobName = listJobNames().get(i);
@@ -88,13 +84,15 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
     public void restartJob(long executionId) throws Exception {
         jobOperator.restart(executionId);
     }
+
     public void abandonJob(long executionId) throws Exception {
         jobOperator.abandon(executionId);
     }
+
     public Collection<String> listJobSummaries() throws NoSuchJobException, NoSuchJobInstanceException, NoSuchJobExecutionException {
         ArrayList<String> out = new ArrayList<>();
         Set<String> jobNames = jobOperator.getJobNames();
-        for (String jobName:jobNames) {
+        for (String jobName : jobNames) {
             StringBuilder sb = new StringBuilder(jobName);
             sb.append(System.lineSeparator());
             List<Long> jobInstances = jobOperator.getJobInstances(jobName, 0, 1);
@@ -102,7 +100,7 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
                 long latestInstance = jobInstances.get(0);
                 sb.append("  ").append("i: ").append(latestInstance).append(System.lineSeparator());
                 List<Long> executions = jobOperator.getExecutions(latestInstance);
-                for (Long exId:executions) {
+                for (Long exId : executions) {
                     String s = jobOperator.getSummary(exId);
                     sb.append("    ").append(s);
                 }
@@ -111,6 +109,7 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
         }
         return out;
     }
+
     public List<String> listJobNames() {
         ArrayList<String> out = new ArrayList<>();
         out.addAll(jobOperator.getJobNames());
@@ -127,6 +126,10 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
     @Override
     public void afterJob(JobExecution jobExecution) {
         log.info("afterJob: {}", jobExecution);
+        if (!jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
+            // Create a cached version of the job
+
+        }
         fireJobEvent(jobExecution);
     }
 
@@ -146,51 +149,80 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
     }
 
     private void fireJobEvent(JobExecution je) {
-        JobInfo jobInfo = extractJobInfo(je);
+        JobInstanceInfo jobInstanceInfo = null;
+        try {
+            jobInstanceInfo = extractJobInstanceInfo(je);
+        } catch (Exception e) {
+            log.warn("Failed to extract job info", e);
+        }
         for (JobEventListener jel : jobEventListeners) {
-            jel.onJobChange(jobInfo);
+            jel.onJobChange(jobInstanceInfo);
         }
     }
 
-    private JobInfo extractJobInfo(JobExecution je) {
-        JobInfo jobInfo = new JobInfo(je.getJobInstance().getJobName());
-        jobInfo.setExecutionStatus(je.getStatus().name());
-        jobInfo.setExitStatus(je.getExitStatus().getExitCode());
-        jobInfo.setInstanceId(je.getJobInstance().getInstanceId());
-        jobInfo.setExecutionId(je.getId());
-        jobInfo.setStartTime(je.getStartTime());
-        jobInfo.setEndTime(je.getEndTime());
+    private JobInstanceInfo extractJobInstanceInfo(JobExecution je) throws Exception {
+        JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
+
+        jobInstanceInfo.setExecutionStatus(je.getStatus().name());
+        jobInstanceInfo.setExitStatus(je.getExitStatus().getExitCode());
+        jobInstanceInfo.setInstanceId(je.getJobInstance().getInstanceId());
+        jobInstanceInfo.setExecutionId(je.getId());
+        jobInstanceInfo.setStartTime(je.getStartTime());
+        jobInstanceInfo.setEndTime(je.getEndTime());
         if (je.getEndTime() != null) {
             long duration = je.getEndTime().getTime() - je.getStartTime().getTime();
-            jobInfo.setDuration(duration);
+            jobInstanceInfo.setDuration(duration);
+        }
+        HashSet<String> stepNames = new HashSet<>();
+        for (StepExecution se : je.getStepExecutions()) {
+            StepInfo si = extractStepInfo(se);
+            jobInstanceInfo.appendStep(si);
+            stepNames.add(si.getName());
+        }
+        List<Long> jobExecutions = jobOperator.getExecutions(je.getJobInstance().getInstanceId());
+        for (Long executionId : jobExecutions) {
+            if (executionId == je.getId()) {
+                continue;
+            }
+            JobExecution jeh = jobExplorer.getJobExecution(executionId);
+            int i = 0;
+            for (StepExecution seh : jeh.getStepExecutions()) {
+                if (!stepNames.contains(seh.getStepName())) {
+                    jobInstanceInfo.insertStepAt(extractStepInfo(seh), i);
+                    i++;
+                } else {
+                    break;
+                }
+            }
         }
 
-        for (StepExecution se : je.getStepExecutions()) {
-            StepInfo si = new StepInfo(se.getStepName());
-            si.setExecutionStatus(se.getStatus().name());
-            try {
-                si.setReportUrls((List<String>) se.getExecutionContext().get("reportUrls"));
-            } catch (ClassCastException e) {
-                log.warn("reportUrls: {}", se.getExecutionContext().get("reportUrls"));
-                log.warn("Class cast error:  'reportUrls'. Job: {}, Step: {}", jobInfo.getName(), se.getStepName());
-            }
-            jobInfo.add(si);
-        }
-        return jobInfo;
+        return jobInstanceInfo;
     }
 
+    private StepInfo extractStepInfo(StepExecution se) {
+        StepInfo si = new StepInfo(se.getStepName());
+        si.setExecutionStatus(se.getStatus().name());
+        try {
+            si.setReportUrls((List<String>) se.getExecutionContext().get("reportUrls"));
+        } catch (ClassCastException e) {
+            log.warn("reportUrls: {}", se.getExecutionContext().get("reportUrls"));
+            log.warn("Class cast error:  'reportUrls', Step: {}", se.getStepName());
+        }
+        return si;
+    }
 
-    public List<JobInfo> jobDetails() throws Exception {
-        ArrayList<JobInfo> out = new ArrayList<>();
+    public List<JobInstanceInfo> jobDetails() throws Exception {
+        ArrayList<JobInstanceInfo> out = new ArrayList<>();
         Set<String> jobNames = jobOperator.getJobNames();
-        for (String jobName:jobNames) {
-            JobInfo jobInfo = fetchJobInfo(jobName);
-            out.add(jobInfo);
+        for (String jobName : jobNames) {
+            JobInstanceInfo jobInstanceInfo = fetchJobInfo(jobName);
+            out.add(jobInstanceInfo);
         }
         return out;
     }
-    private JobInfo fetchJobInfo(String jobName) throws Exception  {
-        JobInfo out = new JobInfo(jobName);
+
+    private JobInstanceInfo fetchJobInfo(String jobName) throws Exception {
+        JobInstanceInfo out = new JobInstanceInfo(jobName);
         List<Long> jobInstances = jobOperator.getJobInstances(jobName, 0, 1);
         if (jobInstances.size() > 0) {
             long latestInstance = jobInstances.get(0);
@@ -199,7 +231,7 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
             if (executions.size() > 0) {
                 long latestExecutionId = executions.get(0);
                 JobExecution jobExecution = jobExplorer.getJobExecution(latestExecutionId);
-                out = extractJobInfo(jobExecution);
+                out = extractJobInstanceInfo(jobExecution);
             }
         }
         return out;
@@ -208,6 +240,7 @@ public class C3Manager implements StepExecutionListener, JobExecutionListener , 
     public void registerJobChangeListener(JobEventListener jobEventListener) {
         this.jobEventListeners.add(jobEventListener);
     }
+
     public void unregisterJobChangeListener(JobEventListener jobEventListener) {
         this.jobEventListeners.remove(jobEventListener);
     }

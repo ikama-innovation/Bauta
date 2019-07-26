@@ -9,14 +9,14 @@ package ikama.batchc3.demo;
  *
  */
 public class DemoEntity {
-    
+
     Long id;
     String message;
-    
+
     public DemoEntity() {
     }
 
-    
+
     public Long getId() {
         return id;
     }

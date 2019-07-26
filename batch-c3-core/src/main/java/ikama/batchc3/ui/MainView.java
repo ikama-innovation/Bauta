@@ -9,9 +9,10 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
@@ -32,7 +33,7 @@ import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import ikama.batchc3.core.C3Manager;
 import ikama.batchc3.core.JobEventListener;
-import ikama.batchc3.core.JobInfo;
+import ikama.batchc3.core.JobInstanceInfo;
 import ikama.batchc3.core.StepInfo;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ import java.util.Locale;
 @Route("")
 //@Theme(value = Material.class, variant = Material.LIGHT)
 @Theme(value = Lumo.class, variant = Lumo.DARK)
+@StyleSheet("../static/css/c3-theme.css")
 // @PWA(name = "Project Base for Vaadin Flow with Spring", shortName = "Project Base")
 public class MainView extends AppLayout implements JobEventListener {
 
@@ -56,8 +58,9 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     C3Manager batchManager;
     private UI ui;
-    Grid<JobInfo> grid = null;
+    Grid<JobInstanceInfo> grid = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
+    private boolean initialized = false;
 
     public MainView() {
 
@@ -66,29 +69,29 @@ public class MainView extends AppLayout implements JobEventListener {
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
-        this.ui = attachEvent.getUI();
+        log.info("Attach");
         batchManager.registerJobChangeListener(this);
 
+        if (!initialized) {
 
-        Image img = new Image("../static/images/batch-c3-logo-light.png", "Batch c3 logo");
-        img.setHeight("28px");
-        DrawerToggle drawerToggle = new DrawerToggle();
-        this.addToNavbar(new DrawerToggle(), img);
-        this.setDrawerOpened(false);
-        Tabs tabs = new Tabs(new Tab("Jobs"), new Tab("About"));
+            this.ui = attachEvent.getUI();
+            Image img = new Image("../static/images/batch-c3-logo-light.png", "Batch c3 logo");
+            img.setHeight("28px");
+            DrawerToggle drawerToggle = new DrawerToggle();
+            this.addToNavbar(new DrawerToggle(), img);
+            this.setDrawerOpened(false);
+            Tabs tabs = new Tabs(new Tab("Jobs"), new Tab("About"));
+            tabs.setOrientation(Tabs.Orientation.VERTICAL);
+            this.addToDrawer(tabs);
+            this.addToNavbar(new Label("Version: 123"));
 
-
-        tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        this.addToDrawer(tabs);
-
-        try {
-            this.setContent(createJobView());
-        } catch (Exception e) {
-            this.setContent(new Label("Failed to create job view: " + e.getMessage()));
+            try {
+                this.setContent(createJobView());
+            } catch (Exception e) {
+                this.setContent(new Label("Failed to create job view: " + e.getMessage()));
+            }
+            initialized = true;
         }
-
-        log.info("Attach");
-
     }
 
     @Override
@@ -109,15 +112,19 @@ public class MainView extends AppLayout implements JobEventListener {
         jobView.setWidthFull();
         //setDefaultHorizontalComponentAlignment(FlexComponent.Alignment.STRETCH);
         this.grid = new Grid();
-        grid.setHeightByRows(false);
-
+        grid.addClassName("jobgrid");
+        grid.setId("jobgrid");
+        grid.setHeightByRows(true);
         grid.setVerticalScrollingEnabled(false);
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.setDetailsVisibleOnClick(false);
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER,
+                GridVariant.LUMO_NO_ROW_BORDERS);
 
-        grid.addColumn(item -> item.getName());
+        Grid.Column<JobInstanceInfo> c = grid.addColumn(item -> item.getName());
+        c.setClassNameGenerator(item -> "job_cell");
         //grid.addColumn(item->createJobInfo(grid, item)).setHeader("Status");
-        grid.addColumn(TemplateRenderer.<JobInfo>of(
+        grid.addColumn(TemplateRenderer.<JobInstanceInfo>of(
                 "<div style='font-size:0.8em'>ExecutionID: [[item.executionId]]<br>" +
                         "Instance ID: [[item.instanceId]]<br>" +
                         "Started: [[item.startTime]]<br>" +
@@ -126,15 +133,12 @@ public class MainView extends AppLayout implements JobEventListener {
                         "Exitstatus: [[item.exitStatus]]<br>" +
                         "</div>"
                 )
-                        .withProperty("executionId", JobInfo::getExecutionId)
-                        .withProperty("instanceId", JobInfo::getInstanceId)
-                        .withProperty("exitStatus", JobInfo::getExitStatus)
-                        .withProperty("startTime", ji -> DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
-                        .withProperty("endTime", ji -> ji != null ? DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
-                        .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : "")
-
-
-        );
+        .withProperty("executionId", JobInstanceInfo::getExecutionId)
+        .withProperty("instanceId", JobInstanceInfo::getInstanceId)
+        .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
+        .withProperty("startTime", ji -> DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
+        .withProperty("endTime", ji -> ji != null ? DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
+        .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : ""));
         grid.addComponentColumn(item -> createStepComponent(grid, item));
         grid.addComponentColumn(item -> createButtons(grid, item));
 
@@ -143,18 +147,8 @@ public class MainView extends AppLayout implements JobEventListener {
         jobView.add(grid);
         return jobView;
     }
-    /*
-    private Component createJobInfo(Grid<JobInfo> grid, JobInfo item) {
-        StringBuilder sb = new StringBuilder("<ul>");
-        sb.append("<li>ex.st:").append(item.getExecutionStatus()).append("</ul>");
 
-
-        Label htmlLabel = new Label(sb.toString(),);
-        return htmlLabel;
-    }
-    */
-
-    private Component createButtons(Grid<JobInfo> grid, JobInfo item) {
+    private Component createButtons(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
         HorizontalLayout hl = new HorizontalLayout();
         hl.setSpacing(false);
         Button startButton = new Button("", clickEvent -> {
@@ -242,28 +236,37 @@ public class MainView extends AppLayout implements JobEventListener {
         }
     }
 
-    private Component createStepComponent(Grid<JobInfo> grid, JobInfo jobInfo) {
+    private Component createStepComponent(Grid<JobInstanceInfo> grid, JobInstanceInfo jobInstanceInfo) {
         VerticalLayout vl = new VerticalLayout();
         vl.setAlignItems(FlexComponent.Alignment.START);
         vl.setSpacing(false);
-        for (StepInfo step : jobInfo.getSteps()) {
-            Label statusLabel = new Label(step.getExecutionStatus());
-
-            statusLabel.getStyle().set("background-color", batchStatusToColor(step.getExecutionStatus()))
-                    .set("margin-left", "5px")
+        for (StepInfo step : jobInstanceInfo.getSteps()) {
+            Div statusLabel = new Div();
+            statusLabel.setClassName("step_status");
+            statusLabel.setText(step.getExecutionStatus());
+            statusLabel.getStyle().set("background-color", batchStatusToColor(step.getExecutionStatus()));
+                    /*.set("margin-left", "5px")
                     .set("padding-left", "3px")
                     .set("padding-right", "3px")
                     .set("padding-top", "2px")
                     .set("padding-bottom", "2px")
                     .set("font-size", "0.6em")
                     .set("color", "#eeeeee")
-                    .set("border-radius", "var(--lumo-border-radius-m)");
-            Div div = new Div(new Label(step.getName()), statusLabel);
+                    .set("border-radius", "var(--lumo-border-radius-m)");*/
+            Label stepNameLabel = new Label(step.getName());
+            stepNameLabel.getStyle().set("font-size", "0.8em");
+            Div div = new Div(stepNameLabel, statusLabel);
+            div.getStyle().set("display", "flex")
+                    .set("align-items", "baseline")
+                    .set("flex-flow", "row wrap")
+                    .set("margin", "2px");
+
             if (step.isRunning()) {
-                 ProgressBar pb = new ProgressBar();
+                ProgressBar pb = new ProgressBar();
                 pb.setIndeterminate(true);
-                pb.setWidth("30px");
-                pb.setHeight("14px");
+                pb.setWidth("40px");
+                pb.setHeight("6px");
+                pb.getStyle().set("margin-left", "5px").set("flex-basis", "100%").set("margin-left", "0").set("margin-right", "0");
                 div.add(pb);
             }
             if (step.getReportUrls() != null) {
@@ -282,7 +285,7 @@ public class MainView extends AppLayout implements JobEventListener {
                     icon.setSize("1.75em");
                     Anchor reportAnchor = new Anchor("../" + url, icon);
                     reportAnchor.setTarget("reports");
-                    reportAnchor.getStyle().set("font-size", "0.6em").set("margin-left","5px");
+                    reportAnchor.getStyle().set("font-size", "0.6em").set("margin-left", "5px");
                     div.add(reportAnchor);
                 }
             }
@@ -292,11 +295,11 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     @Override
-    public void onJobChange(JobInfo jobInfo) {
-        log.info("onJobChange {} ", jobInfo);
+    public void onJobChange(JobInstanceInfo jobInstanceInfo) {
+        log.info("onJobChange {} ", jobInstanceInfo);
 
         this.ui.access(() -> {
-            grid.getDataProvider().refreshItem(jobInfo);
+            grid.getDataProvider().refreshItem(jobInstanceInfo);
         });
     }
 

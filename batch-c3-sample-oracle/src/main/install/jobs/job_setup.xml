@@ -12,7 +12,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <b:step parent="step_base" id="setup_utils" next="setup2">
             <b:description>Creates some utility procedures and functions</b:description>
             <b:tasklet>
-                <bean parent="sqlcl-base">
+                <bean parent="sqlplus-base">
                     <property name="scriptFiles">
                         <list>
                             <value>utils.sql</value>

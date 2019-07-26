@@ -33,7 +33,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
     @Autowired
     @Qualifier("stagingDataSource")
     DataSource dataSource;
-    
+
     /**
      * The query timeout in seconds. Defaults to -1 which means that the default timeout of the datasource will be used.
      */
@@ -78,7 +78,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
         context.setVariable("jobName", cc.getStepContext().getJobName());
         context.setVariable("jobExecutionId", cc.getStepContext().getStepExecution().getJobExecutionId());
         context.setVariable("jobInstanceId", cc.getStepContext().getStepExecution().getJobExecution().getJobInstance().getInstanceId());
-        
+
         context.setVariable("name", name);
         List<QueryResult> result = fetchData();
         log.debug("Result length is " + result.size());
@@ -106,8 +106,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
             qr.setTitle(title);
             try {
                 jdbct.query(sql, qr);
-            }
-            catch(DataAccessException dae) {
+            } catch (DataAccessException dae) {
                 log.warn("Report query failed: " + dae.getMostSpecificCause());
                 qr.setError(dae.getMessage());
             }
@@ -124,7 +123,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
         String title;
         String query;
         String error;
-        
+
 
         public List<String> getColumnNames() {
             return columnNames;
@@ -133,7 +132,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
         public List<Object> getColumnTypes() {
             return columnTypes;
         }
-        
+
 
         public List<List<Object>> getRows() {
             return rows;
@@ -162,8 +161,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
         public void setError(String error) {
             this.error = error;
         }
-        
-        
+
 
         @Override
         public Integer extractData(ResultSet rs) throws SQLException, DataAccessException {

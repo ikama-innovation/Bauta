@@ -37,9 +37,11 @@ public class WebConfiguration implements WebMvcConfigurer {
         log.info("Mapping /reports/** to '{}'", reportURI);
         registry.addResourceHandler("/reports/**").addResourceLocations(reportURI);
         registry.addResourceHandler("/static/images/**").addResourceLocations("classpath:/static/images/");
+        registry.addResourceHandler("/static/css/**").addResourceLocations("classpath:/static/css/");
 
 
     }
+
     @Bean
     @Order(Ordered.LOWEST_PRECEDENCE)
     public ServletRegistrationBean<SpringServlet> vaadinServletBean() {

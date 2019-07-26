@@ -15,13 +15,13 @@ import java.io.IOException;
 
 /**
  * Deletes the given file. Exits silently if the file does not exist.
- *x
+ * x
  */
 public class DeleteFileTasklet implements Tasklet {
 
     private static final Logger log = LoggerFactory.getLogger(DeleteFileTasklet.class);
     Resource resource = null;
-    
+
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 

@@ -57,11 +57,11 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     private long timeout = 0;
 
     private long checkInterval = 300;
-    
+
     private JobExplorer jobExplorer;
-    
+
     private boolean sendExitCommand = true;
-    
+
     private volatile boolean stopping = true;
 
     @Autowired
@@ -140,6 +140,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     pb.directory(scriptDir);
                     pb.redirectErrorStream(true);
                     pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile));
+                    pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
                     Process process = pb.start();
                     log.debug("Starting process for {}", scriptFile);
                     if (process.isAlive() && sendExitCommand) {
@@ -290,8 +291,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
      * Will interrupt the thread executing the system executable only if {@link #setInterruptOnCancel(boolean)} has been set to true. Otherwise the
      * underlying executable will be allowed to finish before the tasklet ends.
      *
-     * @since 3.0
      * @see StoppableTasklet#stop()
+     * @since 3.0
      */
     @Override
     public void stop() {
@@ -328,7 +329,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
      * A list of script parameters to be passed to the script. Equivalent to "sql @myscript.sql param1 param2".
      *
      * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
-     * jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
+     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
      */
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;

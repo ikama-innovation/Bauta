@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class JobInfo {
+public class JobInstanceInfo {
 
     private String name;
     private String executionStatus;
@@ -17,7 +17,7 @@ public class JobInfo {
     private long duration;
     private List<StepInfo> steps = new ArrayList<>();
 
-    public JobInfo(String jobName) {
+    public JobInstanceInfo(String jobName) {
         this.name = jobName;
     }
 
@@ -60,8 +60,17 @@ public class JobInfo {
     public void setSteps(List<StepInfo> steps) {
         this.steps = steps;
     }
-    public void add(StepInfo step) {
+
+    public void appendStep(StepInfo step) {
         steps.add(step);
+    }
+
+    public void prependStep(StepInfo step) {
+        steps.add(0, step);
+    }
+
+    public void insertStepAt(StepInfo step, int index) {
+        steps.add(index, step);
     }
 
     public String getExitStatus() {
@@ -104,8 +113,8 @@ public class JobInfo {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        JobInfo jobInfo = (JobInfo) o;
-        return name.equals(jobInfo.name);
+        JobInstanceInfo jobInstanceInfo = (JobInstanceInfo) o;
+        return name.equals(jobInstanceInfo.name);
     }
 
     @Override
@@ -115,7 +124,7 @@ public class JobInfo {
 
     @Override
     public String toString() {
-        return "JobInfo{" +
+        return "JobInstanceInfo{" +
                 "name='" + name + '\'' +
                 ", executionStatus='" + executionStatus + '\'' +
                 ", executionId=" + executionId +

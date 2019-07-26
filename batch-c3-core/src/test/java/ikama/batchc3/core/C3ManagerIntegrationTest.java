@@ -1,7 +1,5 @@
 package ikama.batchc3.core;
 
-import static org.junit.Assert.assertEquals;
-
 import org.junit.BeforeClass;
 
 public class C3ManagerIntegrationTest {

@@ -19,7 +19,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
 
     private static final Logger log = LoggerFactory.getLogger(DummyTasklet.class);
     private static int failureCount = 0;
-    
+
     boolean stopping = false;
     String name;
     int repeats = 10;
@@ -30,7 +30,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
 
     public DummyTasklet() {
         log.debug("Creating DummyTasklet {}", name);
-        
+
     }
 
     @Override
@@ -42,7 +42,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
             return RepeatStatus.FINISHED;
         }
         boolean finished = false;
-        
+
         //String jobName = (String)cc.getAttribute("job_name");
         if (jobName == null) {
             // Schedule
@@ -52,35 +52,32 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
             //sc.incrementWriteCount(1);
             Thread.currentThread().sleep(sleepTimeMs);
             log.debug("Done!");
-            
-            
-        }
-        else {
+
+
+        } else {
             //sc.incrementReadCount();
             //Integer checkCount = (Integer)cc.getAttribute("CHECK_COUNT");
             if (checkCount == null) {
                 checkCount = 1;
-            }
-            else {
+            } else {
                 checkCount = checkCount + 1;
             }
-            
+
             //cc.setAttribute("CHECK_COUNT", checkCount);
             Thread.currentThread().sleep(sleepTimeMs);
             if (checkCount > repeats) {
                 finished = true;
             }
         }
-        
-        
-        if( finished) {
+
+
+        if (finished) {
             if (failureCount < emulateFailures) {
                 failureCount++;
                 throw new JobExecutionException("Emulated execution failure. Failure count: " + failureCount);
             }
             return RepeatStatus.FINISHED;
-        }
-        else {
+        } else {
             return RepeatStatus.CONTINUABLE;
         }
     }
@@ -108,7 +105,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
     public void setSleepTimeMs(int sleepTimeMs) {
         this.sleepTimeMs = sleepTimeMs;
     }
-    
+
 
     @Override
     public void stop() {
@@ -119,7 +116,6 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
     public void setEmulateFailures(int emulateFailures) {
         this.emulateFailures = emulateFailures;
     }
-    
-    
+
 
 }

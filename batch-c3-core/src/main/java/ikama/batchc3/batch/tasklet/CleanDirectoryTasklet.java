@@ -34,7 +34,7 @@ public class CleanDirectoryTasklet implements Tasklet {
                 throw new JobExecutionException("The provided directory path does not point to a directory: " + directory.toString());
             }
             FileUtils.cleanDirectory(dirFile);
-            
+
         } catch (IOException ex) {
             throw new JobExecutionException("Failed to clean directory: " + directory.toString(), ex);
         }

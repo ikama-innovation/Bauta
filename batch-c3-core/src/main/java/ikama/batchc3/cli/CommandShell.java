@@ -27,7 +27,7 @@ public class CommandShell {
         Collection<String> jobs = c3Manager.listJobSummaries();
 
         int jobShortId = 0;
-        for (String job:jobs) {
+        for (String job : jobs) {
             sb.append(job);
             sb.append(" [").append(jobShortId++).append("]");
             sb.append(System.lineSeparator());
@@ -35,6 +35,7 @@ public class CommandShell {
 
         return sb.toString();
     }
+
     @ShellMethod("List job names")
     public String list() throws Exception {
         // invoke service
@@ -42,7 +43,7 @@ public class CommandShell {
         Collection<String> jobs = c3Manager.listJobNames();
 
         int jobShortId = 0;
-        for (String job:jobs) {
+        for (String job : jobs) {
             sb.append(job);
             sb.append(" [").append(jobShortId++).append("]");
             sb.append(System.lineSeparator());

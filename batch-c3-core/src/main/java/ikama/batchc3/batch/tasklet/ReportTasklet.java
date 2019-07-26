@@ -16,19 +16,18 @@ import java.util.List;
 
 /**
  * Tasklet that generates reports. Delegates to one or many {@link ReportGenerator}.
-
  */
 public class ReportTasklet implements Tasklet {
-    
+
     private static final Logger log = LoggerFactory.getLogger(ReportTasklet.class);
 
     @Value("${batchc3.reportDir}")
     protected String reportDir;
-    
+
     protected String name;
-    
+
     private List<ReportGenerator> reportGenerators = new ArrayList<>();
-    
+
     public String getName() {
         return name;
     }
@@ -44,19 +43,20 @@ public class ReportTasklet implements Tasklet {
     public void setReportDir(String reportDir) {
         this.reportDir = reportDir;
     }
-    
+
     protected void addReportGenerator(ReportGenerator reportGenerator) {
         reportGenerators.add(reportGenerator);
     }
+
     public void setReportGenerators(List<ReportGenerator> reportGenerators) {
         this.reportGenerators = reportGenerators;
     }
-    
+
     @Override
     public RepeatStatus execute(StepContribution sc, ChunkContext cc) throws Exception {
         List<String> fileNames = new ArrayList<>();
         List<String> urls = new ArrayList<>();
-        
+
         for (ReportGenerator reportGenerator : reportGenerators) {
             String fileName = reportGenerator.getReportFilename();
             File reportFile = ReportUtils.generateReportFile(reportDir, cc.getStepContext().getStepExecution(), fileName);
@@ -67,7 +67,7 @@ public class ReportTasklet implements Tasklet {
         }
         cc.getStepContext().getStepExecution().getExecutionContext().put("fileNames", fileNames);
         cc.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
-        
+
         return RepeatStatus.FINISHED;
     }
 }

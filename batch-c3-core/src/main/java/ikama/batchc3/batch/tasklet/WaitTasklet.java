@@ -13,7 +13,6 @@ import java.util.Date;
 
 /**
  * A tasklet that waits a given amount of time.
- *
  */
 public class WaitTasklet implements StoppableTasklet, Tasklet {
 

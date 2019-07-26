@@ -8,7 +8,6 @@ import java.io.File;
 /**
  * Interface for a report generator. Typically used by a Tasklet or a Tasklet
  * delegate.
- *
  */
 public interface ReportGenerator {
 

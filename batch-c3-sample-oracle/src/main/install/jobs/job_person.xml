@@ -12,7 +12,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <b:step parent="step_base" id="create_person_1" next="convert_person_1">
             <b:description>Create some person1 data</b:description>
             <b:tasklet>
-                <bean parent="sqlcl-base">
+                <bean parent="sqlplus-base">
                     <property name="scriptFiles">
                         <list>
                             <value>demo_create_person1.sql</value>
@@ -24,7 +24,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <b:step parent="step_base" id="convert_person_1" next="compile_person_2_proc">
             <b:description>Convert person1</b:description>
             <b:tasklet>
-                <bean parent="sqlcl-base">
+                <bean parent="sqlplus-base">
                     <property name="scriptFiles">
                         <list>
                             <value>demo_convert_person1.sql</value>
@@ -36,7 +36,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <b:step parent="step_base" id="compile_person_2_proc" next="create_person2">
             <b:description>Compiles the person 2 procedures</b:description>
             <b:tasklet>
-                <bean parent="sqlcl-base">
+                <bean parent="sqlplus-base">
                     <property name="scriptFiles">
                         <list>
                             <value>demo_person2_procedures.sql</value>
@@ -49,7 +49,8 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             <b:description>Executes the demo_create_person2 procedure in a scheduled DBMS_SCHEDULER job</b:description>
             <b:tasklet>
                 <bean class="ikama.batchc3.batch.tasklet.oracle.ScheduledJobTasklet">
-                    <property name="action" value="begin demo_create_person2(100000);end;"/>
+                    <property name="action" value="begin demo_create_person2(1000);end;"/>
+                    <property name="statusCheckInterval" value="10000" />
                 </bean>
             </b:tasklet>
         </b:step>
@@ -58,6 +59,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             <b:tasklet>
                 <bean class="ikama.batchc3.batch.tasklet.oracle.ScheduledJobTasklet">
                     <property name="action" value="begin demo_convert_person2();end;"/>
+                    <property name="statusCheckInterval" value="10000" />
                 </bean>
             </b:tasklet>
         </b:step>

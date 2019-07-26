@@ -17,5 +17,5 @@ public abstract class ThymeleafReportTasklet extends ReportTasklet {
     public void setTemplateEngine(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
     }
-    
+
 }

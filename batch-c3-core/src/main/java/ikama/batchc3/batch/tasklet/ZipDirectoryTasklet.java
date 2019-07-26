@@ -18,7 +18,6 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * Compresses the given directory into a zip-file.
- *
  */
 public class ZipDirectoryTasklet implements Tasklet {
 
@@ -62,16 +61,19 @@ public class ZipDirectoryTasklet implements Tasklet {
         }
     }
 
-    /** 
+    /**
      * The directory to be compressed.
-     * @param sourceDir 
+     *
+     * @param sourceDir
      */
     public void setSourceDir(FileSystemResource sourceDir) {
         this.sourceDir = sourceDir;
     }
+
     /**
      * The destination zip-file.
-     * @param destFile 
+     *
+     * @param destFile
      */
     public void setDestFile(FileSystemResource destFile) {
         this.destFile = destFile;

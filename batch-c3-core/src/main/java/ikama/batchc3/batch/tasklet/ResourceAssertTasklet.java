@@ -19,15 +19,14 @@ public class ResourceAssertTasklet implements Tasklet {
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        
+
         if (!resource.exists()) {
             String msg = assertionMessage;
             if (msg == null) {
                 msg = "Resource " + resource.getDescription() + " does not exist";
             }
             throw new JobExecutionException(msg);
-        }
-        else if (expectedFileCount != null) {
+        } else if (expectedFileCount != null) {
             File file = resource.getFile();
             if (!file.isDirectory()) {
                 throw new JobExecutionException("Resource is not a directory");
@@ -36,13 +35,14 @@ public class ResourceAssertTasklet implements Tasklet {
                 throw new JobExecutionException("Directory " + resource.getFilename() + " does not contain the expected nr of files " + expectedFileCount + ". Actual nr of files is " + file.list().length);
             }
         }
-        
+
         return RepeatStatus.FINISHED;
     }
-    
+
     /**
      * The directory to be checked.
-     * @param resource 
+     *
+     * @param resource
      */
     public void setResource(Resource resource) {
         this.resource = resource;
@@ -50,14 +50,17 @@ public class ResourceAssertTasklet implements Tasklet {
 
     /**
      * An optional message to be presented if assertion fails.
-     * @param assertionMessage 
+     *
+     * @param assertionMessage
      */
     public void setAssertionMessage(String assertionMessage) {
         this.assertionMessage = assertionMessage;
     }
-    /** 
+
+    /**
      * The expected amount of files in the provided directory. Optional.
-     * @param expectedFileCount 
+     *
+     * @param expectedFileCount
      */
     public void setExpectedFileCount(Integer expectedFileCount) {
         this.expectedFileCount = expectedFileCount;
