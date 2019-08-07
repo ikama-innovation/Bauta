@@ -34,10 +34,6 @@
             <version>14.0.0.rc5</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
             <version>5.1.7.RELEASE</version>
@@ -74,6 +70,9 @@
             <id>vaadin-prereleases</id>
             <name>Vaadin pre-release</name>
             <url>http://maven.vaadin.com/vaadin-prereleases</url>
+            <releases><enabled>true</enabled><updatePolicy>always</updatePolicy></releases>
+            <snapshots><enabled>true</enabled><updatePolicy>always</updatePolicy></snapshots>
+
         </repository>
     </repositories>
 

@@ -36,7 +36,7 @@
         <dependency>
             <groupId>ikama</groupId>
             <artifactId>batch-c3-core</artifactId>
-            <version>${c3.version}</version>
+            <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
 
@@ -71,7 +71,7 @@
     </build>
 
     <properties>
-        <c3.version>0.0.1-SNAPSHOT</c3.version>
+
     </properties>
 
 </project>
