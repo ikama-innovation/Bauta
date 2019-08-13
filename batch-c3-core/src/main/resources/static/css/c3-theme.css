@@ -1,0 +1,28 @@
+
+#vaadin-grid-cell-16 {
+    align-items: baseline !important;
+    background-color: pink;
+    color: fuchsia !important;
+}
+
+vaadin-grid .job_cell {
+    display: flex;
+    align-items: baseline !important;
+    background-color: pink;
+    color: fuchsia !important;
+}
+
+.job_title {
+    font-color: lightgreen;
+}
+
+.step_status {
+    margin-left: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 0.6em;
+    color: #eeeeee;
+    border-radius: var(--lumo-border-radius-m);
+}
