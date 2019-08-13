@@ -1,5 +1,5 @@
-# batchc-3
-Command, Control and Communication framework for automated batch processing
+# Bauta
+Batch automation framework based on spring-batch. Offers command/control/communication via a web-based UI.
 
 
 ## Configuration
