@@ -4,9 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ikama</groupId>
-    <artifactId>batch-c3</artifactId>
+    <artifactId>bauta</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>batch-c3</name>
+    <name>bauta</name>
     <packaging>pom</packaging>
     <description>Command, control and communication for Spring Batch</description>
     <properties>
@@ -18,11 +18,11 @@
     </properties>
 
     <modules>
-        <module>batch-c3-core</module>
-        <module>batch-c3-autoconfigure</module>
-        <module>batch-c3-starter</module>
-        <module>batch-c3-sample</module>
-        <module>batch-c3-sample-oracle</module>
+        <module>bauta-core</module>
+        <module>bauta-autoconfigure</module>
+        <module>bauta-starter</module>
+        <module>bauta-sample</module>
+        <module>bauta-sample-oracle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
