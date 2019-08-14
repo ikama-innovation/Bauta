@@ -1,5 +1,10 @@
 # Bauta
-Batch automation framework based on spring-batch. Offers command/control/communication via a web-based UI.
+Bauta is a batch automation framework based on spring-batch.
+Features:
+- Start/stop/restart jobs via a web-based user interface
+- Watch job/step progress and status.
+- Steps can generate output that can be displayed in the UI. Typically reports, script logs, stack traces etc.
+- Provides "starter" and example projects for different usage scenarios
 
 
 ## Configuration
