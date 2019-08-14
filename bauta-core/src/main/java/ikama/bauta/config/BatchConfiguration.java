@@ -169,7 +169,7 @@ public class BatchConfiguration {
 
     // Staging database
     @Bean()
-    @ConditionalOnProperty(prefix = "bauta", name = "stagingDB.host")
+    @ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
         BasicDataSource dataSource = new BasicDataSource();
