@@ -58,10 +58,4 @@ public class CommandShell {
         executionId = bautaManager.startJob(jobName);
         return "Started: " + jobName + " with execution id " + executionId;
     }
-
-    @ShellMethod("Exit")
-    public void exit(String jobName) {
-
-        System.exit(0);
-    }
 }
