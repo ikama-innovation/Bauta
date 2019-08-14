@@ -60,8 +60,8 @@ public class CommandShell {
     }
 
     @ShellMethod("Exit")
-    public String exit(String jobName) {
-        
+    public void exit(String jobName) {
+
         System.exit(0);
     }
 }
