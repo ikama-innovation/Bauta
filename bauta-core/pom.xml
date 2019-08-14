@@ -31,7 +31,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
-            <version>14.0.0.rc5</version>
+            <version>14.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -66,6 +66,7 @@
             <name>Spring Milestones</name>
             <url>https://repo.spring.io/milestone</url>
         </repository>
+        <!--
         <repository>
             <id>vaadin-prereleases</id>
             <name>Vaadin pre-release</name>
@@ -74,6 +75,7 @@
             <snapshots><enabled>true</enabled><updatePolicy>always</updatePolicy></snapshots>
 
         </repository>
+        -->
     </repositories>
 
 
