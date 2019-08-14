@@ -59,4 +59,9 @@ public class CommandShell {
         return "Started: " + jobName + " with execution id " + executionId;
     }
 
+    @ShellMethod("Exit")
+    public String exit(String jobName) {
+        
+        System.exit(0);
+    }
 }
