@@ -60,8 +60,6 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
     private JobExplorer jobExplorer;
 
-    private boolean sendExitCommand = true;
-
     private volatile boolean stopping = true;
 
     @Autowired
@@ -123,13 +121,24 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 pw.println(scriptFile + ":");
                 pw.println(line);
                 pw.flush();
+
             }
             FutureTask<Integer> systemCommandTask = new FutureTask<Integer>(new Callable<Integer>() {
 
                 @Override
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
-                    commands.add(executable);
+                    if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                        log.info("Running on windows.");
+                        commands.add("cmd.exe");
+                        commands.add("/c");
+                    }
+                    else {
+                        commands.add("/bin/sh");
+                        commands.add("-c");
+                    }
+                    commands.add("EXIT |" +  executable);
+                    //commands.add(executable);
                     commands.add(easyConnectionIdentifier);
                     commands.add("@" + scriptFile);
                     commands.addAll(scriptParameterValues);
@@ -137,27 +146,18 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     ProcessBuilder pb = new ProcessBuilder(commands);
                     Map<String, String> env = pb.environment();
                     env.putAll(environmentParams);
+
                     pb.directory(scriptDir);
                     pb.redirectErrorStream(true);
                     pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile));
                     pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
+
                     Process process = pb.start();
+
                     log.debug("Starting process for {}", scriptFile);
-                    if (process.isAlive() && sendExitCommand) {
-                        // Pass en exit executable to
-                        log.debug("Passing EXIT executable..");
-                        try (OutputStream o = process.getOutputStream()) {
-                            String ls = System.getProperty("line.separator");
-                            o.write((ls + "EXIT" + ls).getBytes());
-                            o.flush();
-                        } catch (Exception e) {
-                            log.warn("Unexpected error when passing EXIT executable", e);
-                        }
-                    }
 
                     return process.waitFor();
                 }
-
             });
 
             long t0 = System.currentTimeMillis();
@@ -168,11 +168,14 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 Thread.sleep(checkInterval);
 
                 if (systemCommandTask.isDone()) {
+
                     int exitCode = systemCommandTask.get();
+
                     log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
                     // Not all errors in SQLcl leads to an error code being returned.
                     // The log file must be checked for erros.
                     checkForErrorsInLog(logFile);
+
                     if (exitCode != 0) {
                         throw new JobExecutionException("SQLcl exited with code " + exitCode);
                     }
@@ -209,8 +212,10 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("SP2-") || line.startsWith("CPY0") || line.startsWith("Warning:")) {
                     throw new JobExecutionException("There were SQL*Plus errors: " + line);
-                } else if (line.startsWith("ORA-")) {
-                    throw new JobExecutionException("There were ORA errors: " + line);
+                } else if (line.contains(" PL/SQL:") || line.contains(" PLS-")) {
+                    throw new JobExecutionException("There were errors: " + line);
+                } else if (line.startsWith("Errors: check compiler log")) {
+                    throw new JobExecutionException("There were compilation errors: " + line);
                 }
             }
         } catch (IOException ioe) {
@@ -244,15 +249,6 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
         Assert.isTrue(scriptDir.exists(), "working directory must exist");
         Assert.isTrue(scriptDir.isDirectory(), "working directory value must be a directory");
 
-    }
-
-    /**
-     * By default, when executing an sql file with SQLPLUS in a "one-liner" fashion, i.e. "sglplus .. @myscript.sql", SQLPLUS will not exit from the
-     * prompt unless the script contains a final "exit" executable. Set this to true if your script does not contain exit executable. Then an exit executable
-     * will be passed to SQLPlus after the script has finished.
-     */
-    public void setSendExitCommand(boolean sendExitCommand) {
-        this.sendExitCommand = sendExitCommand;
     }
 
     @Override

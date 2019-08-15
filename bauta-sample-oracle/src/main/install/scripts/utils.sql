@@ -29,7 +29,7 @@ create or replace PROCEDURE DROP_TABLE_CASCADE_IF_EXISTS(p_tablename VARCHAR2) A
  l_sql VARCHAR2(100);
 BEGIN
    l_sql := 'DROP TABLE '||p_tablename||' CASCADE CONSTRAINTS PURGE';
-   EXECUTE IMMEDIATE l_sql;
+   EXECUTE IMMEDIATE l_sqlx;
 EXCEPTION
    WHEN OTHERS THEN
       IF SQLCODE != -942 THEN
@@ -38,3 +38,4 @@ EXCEPTION
 END;
 /
 
+select 'hello' from dual;
