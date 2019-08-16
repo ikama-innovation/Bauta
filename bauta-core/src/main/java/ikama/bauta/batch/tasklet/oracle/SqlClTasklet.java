@@ -128,22 +128,26 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 @Override
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
+                    String cmd = "exit|sql "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParameterValues;
                     if (System.getProperty("os.name").toLowerCase().contains("win")) {
                         log.info("Running on windows.");
                         commands.add("cmd.exe");
                         commands.add("/c");
+                        //commands.add("exit | " +  executable);
+                        //commands.add(easyConnectionIdentifier);
+                        //commands.add("@" + scriptFile);
+                        //commands.addAll(scriptParameterValues);
+                        commands.add(cmd);
                     }
                     else {
                         commands.add("/bin/sh");
                         commands.add("-c");
+                        commands.add(cmd);
                     }
-                    commands.add("exit | " +  executable);
-                    //commands.add(executable);
-                    commands.add(easyConnectionIdentifier);
-                    commands.add("@" + scriptFile);
-                    commands.addAll(scriptParameterValues);
+
                     log.debug("Command is: " + StringUtils.join(commands, ","));
                     ProcessBuilder pb = new ProcessBuilder(commands);
+
                     Map<String, String> env = pb.environment();
                     env.putAll(environmentParams);
 
