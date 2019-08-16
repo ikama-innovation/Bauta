@@ -137,7 +137,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                         commands.add("/bin/sh");
                         commands.add("-c");
                     }
-                    commands.add("EXIT |" +  executable);
+                    commands.add("exit | " +  executable);
                     //commands.add(executable);
                     commands.add(easyConnectionIdentifier);
                     commands.add("@" + scriptFile);
