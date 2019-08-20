@@ -83,8 +83,13 @@
                 <directory>${basedir}/src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>**/bauta_default.properties</include>
-                    <include>**/*.xml</include>
+                    <include>bauta_default.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
                 </includes>
             </resource>
         </resources>

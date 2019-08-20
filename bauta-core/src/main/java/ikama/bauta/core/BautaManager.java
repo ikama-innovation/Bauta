@@ -294,18 +294,22 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
     public List<String> getServerInfo() {
         ArrayList<String> info = new ArrayList<>();
+        info.add("Profiles: " + env.getProperty("spring.profiles.active","---"));
         info.add("Bauta version: " + env.getProperty("bauta.version","---"));
         info.add("Bauta build: " + env.getProperty("bauta.build","---"));
-        info.add("Instance version: " + env.getProperty("instance.version","---"));
-        info.add("Instance build: " + env.getProperty("instance.build","---"));
+        info.add("Bauta build time: " + env.getProperty("bauta.buildTime","---"));
+        info.add("Instance name: " + env.getProperty("bauta.instance.name","---"));
+        info.add("Instance version: " + env.getProperty("bauta.instance.version","---"));
+        info.add("Instance build: " + env.getProperty("bauta.instance.build","---"));
+        info.add("Instance build: " + env.getProperty("bauta.instance.buildTime","---"));
         info.add("Home dir: " + env.getProperty("bauta.homeDir","---"));
         info.add("Job dir: " + env.getProperty("bauta.jobBeansDir","---"));
         info.add("Staging DB: " + env.getProperty("bauta.stagingDB.url","---"));
-        info.add("Staging user: " + env.getProperty("bauta.stagingDB.username","---"));
+        info.add("Staging DB user: " + env.getProperty("bauta.stagingDB.username","---"));
 
         return info;
     }
     public String getShortServerInfo() {
-        return env.getProperty("bauta.version", "---") + " build " + env.getProperty("bauta.build","---");
+        return env.getProperty("spring.profiles.active", "---") + " " + env.getProperty("bauta.instance.name","---") + " " + env.getProperty("bauta.instance.version");
     }
 }
