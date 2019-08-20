@@ -310,6 +310,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return info;
     }
     public String getShortServerInfo() {
-        return env.getProperty("spring.profiles.active", "---") + " " + env.getProperty("bauta.instance.name","---") + " " + env.getProperty("bauta.instance.version");
+        return env.getProperty("spring.profiles.active","").replace("productionMode", "").replace(","," ") + " " + env.getProperty("bauta.instance.name","---") + " " + env.getProperty("bauta.instance.version")+ " " + env.getProperty("bauta.instance.buildTime");
     }
 }
