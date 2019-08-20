@@ -11,6 +11,9 @@
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
+    <properties>
+        <bautainstancebuildtime>${maven.build.timestamp}</bautainstancebuildtime>
+    </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>

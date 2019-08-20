@@ -127,10 +127,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return out;
     }
     private boolean hasRunningExecutions() {
-
+        log.debug("Checking if we have running executions");
         for (String jobName : listJobNames()) {
             try {
                 Set<Long> runningExecutions = jobOperator.getRunningExecutions(jobName);
+                log.debug("Running executions for job {}: {}", jobName, runningExecutions);
                 if (runningExecutions != null && runningExecutions.size() > 0) {
                     return true;
                 }
@@ -301,7 +302,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         info.add("Instance name: " + env.getProperty("bauta.instance.name","---"));
         info.add("Instance version: " + env.getProperty("bauta.instance.version","---"));
         info.add("Instance build: " + env.getProperty("bauta.instance.build","---"));
-        info.add("Instance build: " + env.getProperty("bauta.instance.buildTime","---"));
+        info.add("Instance build time: " + env.getProperty("bauta.instance.buildTime","---"));
         info.add("Home dir: " + env.getProperty("bauta.homeDir","---"));
         info.add("Job dir: " + env.getProperty("bauta.jobBeansDir","---"));
         info.add("Staging DB: " + env.getProperty("bauta.stagingDB.url","---"));
@@ -310,6 +311,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return info;
     }
     public String getShortServerInfo() {
-        return env.getProperty("spring.profiles.active","").replace("productionMode", "").replace(","," ") + " " + env.getProperty("bauta.instance.name","---") + " " + env.getProperty("bauta.instance.version")+ " " + env.getProperty("bauta.instance.buildTime");
+        return env.getProperty("spring.profiles.active","").replace("productionMode", "").replace(","," ") + " " + env.getProperty("bauta.instance.name","---") + " " + env.getProperty("bauta.instance.version")+ " " + env.getProperty("bauta.instance.buildTime","");
     }
 }
