@@ -2,6 +2,7 @@ package ikama.bauta.cli;
 
 import ikama.bauta.core.BautaManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
@@ -13,6 +14,7 @@ public class CommandShell {
 
     @Autowired
     BautaManager bautaManager;
+
 
     @PostConstruct
     public void init() {
@@ -57,5 +59,14 @@ public class CommandShell {
         Long executionId = null;
         executionId = bautaManager.startJob(jobName);
         return "Started: " + jobName + " with execution id " + executionId;
+    }
+
+    @ShellMethod("Provides information about this instance")
+    public String info() {
+        StringBuilder sb = new StringBuilder();
+        for(String s: bautaManager.getServerInfo()) {
+            sb.append(s).append(System.lineSeparator());
+        }
+        return sb.toString();
     }
 }

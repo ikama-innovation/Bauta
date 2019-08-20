@@ -31,7 +31,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
-            <version>14.0.0</version>
+            <version>14.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -77,6 +77,47 @@
         </repository>
         -->
     </repositories>
+    <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/bauta_default.properties</include>
+                    <include>**/*.xml</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <!--
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+            </plugin>
+            <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>buildnumber-maven-plugin</artifactId>
+            <version>1.4</version>
+            <executions>
+                <execution>
+                    <phase>validate</phase>
+                    <goals>
+                        <goal>create</goal>
+                    </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <buildNumberPropertyName>bautaBuildNumber</buildNumberPropertyName>
+                <doCheck>false</doCheck>
+                <doUpdate>false</doUpdate>
+                <scmDirectory>..</scmDirectory>
+                <revisionOnScmFailure>123</revisionOnScmFailure>
+            </configuration>
+            </plugin>
+            -->
+        </plugins>
+    </build>
 
 
 </project>

@@ -39,12 +39,14 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.DependsOn;
 import org.thymeleaf.util.DateUtils;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Locale;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Push
 @Route("")
@@ -57,9 +59,11 @@ public class MainView extends AppLayout implements JobEventListener {
     Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
     BautaManager batchManager;
+
     private UI ui;
     Grid<JobInstanceInfo> grid = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
+    Tabs menuTabs = null;
     private boolean initialized = false;
 
     public MainView() {
@@ -80,18 +84,77 @@ public class MainView extends AppLayout implements JobEventListener {
             DrawerToggle drawerToggle = new DrawerToggle();
             this.addToNavbar(new DrawerToggle(), img);
             this.setDrawerOpened(false);
-            Tabs tabs = new Tabs(new Tab("Jobs"), new Tab("About"));
-            tabs.setOrientation(Tabs.Orientation.VERTICAL);
-            this.addToDrawer(tabs);
 
+
+            Map<Tab, Component> tabsToPages = new HashMap<>();
+            Component jobPage = createJobView();
+            jobPage.setVisible(true);
+            Tab jobTab = new Tab("Jobs");
+            Component aboutPage = createAboutView();
+            aboutPage.setVisible(false);
+            Tab aboutTab = new Tab("About");
+            tabsToPages.put(jobTab, jobPage);
+            tabsToPages.put(aboutTab, aboutPage);
+            Tabs tabs = new Tabs(jobTab, aboutTab);
+            tabs.setSelectedTab(jobTab);
+            tabs.setOrientation(Tabs.Orientation.VERTICAL);
+            Div pages = new Div(jobPage, aboutPage);
+            Set<Component> pagesShown = Stream.of(jobPage)
+                    .collect(Collectors.toSet());
+            tabs.addSelectedChangeListener(event -> {
+                pagesShown.forEach(page -> page.setVisible(false));
+                pagesShown.clear();
+                Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
+                selectedPage.setVisible(true);
+
+                pagesShown.add(selectedPage);
+            });
+            this.addToDrawer(tabs);
             try {
-                this.setContent(createJobView());
+                this.setContent(pages);
             } catch (Exception e) {
                 this.setContent(new Label("Failed to create job view: " + e.getMessage()));
             }
+            Div rightPanel = new Div();
+
+
+            rightPanel.getStyle().set("margin-right","20px");
+            /*Button upgradeBautaButton = new Button("");
+            upgradeBautaButton.getElement().setProperty("title", "Upgrades the Bauta framework to the latest version");
+            upgradeBautaButton.setIcon(VaadinIcon.POWER_OFF.create());
+            //upgradeBautaButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            */
+
+            Button upgradeInstanceButton = new Button("",clickEvent -> {
+                try {
+                    batchManager.rebuildServer();
+                }
+                catch(Exception e) {
+                    showErrorMessage("Failed to rebuild server: " + e.getMessage());
+                }
+            });
+            upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
+            upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
+            //upgradeInstanceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            upgradeInstanceButton.getStyle().set("margin-right","5px");
+
+            Label buildInfo = new Label(batchManager.getShortServerInfo());
+            buildInfo.getStyle().set("font-size","0.75em");
+            buildInfo.getStyle().set("margin-right","10px");
+            rightPanel.add(buildInfo);
+            rightPanel.add(upgradeInstanceButton);
+            //rightPanel.add(upgradeBautaButton);
+
+            //rightPanel.add(new Button("Another"));
+
+            rightPanel.getStyle().set("margin-left", "auto").set("text-alight","right");
+
+            this.addToNavbar(rightPanel);
             initialized = true;
         }
     }
+
+
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
@@ -105,8 +168,15 @@ public class MainView extends AppLayout implements JobEventListener {
 
 
     }
-
-    private Component createJobView() throws Exception {
+    private Component createAboutView() {
+        VerticalLayout aboutView = new VerticalLayout();
+        aboutView.setWidthFull();
+        for(String i : batchManager.getServerInfo()) {
+            aboutView.add(new Label(i));
+        }
+        return aboutView;
+    }
+    private Component createJobView()  {
         VerticalLayout jobView = new VerticalLayout();
         jobView.setWidthFull();
         //setDefaultHorizontalComponentAlignment(FlexComponent.Alignment.STRETCH);
@@ -142,7 +212,13 @@ public class MainView extends AppLayout implements JobEventListener {
         grid.addComponentColumn(item -> createButtons(grid, item));
 
         //grid.addColumn(item->item.getSteps().toArray().toString()).setHeader("Steps");
-        grid.setItems(batchManager.jobDetails());
+        try {
+            grid.setItems(batchManager.jobDetails());
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            showErrorMessage("Failed to fetch job details");
+        }
         jobView.add(grid);
         return jobView;
     }

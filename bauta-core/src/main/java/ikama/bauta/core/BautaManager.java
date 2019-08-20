@@ -12,8 +12,12 @@ import org.springframework.batch.core.launch.NoSuchJobExecutionException;
 import org.springframework.batch.core.launch.NoSuchJobInstanceException;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.env.Environment;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -37,6 +41,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
      * Holds last known information about the steps of a job
      */
     private TreeMap<String, JobInstanceInfo> cachedJobInstanceInfos = new TreeMap<>();
+
+    @Value("${bauta.rebuildServerCommand}")
+    private String rebuildServerCommand;
+
+    @Autowired
+    Environment env;
 
     public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer) {
         this.bautaConfig = bautaConfig;
@@ -115,6 +125,20 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         out.addAll(jobOperator.getJobNames());
         out.sort(String::compareTo);
         return out;
+    }
+    private boolean hasRunningExecutions() {
+
+        for (String jobName : listJobNames()) {
+            try {
+                Set<Long> runningExecutions = jobOperator.getRunningExecutions(jobName);
+                if (runningExecutions != null && runningExecutions.size() > 0) {
+                    return true;
+                }
+            } catch (NoSuchJobException ex) {
+                log.warn("Unexpected error when determining running executions", ex);
+            }
+        }
+        return false;
     }
 
     @Override
@@ -248,5 +272,40 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
+    }
+
+    /**
+     * Executes an external command that typically
+     * @return
+     * @throws Exception
+     */
+    public int rebuildServer() throws Exception {
+        if (hasRunningExecutions()) {
+            throw new RuntimeException("There are running executions! Will not rebuild");
+        }
+        if (rebuildServerCommand == null) {
+            throw new RuntimeException("rebuildServerCommand is not set");
+        }
+        log.info("Executing rebuildServerCommand: '{}'", rebuildServerCommand);
+        ProcessBuilder pb = new ProcessBuilder(rebuildServerCommand);
+        Process process = pb.start();
+        return process.waitFor();
+
+    }
+    public List<String> getServerInfo() {
+        ArrayList<String> info = new ArrayList<>();
+        info.add("Bauta version: " + env.getProperty("bauta.version","---"));
+        info.add("Bauta build: " + env.getProperty("bauta.build","---"));
+        info.add("Instance version: " + env.getProperty("instance.version","---"));
+        info.add("Instance build: " + env.getProperty("instance.build","---"));
+        info.add("Home dir: " + env.getProperty("bauta.homeDir","---"));
+        info.add("Job dir: " + env.getProperty("bauta.jobBeansDir","---"));
+        info.add("Staging DB: " + env.getProperty("bauta.stagingDB.url","---"));
+        info.add("Staging user: " + env.getProperty("bauta.stagingDB.username","---"));
+
+        return info;
+    }
+    public String getShortServerInfo() {
+        return env.getProperty("bauta.version", "---") + " build " + env.getProperty("bauta.build","---");
     }
 }
