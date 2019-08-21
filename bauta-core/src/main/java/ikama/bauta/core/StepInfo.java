@@ -8,6 +8,7 @@ public class StepInfo {
     private String name;
     private String executionStatus;
     private List<String> reportUrls;
+    private String exitDescription;
 
     public StepInfo(String name) {
         this.name = name;
@@ -52,5 +53,13 @@ public class StepInfo {
 
     public boolean isRunning() {
         return "STARTED".equals(this.executionStatus) || "STARTING".equals(this.executionStatus);
+    }
+
+    public void setExitDescription(String exitDescription) {
+        this.exitDescription = exitDescription;
+    }
+
+    public String getExitDescription() {
+        return exitDescription;
     }
 }

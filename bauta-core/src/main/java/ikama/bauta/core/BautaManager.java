@@ -233,6 +233,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             log.warn("reportUrls: {}", se.getExecutionContext().get("reportUrls"));
             log.warn("Class cast error:  'reportUrls', Step: {}", se.getStepName());
         }
+        si.setExitDescription(se.getExitStatus().getExitDescription());
         return si;
     }
 

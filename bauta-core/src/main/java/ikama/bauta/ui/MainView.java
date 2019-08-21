@@ -357,12 +357,34 @@ public class MainView extends AppLayout implements JobEventListener {
                     } else {
                         icon = VaadinIcon.FILE_O.create();
                     }
-                    icon.setSize("1.75em");
+                    icon.setSize("1.2em");
                     Anchor reportAnchor = new Anchor("../" + url, icon);
+
                     reportAnchor.setTarget("reports");
-                    reportAnchor.getStyle().set("font-size", "0.6em").set("margin-left", "5px");
+                    reportAnchor.getStyle().set("font-size", "0.8em").set("margin-left", "5px");
                     div.add(reportAnchor);
                 }
+            }
+            if (step.getExitDescription() != null && step.getExitDescription().length() > 0) {
+                Icon icon = VaadinIcon.EXCLAMATION_CIRCLE.create();
+                Button descriptionButton = new Button(icon, clickEvent -> {
+                    Dialog infoDialog = new Dialog();
+                    infoDialog.setCloseOnEsc(true);
+                    Label l = new Label(step.getExitDescription());
+                    l.getStyle().set("font-size","0.8em").set("font-family","monospace");
+
+                    infoDialog.add(l);
+                    infoDialog.setWidth("600px");
+                    infoDialog.setHeight("300px");
+                    infoDialog.open();
+                });
+                //icon.setSize("1.2em");
+
+                descriptionButton.setIcon(icon);
+                descriptionButton.getStyle().set("font-size","0.8em");
+                descriptionButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR);
+                div.add(descriptionButton);
+
             }
             vl.add(div);
         }
