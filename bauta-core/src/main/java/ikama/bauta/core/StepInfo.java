@@ -9,6 +9,7 @@ public class StepInfo {
     private String executionStatus;
     private List<String> reportUrls;
     private String exitDescription;
+    private long duration;
 
     public StepInfo(String name) {
         this.name = name;
@@ -61,5 +62,13 @@ public class StepInfo {
 
     public String getExitDescription() {
         return exitDescription;
+    }
+
+    public void setDuration(long duration) {
+        this.duration = duration;
+    }
+
+    public long getDuration() {
+        return duration;
     }
 }

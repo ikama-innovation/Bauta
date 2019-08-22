@@ -227,6 +227,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private StepInfo extractStepInfo(StepExecution se) {
         StepInfo si = new StepInfo(se.getStepName());
         si.setExecutionStatus(se.getStatus().name());
+        if (se.getEndTime() != null) {
+            long duration = se.getEndTime().getTime() - se.getStartTime().getTime();
+            si.setDuration(duration);
+        }
+
         try {
             si.setReportUrls((List<String>) se.getExecutionContext().get("reportUrls"));
         } catch (ClassCastException e) {
@@ -247,6 +252,19 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return out;
     }
 
+    public List<JobInstanceInfo> jobHistory(String jobName) throws Exception {
+        ArrayList<JobInstanceInfo> out = new ArrayList<>();
+        List<JobInstance> jobInstances = jobExplorer.getJobInstances(jobName, 0, 3);
+        for (JobInstance ji : jobInstances) {
+            List<JobExecution> jobExecutions = jobExplorer.getJobExecutions(ji);
+            for(JobExecution je: jobExecutions) {
+                out.add(extractJobInstanceInfo(je));
+            }
+        }
+        return out;
+
+    }
+
     private JobInstanceInfo fetchJobInfo(String jobName) throws Exception {
         JobInstanceInfo out = new JobInstanceInfo(jobName);
         List<Long> jobInstances = jobOperator.getJobInstances(jobName, 0, 1);
@@ -262,6 +280,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         }
         return out;
     }
+
+
 
     public void registerJobChangeListener(JobEventListener jobEventListener) {
         this.jobEventListeners.add(jobEventListener);

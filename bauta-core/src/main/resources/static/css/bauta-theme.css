@@ -17,6 +17,7 @@ vaadin-grid .job_cell {
 }
 
 .step_status {
+    display: inline-block;
     margin-left: 5px;
     padding-left: 3px;
     padding-right: 3px;

@@ -13,10 +13,7 @@ import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -27,6 +24,7 @@ import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.Theme;
@@ -267,9 +265,10 @@ public class MainView extends AppLayout implements JobEventListener {
         hl.add(abandonButton);
 
         Button infoButton = new Button("", clickEvent -> {
+
             Dialog infoDialog = new Dialog();
-            infoDialog.add(new Label("Here we will show job history"));
-            infoDialog.setWidth("500px");
+            infoDialog.add(createJobHistory(item.getName()));
+            infoDialog.setWidth("800px");
             infoDialog.setHeight("300px");
             infoDialog.open();
         });
@@ -316,18 +315,7 @@ public class MainView extends AppLayout implements JobEventListener {
         vl.setAlignItems(FlexComponent.Alignment.START);
         vl.setSpacing(false);
         for (StepInfo step : jobInstanceInfo.getSteps()) {
-            Div statusLabel = new Div();
-            statusLabel.setClassName("step_status");
-            statusLabel.setText(step.getExecutionStatus());
-            statusLabel.getStyle().set("background-color", batchStatusToColor(step.getExecutionStatus()));
-                    /*.set("margin-left", "5px")
-                    .set("padding-left", "3px")
-                    .set("padding-right", "3px")
-                    .set("padding-top", "2px")
-                    .set("padding-bottom", "2px")
-                    .set("font-size", "0.6em")
-                    .set("color", "#eeeeee")
-                    .set("border-radius", "var(--lumo-border-radius-m)");*/
+            Component statusLabel = createStatusLabel(step.getExecutionStatus());
             Label stepNameLabel = new Label(step.getName());
             stepNameLabel.getStyle().set("font-size", "0.8em");
             Div div = new Div(stepNameLabel, statusLabel);
@@ -387,6 +375,48 @@ public class MainView extends AppLayout implements JobEventListener {
 
             }
             vl.add(div);
+        }
+        return vl;
+    }
+    private Component createStatusLabel(String executionStatus) {
+        Div statusLabel = new Div();
+        statusLabel.setClassName("step_status");
+        statusLabel.setText(executionStatus);
+        statusLabel.getStyle().set("background-color", batchStatusToColor(executionStatus));
+        return statusLabel;
+    }
+
+    private Component createJobHistory(String jobName) {
+        VerticalLayout vl = new VerticalLayout();
+        List<JobInstanceInfo> jobs = null;
+        try {
+             jobs = batchManager.jobHistory(jobName);
+        } catch (Exception e) {
+            showErrorMessage("Failed to fetch job history: " + e.getMessage());
+        }
+        for (JobInstanceInfo ji : jobs) {
+            Div div = new Div();
+            div.setWidthFull();
+            UnorderedList ul = new UnorderedList();
+
+
+            ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
+            ul.add(new ListItem("ExecutionId: " + ji.getExecutionId().toString()));
+            ul.add(new ListItem("Start/end time: " + DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US)+ "/"+DateUtils.format(ji.getEndTime(), "YYMMdd HH:mm:ss", Locale.US)));
+            ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
+            ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus())));
+            div.add(ul);
+            Grid<StepInfo> grid = new Grid<>();
+            grid.setHeightByRows(true);
+            grid.setWidthFull();
+            grid.addColumn(StepInfo::getName).setHeader("Name").setAutoWidth(true);
+            //grid.addColumn(StepInfo::getExecutionStatus).setHeader("Status");
+            grid.addComponentColumn(item -> createStatusLabel(item.getExecutionStatus())).setHeader("Status");
+            grid.addComponentColumn(item -> new Label(DurationFormatUtils.formatDuration(item.getDuration(), "HH:mm:ss"))).setHeader("Duration");
+            grid.setItems(ji.getSteps());
+            div.add(grid);
+            vl.add(div);
+
         }
         return vl;
     }
