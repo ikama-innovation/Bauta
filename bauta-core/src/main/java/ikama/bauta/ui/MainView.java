@@ -77,14 +77,12 @@ public class MainView extends AppLayout implements JobEventListener {
         batchManager.registerJobChangeListener(this);
 
         if (!initialized) {
-
             this.ui = attachEvent.getUI();
             Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
             img.setHeight("28px");
             DrawerToggle drawerToggle = new DrawerToggle();
             this.addToNavbar(new DrawerToggle(), img);
             this.setDrawerOpened(false);
-
 
             Map<Tab, Component> tabsToPages = new HashMap<>();
             Component jobPage = createJobView();
