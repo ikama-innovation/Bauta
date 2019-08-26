@@ -1,13 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>se.ikama</groupId>
     <artifactId>bauta-autoconfigure</artifactId>
     <name>bauta-autoconfigure</name>
     <version>0.0.1-SNAPSHOT</version>
 
     <parent>
-        <groupId>ikama</groupId>
+        <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../</relativePath>
@@ -34,7 +33,7 @@
         </dependency>
 
         <dependency>
-            <groupId>ikama</groupId>
+            <groupId>se.ikama</groupId>
             <artifactId>bauta-core</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -70,8 +69,5 @@
         </plugins>
     </build>
 
-    <properties>
-
-    </properties>
 
 </project>

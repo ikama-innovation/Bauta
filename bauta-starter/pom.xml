@@ -8,10 +8,21 @@
 
     <parent>
         <artifactId>bauta</artifactId>
-        <groupId>ikama</groupId>
+        <groupId>se.ikama</groupId>
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -20,13 +31,13 @@
         </dependency>
 
         <dependency>
-            <groupId>ikama</groupId>
+            <groupId>se.ikama</groupId>
             <artifactId>bauta-autoconfigure</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>ikama</groupId>
+            <groupId>se.ikama</groupId>
             <artifactId>bauta-core</artifactId>
             <version>${project.version}</version>
         </dependency>
