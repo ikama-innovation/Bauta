@@ -41,9 +41,8 @@ public class MakeDirectoryTasklet implements Tasklet {
     }
 
     /**
-     * The directory to clean.
      *
-     * @param resource
+     * @param resources The directories to clean.
      */
     public void setResources(FileSystemResource[] resources) {
         this.resources = resources;

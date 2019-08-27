@@ -288,11 +288,9 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     }
 
     /**
-     * Will interrupt the thread executing the system executable only if {@link #setInterruptOnCancel(boolean)} has been set to true. Otherwise the
-     * underlying executable will be allowed to finish before the tasklet ends.
+     * Will try to interrupt the thread executing the system executable.
      *
      * @see StoppableTasklet#stop()
-     * @since 3.0
      */
     @Override
     public void stop() {
@@ -319,7 +317,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     }
 
     /**
-     * username/password@host:port/serviceName
+     * @param easyConnectionIdentifier username/password@host:port/serviceName
      */
     public void setEasyConnectionIdentifier(String easyConnectionIdentifier) {
         this.easyConnectionIdentifier = easyConnectionIdentifier;

@@ -199,7 +199,7 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     /**
      * Checks the log file for SQL errors.
      *
-     * @param logFile
+     * @param logFile The log file to check
      * @throws JobExecutionException If errors are found in the log file.
      */
     private void checkForErrorsInLog(File logFile) throws JobExecutionException {
@@ -247,7 +247,8 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
 
     /**
      * By default, when executing an sql file with SQLPLUS in a "one-liner" fashion, i.e. "sglplus .. @myscript.sql", SQLPLUS will not exit from the
-     * prompt unless the script contains a final "exit" executable. Set this to true if your script does not contain exit executable. Then an exit executable
+     * prompt unless the script contains a final "exit" executable.
+     * @param sendExitCommand Set this to true if your script does not contain exit executable. Then an exit executable
      * will be passed to SQLPlus after the script has finished.
      */
     public void setSendExitCommand(boolean sendExitCommand) {
@@ -287,11 +288,9 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     }
 
     /**
-     * Will interrupt the thread executing the system executable only if {@link #setInterruptOnCancel(boolean)} has been set to true. Otherwise the
-     * underlying executable will be allowed to finish before the tasklet ends.
+     * Will try to interrupt the thread executing the system executable.
      *
      * @see StoppableTasklet#stop()
-     * @since 3.0
      */
     @Override
     public void stop() {
@@ -302,6 +301,8 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     /**
      * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
      * convenient in the Spring configuration.
+     *
+     * @param scriptFile The script file to run.
      */
     public void setScriptFile(String scriptFile) {
         if (this.scriptFiles == null) {
@@ -318,7 +319,7 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     }
 
     /**
-     * username/password@host:port/serviceName
+     * @param easyConnectionIdentifier username/password@host:port/serviceName
      */
     public void setEasyConnectionIdentifier(String easyConnectionIdentifier) {
         this.easyConnectionIdentifier = easyConnectionIdentifier;

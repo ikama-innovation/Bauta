@@ -298,7 +298,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     /**
      * Executes an external command that typically
-     * @return
+     * <ul>
+     *    <li>Stops the application
+     *    <li>fetches the lastest version of the application from VCS
+     *    <li>Rebuilds the application</li>
+     *    <li>Starts the application again</li>
+     * </ul>
+     * @return The exit code of the rebuild command
      * @throws Exception
      */
     public int rebuildServer() throws Exception {

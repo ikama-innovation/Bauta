@@ -33,10 +33,10 @@ import java.util.Map;
  * <code>
  * begin
  * SYS.DBMS_SCHEDULER.CREATE_JOB(
- * job_name=>'MY_JOB123',
- * job_type=>'PLSQL_BLOCK',
- * job_action=>'begin MY_PROCEDURE(''some_argument'',123);end;',
- * enabled=>TRUE);
+ * job_name=&gt;'MY_JOB123',
+ * job_type=&gt;'PLSQL_BLOCK',
+ * job_action=&gt;'begin MY_PROCEDURE(''some_argument'',123);end;',
+ * enabled=&gt;TRUE);
  * end;
  * /
  * </code>
@@ -65,12 +65,11 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     DataSource dataSource;
 
     /**
-     * The PLSQL block to run. Typically calls a stored procedure, e.g.
+     * @param action The PLSQL block to run. Typically calls a stored procedure, e.g.
      * <code>
      * "begin my_procedure(''some_argument'', 123);end;"
      * </code>
      *
-     * @param action
      */
     public void setAction(String action) {
         this.action = action;
@@ -78,9 +77,8 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
     /**
      * How often to query Oracle and check the status of the scheduled job.
-     * In ms. Valid values are 10000 - 300000
      *
-     * @param statusCheckInterval
+     * @param statusCheckInterval The interval between checks in ms. Valid values are 10000 - 300000
      */
     public void setStatusCheckInterval(Long statusCheckInterval) {
         if (statusCheckInterval < 10000 || statusCheckInterval > 300000) {
@@ -155,7 +153,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
      * Make an attempt to stop the scheduled job cleanly by sending a stop
      * request to the DBMS_SCHEDULER.
      *
-     * @param dbmsJobName
+     * @param dbmsJobName The job name
      */
     private void stop(String dbmsJobName) {
         // Just make one attempt  send stop command
@@ -175,7 +173,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     /**
      * Checks if the given job is running.
      *
-     * @return
+     * @return True if job is still running.
      * @throws SQLException
      */
     private boolean checkRunning(String dbmsJobName, StepContribution contribution) throws SQLException {

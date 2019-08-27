@@ -5,9 +5,6 @@
  */
 package ikama.bauta.demo;
 
-/**
- *
- */
 public class DemoEntity {
 
     Long id;

@@ -43,9 +43,7 @@ public class CleanDirectoryTasklet implements Tasklet {
     }
 
     /**
-     * The directory to clean.
-     *
-     * @param directory
+     * @param directory The directory to clean
      */
     public void setDirectory(FileSystemResource directory) {
         this.directory = directory;

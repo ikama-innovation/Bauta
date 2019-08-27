@@ -22,6 +22,7 @@ import java.util.zip.ZipOutputStream;
 public class ZipDirectoryTasklet implements Tasklet {
 
     private static final Logger log = LoggerFactory.getLogger(ZipDirectoryTasklet.class);
+
     FileSystemResource sourceDir = null;
     FileSystemResource destFile = null;
 
@@ -62,18 +63,14 @@ public class ZipDirectoryTasklet implements Tasklet {
     }
 
     /**
-     * The directory to be compressed.
-     *
-     * @param sourceDir
+     * @param sourceDir The directory to be zipped
      */
     public void setSourceDir(FileSystemResource sourceDir) {
         this.sourceDir = sourceDir;
     }
 
     /**
-     * The destination zip-file.
-     *
-     * @param destFile
+     * @param destFile Destination zip file
      */
     public void setDestFile(FileSystemResource destFile) {
         this.destFile = destFile;

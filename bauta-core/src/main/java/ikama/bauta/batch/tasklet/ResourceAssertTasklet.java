@@ -40,27 +40,24 @@ public class ResourceAssertTasklet implements Tasklet {
     }
 
     /**
-     * The directory to be checked.
      *
-     * @param resource
+     * @param resource The directory to be checked.
      */
     public void setResource(Resource resource) {
         this.resource = resource;
     }
 
     /**
-     * An optional message to be presented if assertion fails.
      *
-     * @param assertionMessage
+     * @param assertionMessage An optional message to be presented if assertion fails.
      */
     public void setAssertionMessage(String assertionMessage) {
         this.assertionMessage = assertionMessage;
     }
 
     /**
-     * The expected amount of files in the provided directory. Optional.
      *
-     * @param expectedFileCount
+     * @param expectedFileCount The expected amount of files in the provided directory. Optional.
      */
     public void setExpectedFileCount(Integer expectedFileCount) {
         this.expectedFileCount = expectedFileCount;

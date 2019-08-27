@@ -130,16 +130,7 @@ public class BatchConfiguration {
 
     }
 
-    /*
-        @Bean
-        JobExplorer jobExplorer(DataSource dataSource) throws Exception {
-            JobExplorerFactoryBean jobExplorer = new JobExplorerFactoryBean();
-            jobExplorer.setDataSource(dataSource);
-            jobExplorer.setTablePrefix("BATCH_");
-            jobExplorer.afterPropertiesSet();
-            return jobExplorer.getObject();
-        }
-    */
+
     @Bean
     JobOperator jobOperator(JobExplorer jobExplorer,
                             JobRepository jobRepository,

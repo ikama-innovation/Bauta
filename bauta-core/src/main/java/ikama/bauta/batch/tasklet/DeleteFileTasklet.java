@@ -15,7 +15,7 @@ import java.io.IOException;
 
 /**
  * Deletes the given file. Exits silently if the file does not exist.
- * x
+ *
  */
 public class DeleteFileTasklet implements Tasklet {
 
@@ -38,9 +38,7 @@ public class DeleteFileTasklet implements Tasklet {
     }
 
     /**
-     * The file to delete.
-     *
-     * @param resource
+     * @param resource The file to delete.
      */
     public void setResource(Resource resource) {
         this.resource = resource;

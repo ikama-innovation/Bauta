@@ -8,7 +8,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>bauta</name>
     <packaging>pom</packaging>
-    <description>Command, control and communication for Spring Batch</description>
+    <description>Bauta is a batch automation framework based on Spring Batch.</description>
+    <url>https://github.com/ikama-innovation/Bauta</url>
     <organization>
         <name>ikama-innovation</name>
         <url>https://github.com/ikama-innovation</url>
@@ -102,6 +103,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
+                    <version>3.0.1</version>
                     <executions>
                         <execution>
                             <id>attach-sources</id>
@@ -114,6 +116,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.0.1</version>
                     <executions>
                         <execution>
                             <id>attach-javadocs</id>

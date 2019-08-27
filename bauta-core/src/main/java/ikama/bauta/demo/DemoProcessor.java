@@ -7,9 +7,6 @@ package ikama.bauta.demo;
 
 import org.springframework.batch.item.ItemProcessor;
 
-/**
- *
- */
 public class DemoProcessor implements ItemProcessor<DemoEntity, DemoEntity> {
 
     @Override

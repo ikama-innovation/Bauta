@@ -9,6 +9,10 @@ import org.springframework.shell.standard.ShellMethod;
 import javax.annotation.PostConstruct;
 import java.util.Collection;
 
+/**
+ *
+ * Provides command shell support for Bauta. Supports job management tasks such as starting/stopping jobs etc.
+ */
 @ShellComponent
 public class CommandShell {
 
@@ -18,7 +22,7 @@ public class CommandShell {
 
     @PostConstruct
     public void init() {
-        System.out.println("Starting shell");
+
     }
 
 
