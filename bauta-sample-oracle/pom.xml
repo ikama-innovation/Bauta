@@ -9,7 +9,6 @@
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath/>
     </parent>
     <properties>
         <bautainstancebuildtime>${maven.build.timestamp}</bautainstancebuildtime>

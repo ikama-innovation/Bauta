@@ -9,7 +9,6 @@
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath/>
     </parent>
 
     <dependencies>
@@ -30,7 +29,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
-            <version>14.0.1</version>
+            <version>14.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -64,26 +63,7 @@
 
     </dependencies>
 
-    <repositories>
 
-        <!--
-        <repository>
-            <id>spring-milestones</id>
-            <name>Spring Milestones</name>
-            <url>https://repo.spring.io/milestone</url>
-        </repository>
-        -->
-        <!--
-        <repository>
-            <id>vaadin-prereleases</id>
-            <name>Vaadin pre-release</name>
-            <url>http://maven.vaadin.com/vaadin-prereleases</url>
-            <releases><enabled>true</enabled><updatePolicy>always</updatePolicy></releases>
-            <snapshots><enabled>true</enabled><updatePolicy>always</updatePolicy></snapshots>
-
-        </repository>
-        -->
-    </repositories>
     <build>
         <resources>
             <resource>

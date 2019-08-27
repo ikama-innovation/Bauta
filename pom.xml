@@ -41,7 +41,7 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-boot.version>2.1.6.RELEASE</spring-boot.version>
+        <spring-boot.version>2.1.7.RELEASE</spring-boot.version>
         <junit.version>4.12</junit.version>
         <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
         <timeZone>Europe/Stockholm</timeZone>
@@ -157,15 +157,7 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.1.2</version>
-                    <configuration>
-                        <archive>
-                            <manifest>
-                                <addDefaultImplementationEntries>
-                                    true
-                                </addDefaultImplementationEntries>
-                            </manifest>
-                        </archive>
-                    </configuration>
+
                 </plugin>
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>
