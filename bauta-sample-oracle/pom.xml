@@ -9,7 +9,7 @@
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath>../</relativePath>
+        <relativePath/>
     </parent>
     <properties>
         <bautainstancebuildtime>${maven.build.timestamp}</bautainstancebuildtime>
@@ -27,7 +27,10 @@
             <scope>test</scope>
         </dependency>
         <!-- Oracle JDBC driver. Not available in any public repo.
-        Will be copied from src/lib with the maven-install plugin. See below -->
+        Either install it manually in your local repo, or use the maven-install-plugin. See example below .
+        To install manually, do something like
+        mvn install:install-file -Dfile={Path/to/your/ojdbc.jar} -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0 -Dpackaging=jar
+        -->
         <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>ojdbc6</artifactId>
@@ -46,7 +49,11 @@
             </resource>
         </resources>
         <plugins>
-            <!-- Installs artifacts that are not available in the public maven repo -->
+            <!-- Uncomment this to conveniently install your manually downloaded oracle jdbc driver.
+            Since the drivers are not available in any public maven repo because of licensing,
+            you need to download it yourself and install it locally in your maven repo
+            This is a convenient way to install it as part of your build. Just add it
+            under src/main/lib and adjust the version details.
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
@@ -70,11 +77,11 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
-
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
