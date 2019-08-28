@@ -4,13 +4,13 @@
     <groupId>se.ikama</groupId>
     <artifactId>bauta-starter</artifactId>
     <name>bauta-starter</name>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>pom</packaging>
 
     <parent>
         <artifactId>bauta</artifactId>
         <groupId>se.ikama</groupId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1</version>
     </parent>
     <dependencyManagement>
         <dependencies>
