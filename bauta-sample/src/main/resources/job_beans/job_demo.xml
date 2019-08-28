@@ -8,7 +8,7 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
     <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
-    <bean id="demoEntity" class="ikama.bauta.demo.DemoEntity" scope="prototype" />
+    <bean id="demoEntity" class="se.ikama.bauta.demo.DemoEntity" scope="prototype" />
     
 
     <bean id="demoReader" class="org.springframework.batch.item.file.FlatFileItemReader" >
@@ -61,7 +61,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             </bean>
         </property>
     </bean>
-    <bean id="demoProcessor" class="ikama.bauta.demo.DemoProcessor"></bean>
+    <bean id="demoProcessor" class="se.ikama.bauta.demo.DemoProcessor"></bean>
     <b:job id="Job.01.ReadWriteDemo" restartable="false">
         <b:step  id="demo-import" >
             <b:description>Reads demo data frmo csv files and writes to elastic</b:description>

@@ -9,22 +9,10 @@ http://www.springframework.org/schema/util http://www.springframework.org/schema
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
     <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
     <b:job id="Job.01.Setup" parent="job_base">
-        <b:step parent="step_base" id="setup_utils" next="setup2">
+        <b:step parent="step_base" id="setup_utils">
             <b:description>Creates some utility procedures and functions</b:description>
             <b:tasklet>
                 <bean parent="sqlcl-base">
-                    <property name="scriptFiles">
-                        <list>
-                            <value>utils.sql</value>
-                        </list>
-                    </property>
-                </bean>
-            </b:tasklet>
-        </b:step>
-        <b:step parent="step_base" id="setup2">
-            <b:description>Creates some utility procedures and functions</b:description>
-            <b:tasklet>
-                <bean parent="sqlplus-base">
                     <property name="scriptFiles">
                         <list>
                             <value>utils.sql</value>

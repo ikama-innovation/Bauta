@@ -1,0 +1,45 @@
+# A fancy name for your implementation of Bauta
+bauta.instance.name: Oracle Sample
+bauta.instance.version: '@project.version@'
+bauta.instance.buildTime: '@bautainstancetimestamp@'
+
+# Optionally eplace this with build number from build tool
+bauta.instance.build: 1
+
+# The base home directory. Typically where reports, logs, etc go
+bauta.homeDir:
+bauta.jobBeansDir: ${bauta.homeDir}/jobs
+bauta.scriptDir: ${bauta.homeDir}/scripts
+bauta.reportDir: ${bauta.homeDir}/reports
+bauta.logDir: ${bauta.homeDir}/logs
+
+# Enables the interactive shell. If you use the web UI, keep this disabled
+spring.shell.interactive.enabled: false
+
+# Rebuild command. Typically stops bauta process, fetches latest code, scripts, beans from VCS
+# and then starts a fresh process
+bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_server.sh
+
+bauta.stagingDB.host: mydbhost
+bauta.stagingDB.port: 1521
+bauta.stagingDB.service: MYSERVICE
+bauta.stagingDB.sid:
+bauta.stagingDB.nls_length_semantics: BYTE
+
+bauta.stagingDB.url: jdbc:oracle:thin:@${bauta.stagingDB.host}:${bauta.stagingDB.port}/${bauta.stagingDB.service}
+#bauta.stagingDB.url: jdbc:oracle:thin:@${bauta.stagingDB.host}:${bauta.stagingDB.port}:${bauta.stagingDB.sid}
+bauta.stagingDB.sqlplus.connectionIdentifier: ${bauta.stagingDB.username}/${bauta.stagingDB.password}@${bauta.stagingDB.host}:${bauta.stagingDB.port}/${bauta.stagingDB.service}
+bauta.stagingDB.sqlplus.adminConnectionIdentifier: ${bauta.stagingDB.adminusername}/${bauta.stagingDB.adminpassword}@${bauta.stagingDB.host}:${bauta.stagingDB.port}/${bauta.stagingDB.service}
+
+---
+spring:
+  profiles: mattias
+bauta.homeDir: /home/arbinmat/Projects/oracle_sample_home
+bauta.jobBeansDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/jobs
+bauta.scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/scripts
+
+bauta.stagingDB.username: ARBINMAT
+bauta.stagingDB.password: ARBINMAT
+bauta.stagingDB.adminusername: ARBINMAT
+bauta.stagingDB.adminpassword: ARBINMAT
+

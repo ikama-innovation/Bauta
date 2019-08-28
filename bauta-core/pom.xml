@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.springframework.shell</groupId>
             <artifactId>spring-shell-starter</artifactId>
-            <version>2.0.0.RELEASE</version>
+            <version>2.0.1.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>org.hsqldb</groupId>
@@ -70,7 +70,7 @@
                 <directory>${basedir}/src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>bauta_default.properties</include>
+                    <include>*.properties</include>
                 </includes>
             </resource>
             <resource>

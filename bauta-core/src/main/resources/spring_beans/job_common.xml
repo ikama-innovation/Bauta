@@ -22,7 +22,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </b:listeners>
     </b:step>
     <!-- Base for all SQL plus steps. Executes one or many SQL scripts using SQLPLUS -->
-    <bean id="sqlplus-base" class="ikama.bauta.batch.tasklet.oracle.ScriptTasklet" abstract="true">
+    <bean id="sqlplus-base" class="se.ikama.bauta.batch.tasklet.oracle.ScriptTasklet" abstract="true">
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="sendExitCommand" value="true"/>
@@ -36,7 +36,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </property>
     </bean>
     <!-- Sqlplus executable run as admin user -->
-    <bean id="sqlplus-sys-base" class="ikama.bauta.batch.tasklet.oracle.ScriptTasklet" abstract="true">
+    <bean id="sqlplus-sys-base" class="se.ikama.bauta.batch.tasklet.oracle.ScriptTasklet" abstract="true">
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="sendExitCommand" value="true"/>
@@ -50,7 +50,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </property>
     </bean>
 
-    <bean id="sqlcl-base" class="ikama.bauta.batch.tasklet.oracle.SqlClTasklet" abstract="true">
+    <bean id="sqlcl-base" class="se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet" abstract="true">
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier}"/>
