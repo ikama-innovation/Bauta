@@ -1,10 +1,20 @@
 # Bauta
-Bauta is a batch automation framework based on spring-batch.
+Bauta is a batch automation framework based on [Spring Batch](https://spring.io/projects/spring-batch) and [Spring Boot](https://spring.io/projects/spring-boot).
 Features:
 - Start/stop/restart jobs via a web-based user interface
 - Watch job/step progress and status.
 - Steps can generate output that can be displayed in the UI. Typically reports, script logs, stack traces etc.
 - Provides "starter" and example projects for different usage scenarios
+
+
+## Modules
+|Module         |Description|
+|------------------|------------------------------------------------------------------------------|
+|bauta-starter|Starter project. Use this as a parent and starter for your Bauta-based project. See sample modules for how to use it|
+|bauta-sample|Very basic sample project, using some basic spring batch features|
+|bauta-sample-oracle|Sample project demonstrating how to work with an Oracle database as the stagingDB. Shows how to execute PLSQL scripts and run stored procedures using the dbms_scheduler| 
+|bauta-core|The core functionality of Bauta. Batch job managements, UI, command-line etc|
+|bauta-autoconfigure|Manages auto-configuration. Currently limited, but when Bauta grows this will be used to make sure not to start unnecessary features/resources|
 
 
 ## Configuration
