@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>se.ikama</groupId>
     <artifactId>bauta-starter</artifactId>
-    <name>bauta-starter</name>
+    <name>Bauta Starter</name>
     <version>0.0.2-SNAPSHOT</version>
-
+    <packaging>jar</packaging>
     <parent>
         <artifactId>bauta</artifactId>
         <groupId>se.ikama</groupId>
@@ -43,10 +43,12 @@
     </dependencies>
     <build>
         <plugins>
+            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
             </plugin>
+            -->
         </plugins>
     </build>
 </project>
