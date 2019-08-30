@@ -60,6 +60,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
         log.info("Home is {}", bautaConfig.getProperty(BautaConfigParams.HOME_DIR));
         log.debug("properties: {}", getServerInfo());
+
     }
 
 

@@ -65,6 +65,7 @@ public class MainView extends AppLayout implements JobEventListener {
     public MainView() {
 
         log.debug("Creating main view");
+
     }
 
     @Override

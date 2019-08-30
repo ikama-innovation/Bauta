@@ -20,22 +20,25 @@ import org.springframework.batch.core.repository.support.JobRepositoryFactoryBea
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.*;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.init.DataSourceInitializer;
+import org.springframework.jdbc.datasource.init.DatabasePopulator;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
-@PropertySource("bauta_default.properties")
-@Configuration
+@PropertySource("bauta_default.yml")
+@Configuration()
 @ImportResource({
         "classpath:spring_beans/job_common.xml",
         "file://${bauta.jobBeansDir}/*.xml"
 })
-@EnableBatchProcessing(modular = true)
+@EnableBatchProcessing()
 @EnableVaadin("se.ikama.bauta.ui")
 public class BatchConfiguration {
 
@@ -69,7 +72,23 @@ public class BatchConfiguration {
 
 
     @Bean
-    @Primary
+    public DataSourceInitializer dataSourceInitializer() {
+        final DataSourceInitializer initializer = new DataSourceInitializer();
+        initializer.setDataSource(batchDataSource());
+        initializer.setDatabasePopulator(databasePopulator());
+        return initializer;
+    }
+
+    private DatabasePopulator databasePopulator() {
+        final ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+        ClassPathResource schemaScript = new ClassPathResource("sql/schema-hsqldb.sql");
+        populator.addScript(schemaScript);
+        populator.setContinueOnError(true);
+        return populator;
+    }
+
+
+    @Bean(name = "batchTransactionManager")
     PlatformTransactionManager batchTransactionManager() {
 
         return new DataSourceTransactionManager(batchDataSource());
@@ -96,6 +115,7 @@ public class BatchConfiguration {
             @Override
             protected JobRepository createJobRepository() throws Exception {
                 JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
+
                 factory.setDataSource(dataSource);
                 factory.setTransactionManager(batchTransactionManager());
                 factory.setIsolationLevelForCreate("ISOLATION_REPEATABLE_READ");
@@ -157,7 +177,7 @@ public class BatchConfiguration {
     }
 
     // Staging database
-    @Bean()
+    @Bean(name="stagingDataSource")
     //@ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
@@ -171,7 +191,7 @@ public class BatchConfiguration {
         return dataSource;
     }
 
-    @Bean
+    @Bean(name="stagingTransactionManager")
     PlatformTransactionManager stagingTransactionManager() {
         return new DataSourceTransactionManager(stagingDataSource());
     }

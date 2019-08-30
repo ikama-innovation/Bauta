@@ -30,12 +30,15 @@
         To install manually, do something like
         mvn install:install-file -Dfile={Path/to/your/ojdbc.jar} -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0 -Dpackaging=jar
         -->
+        <!--
         <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>ojdbc6</artifactId>
             <version>11.2.0</version>
             <scope>runtime</scope>
         </dependency>
+        -->
+
     </dependencies>
     <build>
         <resources>
@@ -53,6 +56,7 @@
             you need to download it yourself and install it locally in your maven repo
             This is a convenient way to install it as part of your build. Just add it
             under src/main/lib and adjust the version details.
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
@@ -81,7 +85,18 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
+                <configuration>
+                    <mainClass>se.ikama.bauta.sample.BautaSampleOracleApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+
             <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

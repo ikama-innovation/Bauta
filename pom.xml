@@ -46,6 +46,7 @@
         <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
         <timeZone>Europe/Stockholm</timeZone>
         <bautabuildtimestamp>${maven.build.timestamp}</bautabuildtimestamp>
+        <vaadin.version>14.0.2</vaadin.version>
     </properties>
 
     <modules>
