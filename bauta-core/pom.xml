@@ -142,6 +142,7 @@
                 <filtering>true</filtering>
                 <includes>
                     <include>*.yml</include>
+                    <include>*.txt</include>
                 </includes>
             </resource>
             <resource>
