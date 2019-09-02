@@ -1,0 +1,15 @@
+
+    :mMMMMMMMMMMMNds:                                              yNms
+    yMMMMhyyyhhdNMMMMh`                                           -MMMM`
+    yMMMM`       +MMMM+         ``..`           `          ``     -MMMM`          ``..``
+    yMMMM`       :MMMM:     -sdNMMMMMMNh+     :NMM+      :NMMo  +mNMMMMNNm:   .odNMMMMMMNdo
+    yMMMM++++++ohMMMd:     oMMMdo///+mMMMh    sMMMh      oMMMd  -oyMMMMss+.  /MMMmo///+dMMMm
+    yMMMMMMMMMMMMMMd+.     omm+      -MMMM`   sMMMh      oMMMd    -MMMM`     /mNs      `MMMM:
+    yMMMM-------/sNMMMy`     `:/+sydNMMMMM.   sMMMh      oMMMd    -MMMM`       `-/+sydmMMMMM/
+    yMMMM`        :MMMMo   +mMMMmhso/:MMMM.   sMMMh      sMMMd    -MMMM`     /dMMMmhso/-NMMM/
+    yMMMM`        sMMMM+  +MMMm`     :MMMM.   sMMMN     `mMMMd    -MMMM`    :MMMM-     .MMMM/
+    yMMMMssssssshNMMMMy   +MMMN/` `-sNMMMM+   :MMMMd+:/sNMMMMd    .MMMMs://.:MMMM+. `-oNMMMMy
+    /NMMMMMMMMMMMMNms:     +mMMMMMMNh+/NMMd    /dMMMMMMmo-MMMy     oNMMMMMMh :dMMMMMMMdo/mMMN`
+      ..........``           .://:.    `::`      `-::-.   .::       `-:/::.    `-//:-     ::`
+
+    Batch Automation ${project.version}
