@@ -10,7 +10,9 @@
         <artifactId>bauta</artifactId>
         <version>0.0.2-SNAPSHOT</version>
     </parent>
-
+    <properties>
+        <vaadin.version>14.0.2</vaadin.version>
+    </properties>
     <repositories>
         <repository>
             <id>Vaadin Directory</id>
@@ -35,7 +37,8 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <!-- Replace artifactId with vaadin-core to use only free components -->
-            <artifactId>vaadin</artifactId>
+            <artifactId>vaadin-core</artifactId>
+            <version>${vaadin.version}</version>
             <exclusions>
                 <!-- Webjars are only needed when running in Vaadin 13 compatibility mode -->
                 <exclusion>
@@ -67,6 +70,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-spring-boot-starter</artifactId>
+            <version>${vaadin.version}</version>
             <exclusions>
                 <!-- Excluding so that webjars are not included. -->
                 <exclusion><groupId>com.vaadin</groupId>
@@ -96,11 +100,6 @@
         <dependency>
             <groupId>org.springframework.batch</groupId>
             <artifactId>spring-batch-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.vaadin</groupId>
-            <artifactId>vaadin-spring-boot-starter</artifactId>
-            <version>14.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
