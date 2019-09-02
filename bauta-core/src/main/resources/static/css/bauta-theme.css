@@ -1,17 +1,4 @@
 
-#vaadin-grid-cell-16 {
-    align-items: baseline !important;
-    background-color: pink;
-    color: fuchsia !important;
-}
-
-vaadin-grid .job_cell {
-    display: flex;
-    align-items: baseline !important;
-    background-color: pink;
-    color: fuchsia !important;
-}
-
 .job_title {
     font-color: lightgreen;
 }

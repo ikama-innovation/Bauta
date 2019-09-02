@@ -130,7 +130,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     ArrayList<String> commands = new ArrayList<>();
                     String cmd = "exit|sql "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParameterValues;
                     if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                        log.info("Running on windows.");
+                        log.debug("Running on windows.");
                         commands.add("cmd.exe");
                         commands.add("/c");
                         //commands.add("exit | " +  executable);
@@ -194,9 +194,9 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     // We are in the middle of executing a SQL script. There is no way to stop and restart in a graceful way, so
                     // an interruptedexception is probably the best we can do.
                     stopping = false;
-                    log.info("Stop issued. Trying to cancel executable..");
+                    log.debug("Stop issued. Trying to cancel executable..");
                     boolean cancelResult = systemCommandTask.cancel(true);
-                    log.info("Cancel result: {}", cancelResult);
+                    log.debug("Cancel result: {}", cancelResult);
                     throw new JobExecutionException("Job manually stopped while running script '" + scriptFile + "'");
                 }
             }
@@ -298,7 +298,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
      */
     @Override
     public void stop() {
-        log.info("Stop executable received");
+        log.debug("Stop executable received");
         stopping = true;
     }
 

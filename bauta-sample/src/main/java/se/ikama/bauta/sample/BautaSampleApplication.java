@@ -18,7 +18,7 @@ public class BautaSampleApplication {
 
 
     public void run(String... args) throws Exception {
-        System.out.println("Running");
+
 
     }
 }

@@ -49,7 +49,6 @@ public class ZipDirectoryTasklet implements Tasklet {
                     .filter(path -> !Files.isDirectory(path))
                     .forEach(path -> {
                         String sp = path.getParent().getFileName().toString();
-                        System.out.println(sp);
                         ZipEntry zipEntry = new ZipEntry(sp + "/" + path.getFileName().toString());
                         try {
                             zs.putNextEntry(zipEntry);

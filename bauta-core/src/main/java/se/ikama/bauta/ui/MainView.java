@@ -75,10 +75,9 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
 
-
     @Override
     protected void onDetach(DetachEvent detachEvent) {
-        log.info("Detach");
+        log.debug("Detach");
         bautaManager.unregisterJobChangeListener(this);
     }
 
@@ -89,7 +88,8 @@ public class MainView extends AppLayout implements JobEventListener {
 
 
     }
-    private void createMainView()  {
+
+    private void createMainView() {
         log.debug("Creating main view");
 
         Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
@@ -130,51 +130,52 @@ public class MainView extends AppLayout implements JobEventListener {
         Div rightPanel = new Div();
 
 
-        rightPanel.getStyle().set("margin-right","20px");
+        rightPanel.getStyle().set("margin-right", "20px");
             /*Button upgradeBautaButton = new Button("");
             upgradeBautaButton.getElement().setProperty("title", "Upgrades the Bauta framework to the latest version");
             upgradeBautaButton.setIcon(VaadinIcon.POWER_OFF.create());
             //upgradeBautaButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             */
 
-        Button upgradeInstanceButton = new Button("",clickEvent -> {
+        Button upgradeInstanceButton = new Button("", clickEvent -> {
             try {
                 bautaManager.rebuildServer();
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 showErrorMessage("Failed to rebuild server: " + e.getMessage());
             }
         });
         upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
         upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
         //upgradeInstanceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        upgradeInstanceButton.getStyle().set("margin-right","5px");
+        upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
         Label buildInfo = new Label(bautaManager.getShortServerInfo());
-        buildInfo.getStyle().set("font-size","0.75em");
-        buildInfo.getStyle().set("margin-right","10px");
+        buildInfo.getStyle().set("font-size", "0.75em");
+        buildInfo.getStyle().set("margin-right", "10px");
         rightPanel.add(buildInfo);
         rightPanel.add(upgradeInstanceButton);
         //rightPanel.add(upgradeBautaButton);
 
         //rightPanel.add(new Button("Another"));
 
-        rightPanel.getStyle().set("margin-left", "auto").set("text-alight","right");
+        rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right");
 
         this.addToNavbar(rightPanel);
 
     }
+
     private Component createAboutView() {
         VerticalLayout aboutView = new VerticalLayout();
         aboutView.setWidthFull();
         UnorderedList ul = new UnorderedList();
-        for(String i : bautaManager.getServerInfo()) {
+        for (String i : bautaManager.getServerInfo()) {
             ul.add(new ListItem(i));
         }
         aboutView.add(ul);
         return aboutView;
     }
-    private Component createJobView()  {
+
+    private Component createJobView() {
         VerticalLayout jobView = new VerticalLayout();
         jobView.setWidthFull();
         //setDefaultHorizontalComponentAlignment(FlexComponent.Alignment.STRETCH);
@@ -198,22 +199,25 @@ public class MainView extends AppLayout implements JobEventListener {
                         "Ended: [[item.endTime]]<br>" +
                         "Duration: [[item.duration]]<br>" +
                         "Exitstatus: [[item.exitStatus]]<br>" +
+                        "Params: [[item.params]]<br>" +
                         "</div>"
                 )
-        .withProperty("executionId", JobInstanceInfo::getExecutionId)
-        .withProperty("instanceId", JobInstanceInfo::getInstanceId)
-        .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
-        .withProperty("startTime", ji -> DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
-        .withProperty("endTime", ji -> ji != null ? DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
-        .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : ""));
+                        .withProperty("executionId", JobInstanceInfo::getExecutionId)
+                        .withProperty("instanceId", JobInstanceInfo::getInstanceId)
+                        .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
+                        .withProperty("startTime", ji -> DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
+                        .withProperty("endTime", ji -> ji != null ? DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
+                        .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : "")
+                        .withProperty("params", ji -> ji.getJobParameters().toString())
+        );
+
         grid.addComponentColumn(item -> createStepComponent(grid, item));
         grid.addComponentColumn(item -> createButtons(grid, item));
 
         //grid.addColumn(item->item.getSteps().toArray().toString()).setHeader("Steps");
         try {
             grid.setItems(bautaManager.jobDetails());
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             showErrorMessage("Failed to fetch job details");
         }
@@ -359,7 +363,7 @@ public class MainView extends AppLayout implements JobEventListener {
                     Dialog infoDialog = new Dialog();
                     infoDialog.setCloseOnEsc(true);
                     Label l = new Label(step.getExitDescription());
-                    l.getStyle().set("font-size","0.8em").set("font-family","monospace");
+                    l.getStyle().set("font-size", "0.8em").set("font-family", "monospace");
 
                     infoDialog.add(l);
                     infoDialog.setWidth("600px");
@@ -369,7 +373,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 //icon.setSize("1.2em");
 
                 descriptionButton.setIcon(icon);
-                descriptionButton.getStyle().set("font-size","0.8em");
+                descriptionButton.getStyle().set("font-size", "0.8em");
                 descriptionButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR);
                 div.add(descriptionButton);
 
@@ -378,6 +382,7 @@ public class MainView extends AppLayout implements JobEventListener {
         }
         return vl;
     }
+
     private Component createStatusLabel(String executionStatus) {
         Div statusLabel = new Div();
         statusLabel.setClassName("step_status");
@@ -390,7 +395,7 @@ public class MainView extends AppLayout implements JobEventListener {
         VerticalLayout vl = new VerticalLayout();
         List<JobInstanceInfo> jobs = null;
         try {
-             jobs = bautaManager.jobHistory(jobName);
+            jobs = bautaManager.jobHistory(jobName);
         } catch (Exception e) {
             showErrorMessage("Failed to fetch job history: " + e.getMessage());
         }
@@ -402,8 +407,9 @@ public class MainView extends AppLayout implements JobEventListener {
 
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
             ul.add(new ListItem("ExecutionId: " + ji.getExecutionId().toString()));
-            ul.add(new ListItem("Start/end time: " + DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US)+ "/"+DateUtils.format(ji.getEndTime(), "YYMMdd HH:mm:ss", Locale.US)));
+            ul.add(new ListItem("Start/end time: " + DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) + "/" + DateUtils.format(ji.getEndTime(), "YYMMdd HH:mm:ss", Locale.US)));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
+            ul.add(new ListItem("Params: " + ji.getJobParameters().toString()));
             ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus())));
             div.add(ul);
             Grid<StepInfo> grid = new Grid<>();

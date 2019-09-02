@@ -59,7 +59,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void init() {
 
         log.info("Home is {}", bautaConfig.getProperty(BautaConfigParams.HOME_DIR));
-        log.debug("properties: {}", getServerInfo());
+        log.info("properties: {}", getServerInfo().toArray());
 
     }
 
@@ -70,9 +70,18 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             jobName = listJobNames().get(i);
         }
         DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
-        String params = "start=" + dtf.format(LocalDateTime.now());
+        StringBuilder params = new StringBuilder();
+        params.append("start=").append(dtf.format(LocalDateTime.now()));
+        if (env.containsProperty("bauta.application.git.commit.id.abbrev")) {
+            params.append(",revision=");
+            params.append(env.getProperty("bauta.application.git.commit.id.abbrev","?"));
+            if (env.containsProperty("bauta.application.git.total.commit.count")) {
+                params.append("(").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
+            }
+        }
         try {
-            return jobOperator.start(jobName, params);
+            log.debug("Starting job {} with jobParams: {}", jobName, params);
+            return jobOperator.start(jobName, params.toString());
         } catch (Exception e) {
             throw new RuntimeException("Failed to start job", e);
         }
@@ -146,13 +155,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @Override
     public void beforeJob(JobExecution jobExecution) {
-        log.info("beforeJob: {}", jobExecution);
+        log.debug("beforeJob: {}", jobExecution);
         fireJobEvent(jobExecution);
     }
 
     @Override
     public void afterJob(JobExecution jobExecution) {
-        log.info("afterJob: {}", jobExecution);
+        log.debug("afterJob: {}", jobExecution);
         if (!jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
             // Create a cached version of the job
 
@@ -162,14 +171,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
-        log.info("beforeJob: {}", stepExecution);
+        log.debug("beforeJob: {}", stepExecution);
         fireJobEvent(stepExecution.getJobExecution());
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
-        log.info("afterStep: {}", stepExecution);
-        log.info("Job: {}", stepExecution.getJobExecution());
+        log.debug("afterStep: {}", stepExecution);
+        log.debug("Job: {}", stepExecution.getJobExecution());
 
         fireJobEvent(stepExecution.getJobExecution());
         return stepExecution.getExitStatus();
@@ -196,6 +205,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         jobInstanceInfo.setExecutionId(je.getId());
         jobInstanceInfo.setStartTime(je.getStartTime());
         jobInstanceInfo.setEndTime(je.getEndTime());
+        Properties jp = je.getJobParameters().toProperties();
+        jp.remove("start");
+        jobInstanceInfo.setJobParameters(jp);
         if (je.getEndTime() != null) {
             long duration = je.getEndTime().getTime() - je.getStartTime().getTime();
             jobInstanceInfo.setDuration(duration);

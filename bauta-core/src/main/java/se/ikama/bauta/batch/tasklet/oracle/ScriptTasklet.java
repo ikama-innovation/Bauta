@@ -186,9 +186,9 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
                     // We are in the middle of executing a SQL script. There is no way to stop and restart in a graceful way, so
                     // an interruptedexception is probably the best we can do.
                     stopping = false;
-                    log.info("Stop issued. Trying to cancel executable..");
+                    log.debug("Stop issued. Trying to cancel executable..");
                     boolean cancelResult = systemCommandTask.cancel(true);
-                    log.info("Cancel result: {}", cancelResult);
+                    log.debug("Cancel result: {}", cancelResult);
                     throw new JobExecutionException("Job manually stopped while running script '" + scriptFile + "'");
                 }
             }
@@ -294,7 +294,7 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
      */
     @Override
     public void stop() {
-        log.info("Stop executable received");
+        log.debug("Stop executable received");
         stopping = true;
     }
 

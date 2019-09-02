@@ -66,7 +66,7 @@ public class BatchConfiguration {
         dataSource.setUsername("sa");
         dataSource.setPassword("");
 
-        log.info("Creating batch datasource {}", dataSource);
+        log.debug("Creating batch datasource {}", dataSource);
         return dataSource;
     }
 
@@ -96,7 +96,7 @@ public class BatchConfiguration {
 
     @Bean
     public BatchConfigurer batchConfigurer() {
-        log.info("Creating Bauta batch configurer.");
+        log.debug("Creating Bauta batch configurer.");
         BatchConfigurer bf = new DefaultBatchConfigurer(batchDataSource()) {
 
             @Autowired()
@@ -154,7 +154,7 @@ public class BatchConfiguration {
                             JobRepository jobRepository,
                             JobRegistry jobRegistry,
                             JobLauncher jobLauncher) {
-        log.info("Creating job operator {}", jobRepository);
+        log.debug("Creating job operator {}", jobRepository);
         SimpleJobOperator jobOperator = new SimpleJobOperator();
 
         jobOperator.setJobExplorer(jobExplorer);
@@ -187,7 +187,6 @@ public class BatchConfiguration {
         dataSource.setUsername(stagingDbUsername);
         dataSource.setPassword(stagingDbPassword);
 
-        log.info("Creating staging datasource {}", dataSource);
         return dataSource;
     }
 

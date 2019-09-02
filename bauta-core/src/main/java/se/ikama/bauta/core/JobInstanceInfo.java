@@ -1,9 +1,6 @@
 package se.ikama.bauta.core;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class JobInstanceInfo {
 
@@ -15,6 +12,7 @@ public class JobInstanceInfo {
     private Date startTime;
     private Date endTime;
     private long duration;
+    private Properties jobParameters;
     private List<StepInfo> steps = new ArrayList<>();
 
     public JobInstanceInfo(String jobName) {
@@ -130,5 +128,13 @@ public class JobInstanceInfo {
                 ", executionId=" + executionId +
                 ", instanceId=" + instanceId +
                 '}';
+    }
+
+    public void setJobParameters(Properties jobParameters) {
+        this.jobParameters = jobParameters;
+    }
+
+    public Properties getJobParameters() {
+        return jobParameters;
     }
 }
