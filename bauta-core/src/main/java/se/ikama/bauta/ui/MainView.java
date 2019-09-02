@@ -50,13 +50,14 @@ import java.util.stream.Stream;
 @Theme(value = Lumo.class, variant = Lumo.DARK)
 @StyleSheet("../static/css/bauta-theme.css")
 // @PWA(name = "Project Base for Vaadin Flow with Spring", shortName = "Project Base")
+@DependsOn("bautaManager")
 public class MainView extends AppLayout implements JobEventListener {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
-    BautaManager batchManager;
+    BautaManager bautaManager;
 
-    private UI ui;
+    //private UI ui;
     Grid<JobInstanceInfo> grid = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
@@ -64,89 +65,13 @@ public class MainView extends AppLayout implements JobEventListener {
 
     public MainView() {
 
-        log.debug("Creating main view");
 
     }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         log.debug("Attach");
-        batchManager.registerJobChangeListener(this);
-
-        if (!initialized) {
-            this.ui = attachEvent.getUI();
-            Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
-            img.setHeight("28px");
-            DrawerToggle drawerToggle = new DrawerToggle();
-            this.addToNavbar(new DrawerToggle(), img);
-            this.setDrawerOpened(false);
-
-            Map<Tab, Component> tabsToPages = new HashMap<>();
-            Component jobPage = createJobView();
-            jobPage.setVisible(true);
-            Tab jobTab = new Tab("Jobs");
-            Component aboutPage = createAboutView();
-            aboutPage.setVisible(false);
-            Tab aboutTab = new Tab("About");
-            tabsToPages.put(jobTab, jobPage);
-            tabsToPages.put(aboutTab, aboutPage);
-            Tabs tabs = new Tabs(jobTab, aboutTab);
-            tabs.setSelectedTab(jobTab);
-            tabs.setOrientation(Tabs.Orientation.VERTICAL);
-            Div pages = new Div(jobPage, aboutPage);
-            Set<Component> pagesShown = Stream.of(jobPage)
-                    .collect(Collectors.toSet());
-            tabs.addSelectedChangeListener(event -> {
-                pagesShown.forEach(page -> page.setVisible(false));
-                pagesShown.clear();
-                Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
-                selectedPage.setVisible(true);
-
-                pagesShown.add(selectedPage);
-            });
-            this.addToDrawer(tabs);
-            try {
-                this.setContent(pages);
-            } catch (Exception e) {
-                this.setContent(new Label("Failed to create job view: " + e.getMessage()));
-            }
-            Div rightPanel = new Div();
-
-
-            rightPanel.getStyle().set("margin-right","20px");
-            /*Button upgradeBautaButton = new Button("");
-            upgradeBautaButton.getElement().setProperty("title", "Upgrades the Bauta framework to the latest version");
-            upgradeBautaButton.setIcon(VaadinIcon.POWER_OFF.create());
-            //upgradeBautaButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            */
-
-            Button upgradeInstanceButton = new Button("",clickEvent -> {
-                try {
-                    batchManager.rebuildServer();
-                }
-                catch(Exception e) {
-                    showErrorMessage("Failed to rebuild server: " + e.getMessage());
-                }
-            });
-            upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
-            upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
-            //upgradeInstanceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            upgradeInstanceButton.getStyle().set("margin-right","5px");
-
-            Label buildInfo = new Label(batchManager.getShortServerInfo());
-            buildInfo.getStyle().set("font-size","0.75em");
-            buildInfo.getStyle().set("margin-right","10px");
-            rightPanel.add(buildInfo);
-            rightPanel.add(upgradeInstanceButton);
-            //rightPanel.add(upgradeBautaButton);
-
-            //rightPanel.add(new Button("Another"));
-
-            rightPanel.getStyle().set("margin-left", "auto").set("text-alight","right");
-
-            this.addToNavbar(rightPanel);
-            initialized = true;
-        }
+        bautaManager.registerJobChangeListener(this);
     }
 
 
@@ -154,21 +79,99 @@ public class MainView extends AppLayout implements JobEventListener {
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         log.info("Detach");
-        batchManager.unregisterJobChangeListener(this);
+        bautaManager.unregisterJobChangeListener(this);
     }
 
     @PostConstruct
-    @DependsOn("batchManager")
+    @DependsOn("bautaManager")
     public void init() {
+        createMainView();
 
+
+    }
+    private void createMainView()  {
+        log.debug("Creating main view");
+
+        Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
+        img.setHeight("28px");
+        DrawerToggle drawerToggle = new DrawerToggle();
+        this.addToNavbar(new DrawerToggle(), img);
+        this.setDrawerOpened(false);
+
+        Map<Tab, Component> tabsToPages = new HashMap<>();
+        Component jobPage = createJobView();
+        jobPage.setVisible(true);
+        Tab jobTab = new Tab("Jobs");
+        Component aboutPage = createAboutView();
+        aboutPage.setVisible(false);
+        Tab aboutTab = new Tab("About");
+        tabsToPages.put(jobTab, jobPage);
+        tabsToPages.put(aboutTab, aboutPage);
+        Tabs tabs = new Tabs(jobTab, aboutTab);
+        tabs.setSelectedTab(jobTab);
+        tabs.setOrientation(Tabs.Orientation.VERTICAL);
+        Div pages = new Div(jobPage, aboutPage);
+        Set<Component> pagesShown = Stream.of(jobPage)
+                .collect(Collectors.toSet());
+        tabs.addSelectedChangeListener(event -> {
+            pagesShown.forEach(page -> page.setVisible(false));
+            pagesShown.clear();
+            Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
+            selectedPage.setVisible(true);
+
+            pagesShown.add(selectedPage);
+        });
+        this.addToDrawer(tabs);
+        try {
+            this.setContent(pages);
+        } catch (Exception e) {
+            this.setContent(new Label("Failed to create job view: " + e.getMessage()));
+        }
+        Div rightPanel = new Div();
+
+
+        rightPanel.getStyle().set("margin-right","20px");
+            /*Button upgradeBautaButton = new Button("");
+            upgradeBautaButton.getElement().setProperty("title", "Upgrades the Bauta framework to the latest version");
+            upgradeBautaButton.setIcon(VaadinIcon.POWER_OFF.create());
+            //upgradeBautaButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            */
+
+        Button upgradeInstanceButton = new Button("",clickEvent -> {
+            try {
+                bautaManager.rebuildServer();
+            }
+            catch(Exception e) {
+                showErrorMessage("Failed to rebuild server: " + e.getMessage());
+            }
+        });
+        upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
+        upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
+        //upgradeInstanceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        upgradeInstanceButton.getStyle().set("margin-right","5px");
+
+        Label buildInfo = new Label(bautaManager.getShortServerInfo());
+        buildInfo.getStyle().set("font-size","0.75em");
+        buildInfo.getStyle().set("margin-right","10px");
+        rightPanel.add(buildInfo);
+        rightPanel.add(upgradeInstanceButton);
+        //rightPanel.add(upgradeBautaButton);
+
+        //rightPanel.add(new Button("Another"));
+
+        rightPanel.getStyle().set("margin-left", "auto").set("text-alight","right");
+
+        this.addToNavbar(rightPanel);
 
     }
     private Component createAboutView() {
         VerticalLayout aboutView = new VerticalLayout();
         aboutView.setWidthFull();
-        for(String i : batchManager.getServerInfo()) {
-            aboutView.add(new Label(i));
+        UnorderedList ul = new UnorderedList();
+        for(String i : bautaManager.getServerInfo()) {
+            ul.add(new ListItem(i));
         }
+        aboutView.add(ul);
         return aboutView;
     }
     private Component createJobView()  {
@@ -208,7 +211,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         //grid.addColumn(item->item.getSteps().toArray().toString()).setHeader("Steps");
         try {
-            grid.setItems(batchManager.jobDetails());
+            grid.setItems(bautaManager.jobDetails());
         }
         catch(Exception e) {
             e.printStackTrace();
@@ -222,13 +225,13 @@ public class MainView extends AppLayout implements JobEventListener {
         HorizontalLayout hl = new HorizontalLayout();
         hl.setSpacing(false);
         Button startButton = new Button("", clickEvent -> {
-            batchManager.startJob(item.getName());
+            bautaManager.startJob(item.getName());
         });
         startButton.setIcon(VaadinIcon.PLAY.create());
         hl.add(startButton);
 
         Button stopButton = new Button("", clickEvent -> {
-            batchManager.stopJob(item.getName());
+            bautaManager.stopJob(item.getName());
         });
         stopButton.setIcon(VaadinIcon.STOP.create());
         stopButton.getStyle().set("margin-left", "4px");
@@ -236,7 +239,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         Button restartButton = new Button("", clickEvent -> {
             try {
-                batchManager.restartJob(item.getExecutionId());
+                bautaManager.restartJob(item.getExecutionId());
             } catch (Exception e) {
                 showErrorMessage(e.getMessage());
                 //TODO: Error handling
@@ -249,7 +252,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         Button abandonButton = new Button("", clickEvent -> {
             try {
-                batchManager.abandonJob(item.getExecutionId());
+                bautaManager.abandonJob(item.getExecutionId());
             } catch (Exception e) {
                 showErrorMessage(e.getMessage());
                 e.printStackTrace();
@@ -387,7 +390,7 @@ public class MainView extends AppLayout implements JobEventListener {
         VerticalLayout vl = new VerticalLayout();
         List<JobInstanceInfo> jobs = null;
         try {
-             jobs = batchManager.jobHistory(jobName);
+             jobs = bautaManager.jobHistory(jobName);
         } catch (Exception e) {
             showErrorMessage("Failed to fetch job history: " + e.getMessage());
         }
@@ -422,7 +425,7 @@ public class MainView extends AppLayout implements JobEventListener {
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
         log.info("onJobChange {} ", jobInstanceInfo);
 
-        this.ui.access(() -> {
+        this.getUI().get().access(() -> {
             grid.getDataProvider().refreshItem(jobInstanceInfo);
         });
     }

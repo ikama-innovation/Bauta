@@ -1,10 +1,11 @@
 # A fancy name for your implementation of Bauta
-bauta.instance.name: Oracle Sample
-bauta.instance.version: '@project.version@'
-bauta.instance.buildTime: '@bautainstancetimestamp@'
+bauta.application.name: Oracle Sample
+bauta.application.description: Demo of Oracle-based batch automation
+bauta.application.version: '@project.version@'
+bauta.application.buildTime: '@bautainstancetimestamp@'
 
 # Optionally eplace this with build number from build tool
-bauta.instance.build: 1
+bauta.application.build: 1
 
 # The base home directory. Typically where reports, logs, etc go
 bauta.homeDir:

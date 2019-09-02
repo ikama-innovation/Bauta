@@ -328,10 +328,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         info.add("Bauta version: " + env.getProperty("bauta.version","---"));
         info.add("Bauta build: " + env.getProperty("bauta.build","---"));
         info.add("Bauta build time: " + env.getProperty("bauta.buildTime","---"));
-        info.add("Instance name: " + env.getProperty("bauta.instance.name","---"));
-        info.add("Instance version: " + env.getProperty("bauta.instance.version","---"));
-        info.add("Instance build: " + env.getProperty("bauta.instance.build","---"));
-        info.add("Instance build time: " + env.getProperty("bauta.instance.buildTime","---"));
+        info.add("Application name: " + env.getProperty("bauta.application.name","---"));
+        info.add("Application description: " + env.getProperty("bauta.application.description","---"));
+        info.add("Application version: " + env.getProperty("bauta.application.version","---"));
+        info.add("Application build: " + env.getProperty("bauta.application.build","---"));
+        info.add("Application build time: " + env.getProperty("bauta.application.buildTime","---"));
+        info.add("GIT commit count: " + env.getProperty("bauta.application.git.total.commit.count","---"));
+        info.add("GIT id: " + env.getProperty("bauta.application.git.commit.id.abbrev","---"));
+        info.add("GIT commit message: " + env.getProperty("bauta.application.git.commit.message.short","---"));
         info.add("Home dir: " + env.getProperty("bauta.homeDir","---"));
         info.add("Log dir: " + env.getProperty("bauta.logDir","---"));
         info.add("Job dir: " + env.getProperty("bauta.jobBeansDir","---"));
@@ -342,6 +346,18 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return info;
     }
     public String getShortServerInfo() {
-        return env.getProperty("spring.profiles.active","").replace("productionMode", "").replace(","," ") + " " + env.getProperty("bauta.instance.name","---") + " " + env.getProperty("bauta.instance.version")+ " " + env.getProperty("bauta.instance.buildTime","");
+        StringBuilder sb = new StringBuilder();
+        // Get the spring profile
+        sb.append(env.getProperty("spring.profiles.active","").replace("productionMode", "").replace("production", "").replace(","," "));
+        sb.append(" ").append(env.getProperty("bauta.application.name","-"));
+        sb.append(" ").append(env.getProperty("bauta.application.buildTime",""));
+        if (env.containsProperty("bauta.application.git.commit.id.abbrev")) {
+            sb.append(" ").append(env.getProperty("bauta.application.git.commit.id.abbrev"));
+            if (env.containsProperty("bauta.application.git.total.commit.count")) sb.append(" (").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
+        }
+        else {
+            sb.append(" ").append(env.getProperty("bauta.application.version"));
+        }
+        return  sb.toString();
     }
 }

@@ -37,9 +37,4 @@
         <appender-ref ref="Console" />
     </root>
 
-    <logger name="se.ikama.bauta" level="debug" additivity="false">
-        <appender-ref ref="RollingFile" />
-        <appender-ref ref="Console" />
-    </logger>
-
 </configuration>
