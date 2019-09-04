@@ -9,7 +9,7 @@ http://www.springframework.org/schema/util http://www.springframework.org/schema
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
     <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
     <b:job id="Job.01.Setup" parent="job_base">
-        <b:step parent="step_base" id="setup_utils">
+        <b:step parent="step_base" id="setup_utils" next="script_param_demo">
             <b:description>Creates some utility procedures and functions</b:description>
             <b:tasklet>
                 <bean parent="sqlcl-base">
@@ -17,6 +17,31 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                         <list>
                             <value>utils.sql</value>
                         </list>
+                    </property>
+                </bean>
+            </b:tasklet>
+        </b:step>
+        <b:step parent="step_base" id="script_param_demo">
+            <b:description>Demonstrates how to work with parameters</b:description>
+            <b:tasklet>
+                <bean parent="sqlcl-base">
+                    <property name="scriptFiles">
+                        <list>
+                            <value>param_demo.sql</value>
+                        </list>
+                    </property>
+                    <property name="scriptParameters">
+                        <list>
+                            <value>script_param1</value>
+                            <value>script_param2</value>
+                            <value>script_param3</value>
+                        </list>
+                    </property>
+                    <property name="environmentParams" >
+                       <map>
+                           <entry key="ENV1" value="VAL1" />
+                           <entry key="ENV2" value="VAL2" />
+                       </map>
                     </property>
                 </bean>
             </b:tasklet>

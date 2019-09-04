@@ -208,7 +208,7 @@ public class MainView extends AppLayout implements JobEventListener {
                         .withProperty("startTime", ji -> DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
                         .withProperty("endTime", ji -> ji != null ? DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
                         .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : "")
-                        .withProperty("params", ji -> ji.getJobParameters().toString())
+                        .withProperty("params", ji -> ji.getJobParameters() != null ? ji.getJobParameters().toString() : "")
         );
 
         grid.addComponentColumn(item -> createStepComponent(grid, item));

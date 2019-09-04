@@ -86,10 +86,11 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
         List<String> urls = new ArrayList<>();
         urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
         chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
-
+        log.debug("scriptParameters: {}", scriptParameters);
         ArrayList<String> scriptParameterValues = new ArrayList<>();
         if (scriptParameters != null && scriptParameters.size() > 0) {
             for (String sp : scriptParameters) {
+                log.debug("scriptParameter: {}", sp);
                 if (sp.startsWith(SCRIPT_PARAMETER_PREFIX_JOBPARAM)) {
                     String jobParamKey = sp.substring(SCRIPT_PARAMETER_PREFIX_JOBPARAM.length());
                     Map<String, Object> jobParameters = chunkContext.getStepContext().getJobParameters();
@@ -128,7 +129,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 @Override
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
-                    String cmd = "exit|sql "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParameterValues;
+                    String scriptParams = StringUtils.join(scriptParameterValues, " ");
+                    String cmd = "exit|sql "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParams;
                     if (System.getProperty("os.name").toLowerCase().contains("win")) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
