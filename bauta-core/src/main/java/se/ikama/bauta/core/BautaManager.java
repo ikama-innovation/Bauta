@@ -345,6 +345,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         info.add("Application version: " + env.getProperty("bauta.application.version","---"));
         info.add("Application build: " + env.getProperty("bauta.application.build","---"));
         info.add("Application build time: " + env.getProperty("bauta.application.buildTime","---"));
+        info.add("GIT branch: " + env.getProperty("bauta.application.git.branch","---"));
         info.add("GIT commit count: " + env.getProperty("bauta.application.git.total.commit.count","---"));
         info.add("GIT id: " + env.getProperty("bauta.application.git.commit.id.abbrev","---"));
         info.add("GIT commit message: " + env.getProperty("bauta.application.git.commit.message.short","---"));
@@ -364,6 +365,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         sb.append(" ").append(env.getProperty("bauta.application.name","-"));
         sb.append(" ").append(env.getProperty("bauta.application.buildTime",""));
         if (env.containsProperty("bauta.application.git.commit.id.abbrev")) {
+            sb.append(" ").append(env.getProperty("bauta.application.git.branch"));
             sb.append(" ").append(env.getProperty("bauta.application.git.commit.id.abbrev"));
             if (env.containsProperty("bauta.application.git.total.commit.count")) sb.append(" (").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
         }
