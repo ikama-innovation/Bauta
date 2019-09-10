@@ -1,10 +1,12 @@
 # Bauta
 Bauta is a batch automation framework based on [Spring Batch](https://spring.io/projects/spring-batch) and [Spring Boot](https://spring.io/projects/spring-boot).
 Features:
+- A convenient way to get started with Spring Batch
 - Start/stop/restart jobs via a web-based user interface
 - Watch job/step progress and status.
 - Steps can generate output that can be displayed in the UI. Typically reports, script logs, stack traces etc.
 - Provides "starter" and example projects for different usage scenarios
+- Supports "DevOps" way of developing your Jobs/Steps in a collaborative, automated fashion
 
 
 ## Modules
@@ -16,6 +18,14 @@ Features:
 |bauta-core|The core functionality of Bauta. Batch job managements, UI, command-line etc|
 |bauta-autoconfigure|Manages auto-configuration. Currently limited, but when Bauta grows this will be used to make sure not to start unnecessary features/resources|
 
+## Getting started
+1. Clone either the bauta-sample or bauta-sample-oracle to get started.
+2. You need Java SDK 1.8 or later and Maven to build and run the application. To build: mvn clean install
+3. Create a home directory for logs, job configuration files, reports etc. Set bauta.homeDir.
+4. If you will use a Staging DB, setup url, username etc in the configuration
+5. Create job configurations and put them in bauta.jobDir
+6. Run the application using the run.sh script. The application will be available at http://localhost:8080/ui
+7. Start your job by clicking the play button
 
 ## Configuration
 
