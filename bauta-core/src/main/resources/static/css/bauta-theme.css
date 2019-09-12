@@ -2,6 +2,9 @@
 .job_title {
     font-color: lightgreen;
 }
+.job_cell {
+    align-items: baseline;
+}
 
 .step_status {
     display: inline-block;

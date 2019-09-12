@@ -11,7 +11,7 @@
         <version>0.0.2-SNAPSHOT</version>
     </parent>
     <properties>
-        <vaadin.version>14.0.2</vaadin.version>
+        <vaadin.version>14.0.4</vaadin.version>
     </properties>
     <repositories>
         <repository>
@@ -43,6 +43,10 @@
                 <!-- Webjars are only needed when running in Vaadin 13 compatibility mode -->
                 <exclusion>
                     <groupId>com.vaadin.webjar</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.webjars.npm</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
                 <exclusion>

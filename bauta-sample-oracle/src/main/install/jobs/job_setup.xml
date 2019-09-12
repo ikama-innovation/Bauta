@@ -9,6 +9,9 @@ http://www.springframework.org/schema/util http://www.springframework.org/schema
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
     <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
     <b:job id="Job.01.Setup" parent="job_base">
+        <b:validator>
+            <bean class="se.ikama.bauta.batch.ConfirmationValidator"></bean>
+        </b:validator>
         <b:step parent="step_base" id="setup_utils" next="script_param_demo">
             <b:description>Creates some utility procedures and functions</b:description>
             <b:tasklet>

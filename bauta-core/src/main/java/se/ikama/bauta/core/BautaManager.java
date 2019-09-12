@@ -5,11 +5,10 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
+import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.launch.JobOperator;
-import org.springframework.batch.core.launch.NoSuchJobException;
-import org.springframework.batch.core.launch.NoSuchJobExecutionException;
-import org.springframework.batch.core.launch.NoSuchJobInstanceException;
+import org.springframework.batch.core.job.flow.FlowJob;
+import org.springframework.batch.core.launch.*;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.Environment;
+import se.ikama.bauta.batch.JobParametersProvider;
+import se.ikama.bauta.batch.ParamProvidingJobParametersValidator;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -33,6 +34,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     JobOperator jobOperator;
 
     JobExplorer jobExplorer;
+
+    JobRegistry jobRegistry;
+
     private HashSet<JobEventListener> jobEventListeners = new HashSet<>();
     private ApplicationContext applicationContext;
 
@@ -47,11 +51,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Autowired
     Environment env;
 
-    public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer) {
+    public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
         this.bautaConfig = bautaConfig;
         this.jobRepository = jobRepository;
         this.jobOperator = jobOperator;
         this.jobExplorer = jobExplorer;
+        this.jobRegistry = jobRegistry;
     }
 
 
@@ -64,27 +69,28 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
 
-    public Long startJob(String jobName) {
+    public Long startJob(String jobName, Map<String, String> params) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
             jobName = listJobNames().get(i);
         }
         DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
-        StringBuilder params = new StringBuilder();
-        params.append("start=").append(dtf.format(LocalDateTime.now()));
+        StringBuilder paramsStr = new StringBuilder();
+        paramsStr.append("start=").append(dtf.format(LocalDateTime.now()));
         if (env.containsProperty("bauta.application.git.commit.id.abbrev")) {
-            params.append(",revision=");
-            params.append(env.getProperty("bauta.application.git.commit.id.abbrev","?"));
+            paramsStr.append(",revision=");
+            paramsStr.append(env.getProperty("bauta.application.git.commit.id.abbrev","?"));
             if (env.containsProperty("bauta.application.git.total.commit.count")) {
-                params.append("(").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
+                paramsStr.append("(").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
             }
         }
-        try {
-            log.debug("Starting job {} with jobParams: {}", jobName, params);
-            return jobOperator.start(jobName, params.toString());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to start job", e);
+        if (params != null && params.size() > 0) {
+            for(Map.Entry param : params.entrySet()) {
+                paramsStr.append(","+param.getKey()).append("=").append(param.getValue());
+            }
         }
+        log.debug("Starting job {} with jobParams: {}", jobName, paramsStr);
+        return jobOperator.start(jobName, paramsStr.toString());
     }
 
     public void stopJob(String jobName) {
@@ -198,7 +204,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     private JobInstanceInfo extractJobInstanceInfo(JobExecution je) throws Exception {
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
-
+        FlowJob job = (FlowJob) jobRegistry.getJob(je.getJobInstance().getJobName());
+        JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
+        if (jobParametersValidator != null && jobParametersValidator instanceof JobParametersProvider) {
+            JobParametersProvider validator = (JobParametersProvider)jobParametersValidator;
+            jobInstanceInfo.setRequiredJobParamKeys(validator.getRequiredKeys());
+            jobInstanceInfo.setOptionalJobParamKeys(validator.getOptionalKeys());
+        }
         jobInstanceInfo.setExecutionStatus(je.getStatus().name());
         jobInstanceInfo.setExitStatus(je.getExitStatus().getExitCode());
         jobInstanceInfo.setInstanceId(je.getJobInstance().getInstanceId());
@@ -328,10 +340,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         if (rebuildServerCommand == null) {
             throw new RuntimeException("rebuildServerCommand is not set");
         }
-        log.info("Executing rebuildServerCommand: '{}'", rebuildServerCommand);
-        ProcessBuilder pb = new ProcessBuilder(rebuildServerCommand);
+        // Split command to support parameters, e.g. "rebuild_server param1 param2"
+        String rebuildServerCommands[] =  StringUtils.split(rebuildServerCommand, " ");
+        log.info("Executing rebuildServerCommand: '{}'", (Object)rebuildServerCommands);
+        ProcessBuilder pb = new ProcessBuilder(rebuildServerCommands);
         Process process = pb.start();
-        return process.waitFor();
+        int result =  process.waitFor();
+        log.info("Done!");
+        return result;
 
     }
     public List<String> getServerInfo() {

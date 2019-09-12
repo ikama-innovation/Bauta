@@ -14,6 +14,9 @@ public class JobInstanceInfo {
     private long duration;
     private Properties jobParameters;
     private List<StepInfo> steps = new ArrayList<>();
+    private List<String> requiredJobParamKeys;
+    private List<String> optionalJobParamKeys;
+
 
     public JobInstanceInfo(String jobName) {
         this.name = jobName;
@@ -136,5 +139,20 @@ public class JobInstanceInfo {
 
     public Properties getJobParameters() {
         return jobParameters;
+    }
+
+    public void setRequiredJobParamKeys(List<String> requiredKeys) {
+        this.requiredJobParamKeys = requiredKeys;
+    }
+
+    public void setOptionalJobParamKeys(List<String> optionalKeys) {
+        this.optionalJobParamKeys = optionalKeys;
+    }
+
+    public List<String> getOptionalJobParamKeys() {
+        return this.optionalJobParamKeys;
+    }
+    public List<String> getRequiredJobParamKeys() {
+        return this.requiredJobParamKeys;
     }
 }

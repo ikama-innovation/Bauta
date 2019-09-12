@@ -1,5 +1,6 @@
 package se.ikama.bauta.autoconfigure;
 
+import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
@@ -44,9 +45,9 @@ public class BautaAutoConfiguration implements EnvironmentPostProcessor {
 
     @Bean
     @ConditionalOnMissingBean
-    public BautaManager bautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer) {
+    public BautaManager bautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
 
-        return new BautaManager(bautaConfig, jobOperator, jobRepository, jobExplorer);
+        return new BautaManager(bautaConfig, jobOperator, jobRepository, jobExplorer, jobRegistry);
     }
 
 

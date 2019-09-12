@@ -4,19 +4,20 @@ package se.ikama.bauta.ui;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -24,20 +25,25 @@ import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
+import org.springframework.batch.core.launch.NoSuchJobException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
+import org.thymeleaf.util.DateUtils;
+import org.thymeleaf.util.StringUtils;
 import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.core.JobEventListener;
 import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
-import org.thymeleaf.util.DateUtils;
 
 import javax.annotation.PostConstruct;
 import java.util.*;
@@ -85,8 +91,6 @@ public class MainView extends AppLayout implements JobEventListener {
     @DependsOn("bautaManager")
     public void init() {
         createMainView();
-
-
     }
 
     private void createMainView() {
@@ -140,6 +144,8 @@ public class MainView extends AppLayout implements JobEventListener {
         Button upgradeInstanceButton = new Button("", clickEvent -> {
             try {
                 bautaManager.rebuildServer();
+                showInfoMessage("Restarting server. Hold on until it is up and running again..");
+
             } catch (Exception e) {
                 showErrorMessage("Failed to rebuild server: " + e.getMessage());
             }
@@ -224,18 +230,37 @@ public class MainView extends AppLayout implements JobEventListener {
         jobView.add(grid);
         return jobView;
     }
-
+    private void doStartJob(JobInstanceInfo item, Map<String, String> params) {
+        try {
+            bautaManager.startJob(item.getName(), params);
+        }
+        catch(JobParametersInvalidException e) {
+            showErrorMessage(e.getMessage());
+        } catch (JobInstanceAlreadyExistsException e) {
+            showErrorMessage("This job is already running");
+        } catch (NoSuchJobException e) {
+            showErrorMessage(e.getMessage());
+        }
+    }
     private Component createButtons(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
+        VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
         hl.setSpacing(false);
         Button startButton = new Button("", clickEvent -> {
-            bautaManager.startJob(item.getName());
+            Dialog d = createJobParamsDialog(item);
+            d.open();
+
         });
         startButton.setIcon(VaadinIcon.PLAY.create());
         hl.add(startButton);
 
         Button stopButton = new Button("", clickEvent -> {
-            bautaManager.stopJob(item.getName());
+            try {
+                bautaManager.stopJob(item.getName());
+            }
+            catch(Exception e) {
+                showErrorMessage(e.getMessage());
+            }
         });
         stopButton.setIcon(VaadinIcon.STOP.create());
         stopButton.getStyle().set("margin-left", "4px");
@@ -291,8 +316,18 @@ public class MainView extends AppLayout implements JobEventListener {
         startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         restartButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         stopButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        vl.add(hl);
 
-        return hl;
+        if (item.getOptionalJobParamKeys() != null && item.getOptionalJobParamKeys().size() > 0) {
+            Label l = new Label("Optional params: " + StringUtils.join(item.getOptionalJobParamKeys(),","));
+            vl.add(l);
+        }
+        if (item.getRequiredJobParamKeys() != null && item.getRequiredJobParamKeys().size() > 0) {
+            Label l = new Label("Required params: " + StringUtils.join(item.getRequiredJobParamKeys(),","));
+            vl.add(l);
+        }
+        return vl;
+
     }
 
     private static String batchStatusToColor(String batchStatus) {
@@ -426,6 +461,57 @@ public class MainView extends AppLayout implements JobEventListener {
         }
         return vl;
     }
+    private Dialog createJobParamsDialog(JobInstanceInfo job) {
+        Dialog dialog = new Dialog();
+        dialog.setWidth("700");
+        HashMap<String, TextField> textFields = new HashMap<>();
+        VerticalLayout formLayout = new VerticalLayout();
+        formLayout.setWidthFull();
+
+        formLayout.add(new H4("Job Parameters"));
+        if (job.getRequiredJobParamKeys() != null) {
+            for (String key : job.getRequiredJobParamKeys()) {
+                TextField paramField = new TextField();
+                paramField.setLabel(key);
+                paramField.setRequired(true);
+                //paramField.setRequiredIndicatorVisible(true);
+                paramField.setWidthFull();
+                formLayout.add(paramField);
+                textFields.put(key, paramField);
+            }
+        }
+        if (job.getOptionalJobParamKeys() != null) {
+            for (String key : job.getOptionalJobParamKeys()) {
+                TextField paramField = new TextField();
+                paramField.setRequired(false);
+                paramField.setLabel(key);
+                paramField.setWidthFull();
+                formLayout.add(paramField);
+                textFields.put(key, paramField);
+            }
+        }
+
+        Button startButton = new Button("Start", clickEvent -> {
+            HashMap<String, String> params = new HashMap<>();
+            for (Map.Entry<String, TextField> field:textFields.entrySet()) {
+                params.put(field.getKey(), field.getValue().getValue());
+            }
+            dialog.close();
+            doStartJob(job, params);
+
+        });
+        startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button cancelButton = new Button("Cancel", clickEvent -> {
+            dialog.close();
+        });
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(startButton);
+        hl.add(cancelButton);
+        formLayout.add(hl);
+        dialog.add(formLayout);
+
+        return dialog;
+    }
 
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
@@ -438,9 +524,20 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private void showErrorMessage(String message) {
         Label label = new Label(message);
+        //label.getStyle().set("color","var(--lumo-error-color)");
         Notification notification = new Notification(label);
+        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         notification.setPosition(Notification.Position.BOTTOM_START);
-        notification.setDuration(5000);
+        notification.setDuration(10000);
         notification.open();
     }
+    private void showInfoMessage(String message) {
+        Label label = new Label(message);
+        Notification notification = new Notification(label);
+        notification.addThemeVariants(NotificationVariant.LUMO_PRIMARY);
+        notification.setPosition(Notification.Position.BOTTOM_START);
+        notification.setDuration(10000);
+        notification.open();
+    }
+
 }

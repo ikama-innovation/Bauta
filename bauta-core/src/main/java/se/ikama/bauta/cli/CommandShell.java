@@ -1,5 +1,8 @@
 package se.ikama.bauta.cli;
 
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
+import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.shell.standard.commands.Quit;
 import se.ikama.bauta.core.BautaManager;
@@ -60,9 +63,9 @@ public class CommandShell implements Quit.Command {
     }
 
     @ShellMethod("Start a job")
-    public String start(String jobName) {
+    public String start(String jobName) throws JobInstanceAlreadyExistsException, JobParametersInvalidException, NoSuchJobException {
         Long executionId = null;
-        executionId = bautaManager.startJob(jobName);
+        executionId = bautaManager.startJob(jobName, null);
         return "Started: " + jobName + " with execution id " + executionId;
     }
 

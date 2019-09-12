@@ -36,7 +36,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </property>
     </bean>
     <!-- Sqlplus executable run as admin user -->
-    <bean id="sqlplus-sys-base" class="se.ikama.bauta.batch.tasklet.oracle.ScriptTasklet" abstract="true">
+    <bean id="sqlplus-admin-base" class="se.ikama.bauta.batch.tasklet.oracle.ScriptTasklet" abstract="true">
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="sendExitCommand" value="true"/>
@@ -54,6 +54,18 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier}"/>
+        <property name="environmentParams">
+            <map>
+                <entry key="NLS_NUMERIC_CHARACTERS" value=",."/>
+                <entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>
+                <!--<entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>-->
+            </map>
+        </property>
+    </bean>
+    <bean id="sqlcl-admin-base" class="se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet" abstract="true">
+        <property name="scriptDir" value="${bauta.scriptDir}"/>
+        <property name="timeout" value="7200000"/>
+        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier}"/>
         <property name="environmentParams">
             <map>
                 <entry key="NLS_NUMERIC_CHARACTERS" value=",."/>
