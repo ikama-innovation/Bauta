@@ -155,4 +155,11 @@ public class JobInstanceInfo {
     public List<String> getRequiredJobParamKeys() {
         return this.requiredJobParamKeys;
     }
+
+    /**
+     * Does this job take any job parameters?
+     */
+    public boolean hasJobParameters() {
+        return (optionalJobParamKeys != null && optionalJobParamKeys.size() > 0) || (requiredJobParamKeys != null && requiredJobParamKeys.size() > 0);
+    }
 }

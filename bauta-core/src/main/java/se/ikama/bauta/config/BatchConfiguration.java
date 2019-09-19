@@ -2,6 +2,7 @@ package se.ikama.bauta.config;
 
 import com.vaadin.flow.spring.annotation.EnableVaadin;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.JobRegistry;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -29,8 +31,10 @@ import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.transaction.PlatformTransactionManager;
+import se.ikama.bauta.util.PropertiesUtils;
 
 import javax.sql.DataSource;
+import java.util.Properties;
 
 @PropertySource("bauta_default.yml")
 @Configuration()
@@ -50,12 +54,23 @@ public class BatchConfiguration {
     @Value("${bauta.stagingDB.url}")
     String stagingDbUrl;
 
+    @Value("${bauta.stagingDB.driverClassName}")
+    String stagingDbDriverClassName;
+
     @Value("${bauta.stagingDB.username}")
     String stagingDbUsername;
 
     @Value("${bauta.stagingDB.password}")
     String stagingDbPassword;
 
+    /**
+     * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
+     * Typically not needed. One usecase is when using Oracle Wallet for authentication. Then you
+     * must provide connection properties here, e.g.
+     * oracle.net.wallet_location=(source=(method=file)(method_data=(directory=/opt/oracle/mywallet)))
+     */
+    @Value(value = "${bauta.stagingDB.connectionProperties:}")
+    String stagingDbConnectionProperties;
 
     @Bean()
     @Primary
@@ -182,10 +197,20 @@ public class BatchConfiguration {
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
         BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setDriverClassName("oracle.jdbc.driver.OracleDriver");
+        dataSource.setDriverClassName(stagingDbDriverClassName);
         dataSource.setUrl(stagingDbUrl);
-        dataSource.setUsername(stagingDbUsername);
-        dataSource.setPassword(stagingDbPassword);
+        // username + password will typically be required, but may be left out when using something like Oracle Wallet
+        if (StringUtils.isNotEmpty(stagingDbUsername)) {
+            dataSource.setUsername(stagingDbUsername);
+        }
+        if (StringUtils.isNotEmpty(stagingDbPassword)) {
+            dataSource.setPassword(stagingDbPassword);
+        }
+        if (StringUtils.isNotEmpty(stagingDbConnectionProperties)) {
+            //Properties props = PropertiesUtils.fromCommaSeparatedString(stagingDbConnectionProperties);
+            dataSource.setConnectionProperties(stagingDbConnectionProperties);
+        }
+
 
         return dataSource;
     }

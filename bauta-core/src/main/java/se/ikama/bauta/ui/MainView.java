@@ -30,6 +30,8 @@ import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +40,6 @@ import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
-import org.thymeleaf.util.DateUtils;
-import org.thymeleaf.util.StringUtils;
 import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.core.JobEventListener;
 import se.ikama.bauta.core.JobInstanceInfo;
@@ -211,8 +211,8 @@ public class MainView extends AppLayout implements JobEventListener {
                         .withProperty("executionId", JobInstanceInfo::getExecutionId)
                         .withProperty("instanceId", JobInstanceInfo::getInstanceId)
                         .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
-                        .withProperty("startTime", ji -> DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
-                        .withProperty("endTime", ji -> ji != null ? DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
+                        .withProperty("startTime", ji -> DateFormatUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
+                        .withProperty("endTime", ji -> ji != null ? DateFormatUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
                         .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : "")
                         .withProperty("params", ji -> ji.getJobParameters() != null ? ji.getJobParameters().toString() : "")
         );
@@ -247,8 +247,13 @@ public class MainView extends AppLayout implements JobEventListener {
         HorizontalLayout hl = new HorizontalLayout();
         hl.setSpacing(false);
         Button startButton = new Button("", clickEvent -> {
-            Dialog d = createJobParamsDialog(item);
-            d.open();
+            if (item.hasJobParameters()) {
+                Dialog d = createJobParamsDialog(item);
+                d.open();
+            }
+            else {
+                doStartJob(item, null);
+            }
 
         });
         startButton.setIcon(VaadinIcon.PLAY.create());
@@ -320,10 +325,12 @@ public class MainView extends AppLayout implements JobEventListener {
 
         if (item.getOptionalJobParamKeys() != null && item.getOptionalJobParamKeys().size() > 0) {
             Label l = new Label("Optional params: " + StringUtils.join(item.getOptionalJobParamKeys(),","));
+            l.getStyle().set("font-size", "0.8em");
             vl.add(l);
         }
         if (item.getRequiredJobParamKeys() != null && item.getRequiredJobParamKeys().size() > 0) {
             Label l = new Label("Required params: " + StringUtils.join(item.getRequiredJobParamKeys(),","));
+            l.getStyle().set("font-size", "0.8em");
             vl.add(l);
         }
         return vl;
@@ -442,7 +449,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
             ul.add(new ListItem("ExecutionId: " + ji.getExecutionId().toString()));
-            ul.add(new ListItem("Start/end time: " + DateUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) + "/" + DateUtils.format(ji.getEndTime(), "YYMMdd HH:mm:ss", Locale.US)));
+            ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "YYMMdd HH:mm:ss", Locale.US)));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
             ul.add(new ListItem("Params: " + ji.getJobParameters().toString()));
             ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus())));
@@ -464,7 +471,9 @@ public class MainView extends AppLayout implements JobEventListener {
     private Dialog createJobParamsDialog(JobInstanceInfo job) {
         Dialog dialog = new Dialog();
         dialog.setWidth("700");
-        HashMap<String, TextField> textFields = new HashMap<>();
+        HashMap<String, TextField> requiredTextFields = new HashMap<>();
+        HashMap<String, TextField> optionalTextFields = new HashMap<>();
+
         VerticalLayout formLayout = new VerticalLayout();
         formLayout.setWidthFull();
 
@@ -477,7 +486,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 //paramField.setRequiredIndicatorVisible(true);
                 paramField.setWidthFull();
                 formLayout.add(paramField);
-                textFields.put(key, paramField);
+                requiredTextFields.put(key, paramField);
             }
         }
         if (job.getOptionalJobParamKeys() != null) {
@@ -487,14 +496,22 @@ public class MainView extends AppLayout implements JobEventListener {
                 paramField.setLabel(key);
                 paramField.setWidthFull();
                 formLayout.add(paramField);
-                textFields.put(key, paramField);
+                optionalTextFields.put(key, paramField);
             }
         }
 
         Button startButton = new Button("Start", clickEvent -> {
             HashMap<String, String> params = new HashMap<>();
-            for (Map.Entry<String, TextField> field:textFields.entrySet()) {
-                params.put(field.getKey(), field.getValue().getValue());
+            for (Map.Entry<String, TextField> field:requiredTextFields.entrySet()) {
+                if (StringUtils.isNotEmpty(field.getValue().getValue())) {
+                    params.put(field.getKey(), field.getValue().getValue());
+                }
+                // TODO: Add early validation of required fields
+            }
+            for (Map.Entry<String, TextField> field:optionalTextFields.entrySet()) {
+                if (StringUtils.isNotEmpty(field.getValue().getValue())) {
+                    params.put(field.getKey(), field.getValue().getValue());
+                }
             }
             dialog.close();
             doStartJob(job, params);

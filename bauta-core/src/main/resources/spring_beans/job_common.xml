@@ -3,11 +3,10 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:b="http://www.springframework.org/schema/batch"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
 
-    <!-- Parent of all jobs -->
+    <!-- Parent of all jobs. It is important that all jobs have this as its parent.  -->
     <b:job id="job_base" abstract="true">
         <b:listeners>
             <b:listener ref="bautaManager"/>
@@ -29,9 +28,10 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier}"/>
         <property name="environmentParams">
             <map>
-                <entry key="NLS_NUMERIC_CHARACTERS" value=",."/>
-                <entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>
-                <entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>
+                <!-- Here you can set general environment params that will be applied in all child beans -->
+                <!--<entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>-->
+                <!--<entry key="NLS_NUMERIC_CHARACTERS" value=",."/>-->
+                <!--<entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>-->
             </map>
         </property>
     </bean>
@@ -43,9 +43,10 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier}"/>
         <property name="environmentParams">
             <map>
-                <entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>
-                <entry key="NLS_NUMERIC_CHARACTERS" value=",."/>
-                <entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>
+                <!-- Here you can set general environment params that will be applied in all child beans -->
+                <!--<entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>-->
+                <!--<entry key="NLS_NUMERIC_CHARACTERS" value=",."/>-->
+                <!--<entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>-->
             </map>
         </property>
     </bean>
@@ -56,8 +57,9 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier}"/>
         <property name="environmentParams">
             <map>
-                <entry key="NLS_NUMERIC_CHARACTERS" value=",."/>
-                <entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>
+                <!-- Here you can set general environment params that will be applied in all child beans -->
+                <!--<entry key="NLS_NUMERIC_CHARACTERS" value=",."/>-->
+                <!--<entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>-->
                 <!--<entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>-->
             </map>
         </property>
@@ -68,9 +70,10 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier}"/>
         <property name="environmentParams">
             <map>
-                <entry key="NLS_NUMERIC_CHARACTERS" value=",."/>
-                <entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>
+                <!-- Here you can set general environment params that will be applied in all child beans -->
                 <!--<entry key="NLS_LANG" value="AMERICAN_AMERICA.WE8MSWIN1252"/>-->
+                <!--<entry key="NLS_NUMERIC_CHARACTERS" value=",."/>-->
+                <!--<entry key="NLS_LENGTH_SEMANTICS" value="${bauta.stagingDB.nls_length_semantics}"/>-->
             </map>
         </property>
     </bean>

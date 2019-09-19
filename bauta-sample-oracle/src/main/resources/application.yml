@@ -29,6 +29,12 @@ bauta.stagingDB.service: MYSERVICE
 bauta.stagingDB.sid:
 bauta.stagingDB.nls_length_semantics: BYTE
 
+# Must be provided as a runtime dependency in the POM
+bauta.stagingDB.driverClassName: "oracle.jdbc.driver.OracleDriver"
+# Comma-separated list of properties that will be used when creating the staging DB datasource
+# Useful when connecting using Oracle wallet, e.g.
+#  oracle.net.wallet_location=(source=(method=file)(method_data=(directory=/opt/oracle/mywallet)))
+# bauta.stagingDB.connectionProperties: "oracle.net.wallet_location=(source=(method=file)(method_data=(directory=/opt/oracle/mywallet)))"
 bauta.stagingDB.url: jdbc:oracle:thin:@${bauta.stagingDB.host}:${bauta.stagingDB.port}/${bauta.stagingDB.service}
 #bauta.stagingDB.url: jdbc:oracle:thin:@${bauta.stagingDB.host}:${bauta.stagingDB.port}:${bauta.stagingDB.sid}
 bauta.stagingDB.sqlplus.connectionIdentifier: ${bauta.stagingDB.username}/${bauta.stagingDB.password}@${bauta.stagingDB.host}:${bauta.stagingDB.port}/${bauta.stagingDB.service}
