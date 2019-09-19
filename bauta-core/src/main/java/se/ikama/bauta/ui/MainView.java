@@ -211,8 +211,8 @@ public class MainView extends AppLayout implements JobEventListener {
                         .withProperty("executionId", JobInstanceInfo::getExecutionId)
                         .withProperty("instanceId", JobInstanceInfo::getInstanceId)
                         .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
-                        .withProperty("startTime", ji -> DateFormatUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US))
-                        .withProperty("endTime", ji -> ji != null ? DateFormatUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) : "")
+                        .withProperty("startTime", ji -> ji.getStartTime() != null ? DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US):"-")
+                        .withProperty("endTime", ji -> ji.getEndTime() != null ? DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US) : "-")
                         .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : "")
                         .withProperty("params", ji -> ji.getJobParameters() != null ? ji.getJobParameters().toString() : "")
         );
@@ -449,7 +449,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
             ul.add(new ListItem("ExecutionId: " + ji.getExecutionId().toString()));
-            ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "YYMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "YYMMdd HH:mm:ss", Locale.US)));
+            ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US)));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
             ul.add(new ListItem("Params: " + ji.getJobParameters().toString()));
             ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus())));
