@@ -8,6 +8,7 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -54,8 +55,9 @@ import java.util.stream.Stream;
 @Route("")
 //@Theme(value = Material.class, variant = Material.LIGHT)
 @Theme(value = Lumo.class, variant = Lumo.DARK)
-@StyleSheet("../static/css/bauta-theme.css")
 // @PWA(name = "Project Base for Vaadin Flow with Spring", shortName = "Project Base")
+@CssImport(value = "./styles/job-grid-theme.css", themeFor = "vaadin-grid")
+@CssImport(value = "./styles/bauta-styles.css")
 @DependsOn("bautaManager")
 public class MainView extends AppLayout implements JobEventListener {
 
@@ -156,8 +158,9 @@ public class MainView extends AppLayout implements JobEventListener {
         upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
         Label buildInfo = new Label(bautaManager.getShortServerInfo());
-        buildInfo.getStyle().set("font-size", "0.75em");
-        buildInfo.getStyle().set("margin-right", "10px");
+        buildInfo.setClassName("build-info");
+        //buildInfo.getStyle().set("font-size", "0.75em");
+        //buildInfo.getStyle().set("margin-right", "10px");
         rightPanel.add(buildInfo);
         rightPanel.add(upgradeInstanceButton);
         //rightPanel.add(upgradeBautaButton);
@@ -183,6 +186,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private Component createJobView() {
         VerticalLayout jobView = new VerticalLayout();
+        jobView.setPadding(true);
         jobView.setWidthFull();
         //setDefaultHorizontalComponentAlignment(FlexComponent.Alignment.STRETCH);
         this.grid = new Grid();
@@ -199,7 +203,7 @@ public class MainView extends AppLayout implements JobEventListener {
         c.setClassNameGenerator(item -> "job_cell");
         //grid.addColumn(item->createJobInfo(grid, item)).setHeader("Status");
         grid.addColumn(TemplateRenderer.<JobInstanceInfo>of(
-                "<div style='font-size:0.8em'>ExecutionID: [[item.executionId]]<br>" +
+                "<div class='job-cell-info'>ExecutionID: [[item.executionId]]<br>" +
                         "Instance ID: [[item.instanceId]]<br>" +
                         "Started: [[item.startTime]]<br>" +
                         "Ended: [[item.endTime]]<br>" +
@@ -244,8 +248,11 @@ public class MainView extends AppLayout implements JobEventListener {
     }
     private Component createButtons(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
         VerticalLayout vl = new VerticalLayout();
+        vl.setPadding(false);
+        vl.setSpacing(false);
         HorizontalLayout hl = new HorizontalLayout();
         hl.setSpacing(false);
+        hl.setPadding(false);
         Button startButton = new Button("", clickEvent -> {
             if (item.hasJobParameters()) {
                 Dialog d = createJobParamsDialog(item);
@@ -360,22 +367,20 @@ public class MainView extends AppLayout implements JobEventListener {
         VerticalLayout vl = new VerticalLayout();
         vl.setAlignItems(FlexComponent.Alignment.START);
         vl.setSpacing(false);
+        vl.setPadding(false);
         for (StepInfo step : jobInstanceInfo.getSteps()) {
             Component statusLabel = createStatusLabel(step.getExecutionStatus());
             Label stepNameLabel = new Label(step.getName());
             stepNameLabel.getStyle().set("font-size", "0.8em");
             Div div = new Div(stepNameLabel, statusLabel);
-            div.getStyle().set("display", "flex")
-                    .set("align-items", "baseline")
-                    .set("flex-flow", "row wrap")
-                    .set("margin", "2px");
+            div.setClassName("step-row");
 
             if (step.isRunning()) {
                 ProgressBar pb = new ProgressBar();
                 pb.setIndeterminate(true);
                 pb.setWidth("40px");
                 pb.setHeight("6px");
-                pb.getStyle().set("margin-left", "5px").set("flex-basis", "100%").set("margin-left", "0").set("margin-right", "0");
+                pb.setClassName("step-progress");
                 div.add(pb);
             }
             if (step.getReportUrls() != null) {
@@ -541,7 +546,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private void showErrorMessage(String message) {
         Label label = new Label(message);
-        //label.getStyle().set("color","var(--lumo-error-color)");
         Notification notification = new Notification(label);
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         notification.setPosition(Notification.Position.BOTTOM_START);

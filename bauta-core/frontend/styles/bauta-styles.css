@@ -1,0 +1,30 @@
+.step_status {
+    display: inline-block;
+    margin-left: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 0.6em;
+    color: #eeeeee;
+    border-radius: var(--lumo-border-radius-m);
+}
+.job-cell-info {
+    font-size: 0.8em;
+}
+.step-row {
+    display: flex;
+    align-items: baseline;
+    flex-flow: row wrap;
+    margin: 2px;
+}
+.step-progress {
+    margin-left: 0;
+    margin-right: 0;
+    flex-basis: 100%;
+
+}
+.build-info {
+    font-size: 0.75em;
+    margin-right: 10px;
+}
