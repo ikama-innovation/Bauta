@@ -223,7 +223,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 } else if (line.startsWith("Errors: check compiler log")) {
                     throw new JobExecutionException("There were compilation errors: " + line);
                 }
-                else if (line.startsWith("Error starting at line") || line.startsWith("Error report")) {
+                else if (line.startsWith("Error starting at line") || line.startsWith("Error report") || line.startsWith("ERROR at line")) {
                     throw new JobExecutionException("There were errors: " + line);
                 }
 
