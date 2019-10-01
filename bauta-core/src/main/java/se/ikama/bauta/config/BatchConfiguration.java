@@ -196,21 +196,22 @@ public class BatchConfiguration {
     //@ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
+        log.info("Username is {}", stagingDbUsername);
+        log.info("Password is {}", stagingDbPassword);
+
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setDriverClassName(stagingDbDriverClassName);
         dataSource.setUrl(stagingDbUrl);
         // username + password will typically be required, but may be left out when using something like Oracle Wallet
-        if (StringUtils.isNotEmpty(stagingDbUsername)) {
+        if (StringUtils.isNotEmpty(stagingDbUsername) && StringUtils.isNotEmpty(stagingDbPassword)) {
             dataSource.setUsername(stagingDbUsername);
-        }
-        if (StringUtils.isNotEmpty(stagingDbPassword)) {
             dataSource.setPassword(stagingDbPassword);
         }
         if (StringUtils.isNotEmpty(stagingDbConnectionProperties)) {
             //Properties props = PropertiesUtils.fromCommaSeparatedString(stagingDbConnectionProperties);
             dataSource.setConnectionProperties(stagingDbConnectionProperties);
+            log.info("Properties: {}", stagingDbConnectionProperties);
         }
-
 
         return dataSource;
     }
