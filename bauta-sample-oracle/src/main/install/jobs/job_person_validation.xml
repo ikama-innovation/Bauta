@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:b="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+    <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
+    <b:job id="Job.03.PersonValidation" parent="job_base">
+        <b:step parent="step_base" id="person_validation">
+            <b:description>Validates person data</b:description>
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.SqlValidationTasklet">
+                    <property name="reportName" value="Person Validations" />
+                    <property name="queryTimeout" value="300"/>
+                    <property name="failIfValidationFailures" value="true" />
+                    <property name="configuration" value='[
+                    {
+                    "sqlQuery":"select count(*) from person1",
+                    "title":"Count should be > 1",
+                    "result_gt":1
+                    },{
+                    "sqlQuery":"select count(*) from person2",
+                    "title":"Count should be > 1000",
+                    "result_gt":100000
+                    },
+                    {
+                    "sqlQuery":"select ((select count(*) from person1_converted)-(select count(*) from person1)) from dual",
+                    "title":"The diff between person1_converted and person1 should be 0",
+                    "result_equals":0
+                    },
+                    {
+                    "sqlQuery":"select count(*) from person2",
+                    "title":"Execution time should be &lt; 1s",
+                    "maxExecutionTime":1000
+                    }]' />
+
+                </bean>
+            </b:tasklet>
+        </b:step>
+    </b:job>
+</beans>

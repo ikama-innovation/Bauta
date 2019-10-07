@@ -77,11 +77,11 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </bean>
             </b:tasklet>
         </b:step>
-        <b:step parent="step_base" id="person_reports">
+        <b:step parent="step_base" id="person_reports" >
             <b:description>Generates some reports</b:description>
             <b:tasklet>
                 <bean class="se.ikama.bauta.batch.tasklet.SqlQueryReportTasklet">
-                    <property name="name" value="person stats"/>
+                    <property name="reportName" value="Person Report"/>
                     <property name="queryTimeout" value="300"/>
                     <property name="sqlQueries">
                         <list>
@@ -98,5 +98,6 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </bean>
             </b:tasklet>
         </b:step>
+
     </b:job>
 </beans>

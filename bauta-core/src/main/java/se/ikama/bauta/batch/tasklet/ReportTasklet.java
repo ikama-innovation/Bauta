@@ -1,8 +1,14 @@
 package se.ikama.bauta.batch.tasklet;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.output.StringBuilderWriter;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -13,36 +19,23 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Tasklet that generates reports. Delegates to one or many {@link ReportGenerator}.
  */
+@Slf4j
 public class ReportTasklet implements Tasklet {
-
-    private static final Logger log = LoggerFactory.getLogger(ReportTasklet.class);
 
     @Value("${bauta.reportDir}")
     protected String reportDir;
 
-    protected String name;
+    /**
+     * True if you want the step to fail if one or more validations fail.
+     */
+    @Setter
+    protected boolean failIfValidationFailures = true;
+
 
     private List<ReportGenerator> reportGenerators = new ArrayList<>();
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getReportDir() {
-        return reportDir;
-    }
-
-    public void setReportDir(String reportDir) {
-        this.reportDir = reportDir;
-    }
 
     protected void addReportGenerator(ReportGenerator reportGenerator) {
         reportGenerators.add(reportGenerator);
@@ -57,17 +50,29 @@ public class ReportTasklet implements Tasklet {
         List<String> fileNames = new ArrayList<>();
         List<String> urls = new ArrayList<>();
 
+
+        List<ReportGenerationResult> failedResults = new ArrayList<>();
         for (ReportGenerator reportGenerator : reportGenerators) {
             String fileName = reportGenerator.getReportFilename();
             File reportFile = ReportUtils.generateReportFile(reportDir, cc.getStepContext().getStepExecution(), fileName);
             FileUtils.forceMkdirParent(reportFile);
-            reportGenerator.generateReport(reportFile, sc, cc);
+            ReportGenerationResult result = reportGenerator.generateReport(reportFile, sc, cc);
+            if (result.getStatus() == ReportGenerationResult.ReportGenerationResultStatus.Failed)
+                failedResults.add(result);
             fileNames.add(fileName);
             urls.add(ReportUtils.generateReportUrl(cc.getStepContext().getStepExecution(), fileName));
         }
         cc.getStepContext().getStepExecution().getExecutionContext().put("fileNames", fileNames);
         cc.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
-
+        if (this.failIfValidationFailures && failedResults.size() > 0) {
+            // Generate a message for the failure exception
+            StringBuilder sb = new StringBuilder();
+            for (ReportGenerationResult rgr : failedResults) {
+                if(sb.length() > 0) sb.append(", ");
+                sb.append(rgr.getMessage());
+            }
+            throw new JobExecutionException(sb.toString());
+        }
         return RepeatStatus.FINISHED;
     }
 }

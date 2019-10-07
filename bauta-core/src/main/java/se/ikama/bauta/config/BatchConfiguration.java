@@ -2,7 +2,7 @@ package se.ikama.bauta.config;
 
 import com.vaadin.flow.spring.annotation.EnableVaadin;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.JobRegistry;
@@ -192,12 +192,12 @@ public class BatchConfiguration {
     }
 
     // Staging database
-    @Bean(name="stagingDataSource")
+    @Bean(name = "stagingDataSource")
     //@ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
         log.info("Username is {}", stagingDbUsername);
-        log.info("Password is {}", stagingDbPassword);
+        log.info("Password is {}", stagingDbPassword != null ? "********" : null);
 
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setDriverClassName(stagingDbDriverClassName);
@@ -216,7 +216,7 @@ public class BatchConfiguration {
         return dataSource;
     }
 
-    @Bean(name="stagingTransactionManager")
+    @Bean(name = "stagingTransactionManager")
     PlatformTransactionManager stagingTransactionManager() {
         return new DataSourceTransactionManager(stagingDataSource());
     }

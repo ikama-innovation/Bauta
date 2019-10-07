@@ -1,5 +1,8 @@
 package se.ikama.bauta.batch.tasklet;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.StepContribution;
@@ -24,11 +27,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
+ * A tasklet that generates reports based on a set of SQL queries.
  */
+@Slf4j
+@Setter
 public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements ReportGenerator, InitializingBean {
 
-    private static final Logger log = LoggerFactory.getLogger(SqlQueryReportTasklet.class);
 
     @Autowired
     @Qualifier("stagingDataSource")
@@ -38,6 +42,12 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
      * The query timeout in seconds. Defaults to -1 which means that the default timeout of the datasource will be used.
      */
     private int queryTimeout = -1;
+
+    /**
+     * A human-friendly name of the generated report.
+     */
+    @Getter
+    String reportName;
 
 
     private List<String> sqlQueries;
@@ -55,43 +65,30 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
 
     }
 
-    public void setSqlQueries(List<String> sqlQueries) {
-        this.sqlQueries = sqlQueries;
-    }
-
-    public void setTitles(List<String> titles) {
-        this.titles = titles;
-    }
-
-    public int getQueryTimeout() {
-        return queryTimeout;
-    }
-
-    public void setQueryTimeout(int queryTimeout) {
-        this.queryTimeout = queryTimeout;
-    }
 
     @Override
-    public void generateReport(File reportFile, StepContribution sc, ChunkContext cc) throws Exception {
+    public ReportGenerationResult generateReport(File reportFile, StepContribution sc, ChunkContext cc) throws Exception {
         Context context = new Context();
         context.setVariable("stepName", cc.getStepContext().getStepName());
         context.setVariable("jobName", cc.getStepContext().getJobName());
         context.setVariable("jobExecutionId", cc.getStepContext().getStepExecution().getJobExecutionId());
         context.setVariable("jobInstanceId", cc.getStepContext().getStepExecution().getJobExecution().getJobInstance().getInstanceId());
 
-        context.setVariable("name", name);
+        context.setVariable("name", getReportName());
         List<QueryResult> result = fetchData();
         log.debug("Result length is " + result.size());
         context.setVariable("queryResults", result);
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), "ISO-8859-15")) {
             templateEngine.process("dynamic_sql_report", context, writer);
         }
+        return new ReportGenerationResult(ReportGenerationResult.ReportGenerationResultStatus.OK);
     }
 
     @Override
     public String getReportFilename() {
-        return name + ".html";
+        return getReportName() + ".html";
     }
+
 
     private List<QueryResult> fetchData() {
         ArrayList<QueryResult> out = new ArrayList<>();

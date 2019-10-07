@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta charset="UTF-8"/>
+    <title th:text="${name}"></title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css"
+          href="https://cdn.datatables.net/t/bs-3.3.6/jq-2.2.0,dt-1.10.11,b-1.1.2,b-colvis-1.1.2,b-html5-1.1.2,b-print-1.1.2,fh-3.1.1,r-2.0.2,sc-1.4.1/datatables.min.css"/>
+    <script type="text/javascript"
+            src="https://cdn.datatables.net/t/bs-3.3.6/jq-2.2.0,dt-1.10.11,b-1.1.2,b-colvis-1.1.2,b-html5-1.1.2,b-print-1.1.2,fh-3.1.1,r-2.0.2,sc-1.4.1/datatables.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.js"></script>
+    <script>
+        //<![CDATA[
+
+        /* Turn large tables into datatables */
+        $(document).ready(function () {
+            var datatablesOptions = {
+                dom: "<'row'<'col-sm-4'l><'col-sm-4 text-center'B><'col-sm-4'f>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+                buttons: [
+                    'copyHtml5',
+                    'excelHtml5',
+                    'csvHtml5'
+                ]
+            };
+            $('table').each(function () {
+                var rowCount = $(this).find('tr').size();
+                if (rowCount > 10) {
+                    $(this).DataTable(datatablesOptions);
+                }
+            });
+            $('[data-toggle="popover"]').popover()
+        });
+        //]]>
+    </script>
+    <style>
+        .popover-content {
+            font-size: 13px;
+            font-family: monospace;
+            padding: 9px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h2><span th:text="${name}"></span>
+        <small th:text="${jobName} + ', ' + ${stepName} + ', ' +${jobInstanceId}"></small>
+    </h2>
+    <table class="table table-condensed compact" data-datatable="true">
+        <thead>
+        <tr>
+            <th>Description</th>
+            <th>Status</th>
+            <th class="text-right">Execution time (ms)</th>
+            <th>Sql Error</th>
+            <th>Validation error</th>
+            <th>Sql</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="v : ${validations}">
+            <td th:text="${v.title}"></td>
+            <td th:switch="${v.status}">
+                <span th:case="${T(se.ikama.bauta.batch.tasklet.SqlValidation.ValidationResultStatus).OK}" class="label label-success" th:text="${v.status}"></span>
+                <span th:case="${T(se.ikama.bauta.batch.tasklet.SqlValidation.ValidationResultStatus).ValidationFailed}" class="label label-danger" th:text="${v.status}"></span>
+                <span th:case="${T(se.ikama.bauta.batch.tasklet.SqlValidation.ValidationResultStatus).SqlFailed}" class="label label-warning" th:text="${v.status}"></span>
+                <span th:case="*" class="label label-warning" th:text="${v.status}"></span>
+            </td>
+            <td th:text="${v.executionTime}" class="text-right"></td>
+            <td ><div th:text="${v.sqlError}" th:if="${v.sqlError}" class="alert alert-warning" style="margin-bottom: 0"></div></td>
+            <td><div th:text="${v.validationError}" th:if="${v.validationError}" class="alert alert-danger" style="margin-bottom: 0"></div></td>
+            <td th:text="${v.sqlQuery}" class="text-muted"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
