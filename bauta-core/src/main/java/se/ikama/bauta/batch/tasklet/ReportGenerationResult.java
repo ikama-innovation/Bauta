@@ -18,4 +18,7 @@ public class ReportGenerationResult {
     private ReportGenerationResultStatus status;
     private String message;
 
+    public static ReportGenerationResult OK = new ReportGenerationResult(ReportGenerationResultStatus.OK);
+
+
 }

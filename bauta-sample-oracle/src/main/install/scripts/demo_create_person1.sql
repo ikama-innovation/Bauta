@@ -10,3 +10,6 @@ insert into person1 (person_id, last_name, first_name, address, city) values (1,
 insert into person1 (person_id, last_name, first_name, address, city) values (2, 'Svensson', 'Sven', 'Sven St 1', 'Sven City');
 insert into person1 (person_id, last_name, first_name, address, city) values (3, 'Andersson', 'Anders', 'Anders St 1', 'Anders City');
 insert into person1 (person_id, last_name, first_name, address, city) values (4, 'Tomasson', 'Tomas', 'Tomas St 1', 'Tomas City');
+-- Some special characters to test the CSV output
+insert into person1 (person_id, last_name, first_name, address, city) values (5, 'Holgersson', 'Holger "the Hulk"', 'Tomas St 1, behind the Post Office', 'Tomas City');
+insert into person1 (person_id, last_name, first_name, address, city) values (6, 'Olofsson', 'Olof', 'Olof St 1', 'Olof City');

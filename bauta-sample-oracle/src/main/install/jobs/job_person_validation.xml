@@ -9,13 +9,13 @@ http://www.springframework.org/schema/util http://www.springframework.org/schema
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
     <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
     <b:job id="Job.03.PersonValidation" parent="job_base">
-        <b:step parent="step_base" id="person_validation">
+        <b:step parent="step_base" id="person_validation" next="person_csv">
             <b:description>Validates person data</b:description>
             <b:tasklet>
                 <bean class="se.ikama.bauta.batch.tasklet.SqlValidationTasklet">
                     <property name="reportName" value="Person Validations" />
                     <property name="queryTimeout" value="300"/>
-                    <property name="failIfValidationFailures" value="true" />
+                    <property name="failIfValidationFailures" value="false" />
                     <property name="configuration" value='[
                     {
                     "sqlQuery":"select count(*) from person1",
@@ -36,6 +36,18 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                     "title":"Execution time should be &lt; 1s",
                     "maxExecutionTime":1000
                     }]' />
+
+                </bean>
+            </b:tasklet>
+        </b:step>
+        <b:step parent="step_base" id="person_csv">
+            <b:description>Exports the person1_converted table to a csv file</b:description>
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.SqlToCsvReportTasklet">
+                    <property name="reportName" value="Person Report" />
+                    <property name="reportFilename" value="person1_converted.csv" />
+                    <property name="queryTimeout" value="300"/>
+                    <property name="sql" value="select * from person1_converted" />
 
                 </bean>
             </b:tasklet>

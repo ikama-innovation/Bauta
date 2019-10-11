@@ -30,14 +30,14 @@
         To install manually, do something like
         mvn install:install-file -Dfile={Path/to/your/ojdbc.jar} -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0 -Dpackaging=jar
         -->
-        <!--
+
         <dependency>
             <groupId>com.oracle.driver</groupId>
             <artifactId>ojdbc8</artifactId>
             <version>19.3</version>
             <scope>runtime</scope>
         </dependency>
-        -->
+
     </dependencies>
     <build>
         <resources>
