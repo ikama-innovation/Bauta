@@ -42,6 +42,10 @@ public class SqlToCsvReportTasklet extends ReportTasklet implements ReportGenera
     // Csv settings
     private char delimiter = ',';
     private String encoding = "UTF-8";
+    /**
+     * Generate a header
+     */
+    private boolean generateHeader = true;
 
 
     public SqlToCsvReportTasklet() {
@@ -76,14 +80,17 @@ public class SqlToCsvReportTasklet extends ReportTasklet implements ReportGenera
                 ps.setQueryTimeout(queryTimeout);
                 ps.setFetchSize(fetchSize);
                 try (ResultSet rs = ps.executeQuery()) {
-                    CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
+                    CSVFormat format = CSVFormat.DEFAULT.withDelimiter(delimiter);
+                    if (this.generateHeader) {
+                        format = format.withHeader(rs);
+                    }
+
+                    CSVPrinter csvPrinter = new CSVPrinter(writer, format);
                     csvPrinter.printRecords(rs);
                 }
             }
         }
-
         return ReportGenerationResult.OK;
     }
-
 
 }
