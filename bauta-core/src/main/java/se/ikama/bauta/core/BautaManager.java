@@ -362,6 +362,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         info.add("Application build: " + env.getProperty("bauta.application.build","---"));
         info.add("Application build time: " + env.getProperty("bauta.application.buildTime","---"));
         info.add("GIT branch: " + env.getProperty("bauta.application.git.branch","---"));
+        info.add("Closest tag: " + env.getProperty("bauta.application.git.closest.tag.name","---"));
         info.add("GIT commit count: " + env.getProperty("bauta.application.git.total.commit.count","---"));
         info.add("GIT id: " + env.getProperty("bauta.application.git.commit.id.abbrev","---"));
         info.add("GIT commit message: " + env.getProperty("bauta.application.git.commit.message.short","---"));
