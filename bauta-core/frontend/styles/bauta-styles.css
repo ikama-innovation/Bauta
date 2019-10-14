@@ -8,7 +8,30 @@
     font-size: 0.6em;
     color: #eeeeee;
     border-radius: var(--lumo-border-radius-m);
+    background-color: var(--lumo-base-color);
 }
+.step_status[data-exitstatus="COMPLETED"] {
+    background-color: var(--lumo-success-color);
+}
+.step_status[data-exitstatus="ABANDONED"] {
+    background-color: var(--lumo-error-color-50pct);
+}
+.step_status[data-exitstatus="STARTED"] {
+    background-color:var(--lumo-primary-color);
+}
+.step_status[data-exitstatus="STARTING"] {
+    background-color:var(--lumo-primary-color);
+}
+.step_status[data-exitstatus="FAILED"] {
+    background-color: var(--lumo-error-color);
+}
+.step_status[data-exitstatus="STOPPED"] {
+    background-color: var(--lumo-primary-color);
+}
+.step_status[data-exitstatus="STOPPING"] {
+    background-color: var(--lumo-primary-color);
+}
+
 .job-cell-info {
     font-size: 0.8em;
 }

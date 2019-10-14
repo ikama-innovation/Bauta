@@ -208,7 +208,7 @@ public class MainView extends AppLayout implements JobEventListener {
                         "Started: [[item.startTime]]<br>" +
                         "Ended: [[item.endTime]]<br>" +
                         "Duration: [[item.duration]]<br>" +
-                        "Exitstatus: [[item.exitStatus]]<br>" +
+                        "Exit status: <div class='step_status' data-exitstatus$={{item.exitStatus}}>[[item.exitStatus]]</div><br>" +
                         "Params: [[item.params]]<br>" +
                         "</div>"
                 )
@@ -344,25 +344,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
     }
 
-    private static String batchStatusToColor(String batchStatus) {
-        switch (batchStatus) {
-            case "COMPLETED":
-                return "var(--lumo-success-color)";
-            case "ABANDONED":
-                return "var(--lumo-error-color-50pct)";
-            case "STARTED":
-            case "STARTING":
-                return "var(--lumo-primary-color)";
-            case "FAILED":
-                return "var(--lumo-error-color)";
-            case "STOPPED":
-            case "STOPPING":
-                return "var(--lumo-primary-color)";
-            default:
-                return "var(--lumo-secondary-color)";
-        }
-    }
-
     private Component createStepComponent(Grid<JobInstanceInfo> grid, JobInstanceInfo jobInstanceInfo) {
         VerticalLayout vl = new VerticalLayout();
         vl.setAlignItems(FlexComponent.Alignment.START);
@@ -390,7 +371,7 @@ public class MainView extends AppLayout implements JobEventListener {
                     if (url.endsWith(".html")) {
                         icon = VaadinIcon.CHART.create();
                     } else if (url.endsWith(".log")) {
-                        icon = VaadinIcon.FILE_TEXT_O.create();
+                        icon = VaadinIcon.FILE_PROCESS.create();
                     } else if (url.toUpperCase().endsWith(".CSV") || url.toUpperCase().endsWith(".XLSX")) {
                         icon = VaadinIcon.FILE_TABLE.create();
                     } else {
@@ -432,9 +413,10 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private Component createStatusLabel(String executionStatus) {
         Div statusLabel = new Div();
-        statusLabel.setClassName("step_status");
+        statusLabel.addClassName("step_status");
+        statusLabel.getElement().setAttribute("data-exitstatus",executionStatus);
         statusLabel.setText(executionStatus);
-        statusLabel.getStyle().set("background-color", batchStatusToColor(executionStatus));
+        //statusLabel.getStyle().set("background-color", batchStatusToColor(executionStatus));
         return statusLabel;
     }
 
