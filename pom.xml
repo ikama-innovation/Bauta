@@ -5,7 +5,7 @@
 
     <groupId>se.ikama</groupId>
     <artifactId>bauta</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.2</version>
     <name>bauta</name>
     <packaging>pom</packaging>
     <description>Bauta is a batch automation framework based on Spring Batch.</description>
@@ -157,7 +157,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-javadoc-plugin</artifactId>
-                            <version>3.1.1</version>
+                            <version>3.1.0</version>
                             <executions>
                                 <execution>
                                     <id>attach-javadocs</id>
@@ -166,6 +166,15 @@
                                     </goals>
                                 </execution>
                             </executions>
+                            <configuration>
+                                <source>1.8</source>
+                                <detectJavaApiLink>false</detectJavaApiLink>
+                                <detectLinks>false</detectLinks>
+                                <minmemory>128m</minmemory>
+                                <maxmemory>1g</maxmemory>
+                                <!-- Multiple problems when using the JDK 11 javadoc-->
+                                <!--<javadocExecutable>/usr/lib/jvm/jdk1.8.0_211/bin/javadoc</javadocExecutable>-->
+                            </configuration>
                         </plugin>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
