@@ -28,16 +28,15 @@
         <!-- Oracle JDBC driver. Not available in any public repo.
         Either install it manually in your local repo, or use the maven-install-plugin. See example below .
         To install manually, do something like
-        mvn install:install-file -Dfile={Path/to/your/ojdbc.jar} -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0 -Dpackaging=jar
+        mvn install:install-file -Dfile={Path/to/your/ojdbc.jar} -DgroupId=com.oracle.driver -DartifactId=ojdbc8 -Dversion=19.3 -Dpackaging=jar
         -->
-        <!--
         <dependency>
             <groupId>com.oracle.driver</groupId>
             <artifactId>ojdbc8</artifactId>
             <version>19.3</version>
             <scope>runtime</scope>
         </dependency>
-        -->
+
     </dependencies>
     <build>
         <resources>
