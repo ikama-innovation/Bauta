@@ -11,7 +11,7 @@
         <version>0.0.2-SNAPSHOT</version>
     </parent>
     <properties>
-        <vaadin.version>14.0.7</vaadin.version>
+        <vaadin.version>14.0.8</vaadin.version>
     </properties>
     <repositories>
         <repository>
