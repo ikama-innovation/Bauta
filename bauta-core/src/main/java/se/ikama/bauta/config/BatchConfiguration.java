@@ -65,7 +65,7 @@ public class BatchConfiguration {
 
     /**
      * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
-     * Typically not needed. One usecase is when using Oracle Wallet for authentication. Then you
+     * Typically not needed. One use-case is when using Oracle Wallet for authentication. Then you
      * must provide connection properties here, e.g.
      * oracle.net.wallet_location=(source=(method=file)(method_data=(directory=/opt/oracle/mywallet)))
      */

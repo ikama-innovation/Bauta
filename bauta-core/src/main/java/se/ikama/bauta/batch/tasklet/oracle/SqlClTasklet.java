@@ -1,5 +1,6 @@
 package se.ikama.bauta.batch.tasklet.oracle;
 
+import org.springframework.util.CollectionUtils;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -152,6 +153,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
                     Map<String, String> env = pb.environment();
                     env.putAll(environmentParams);
+                    log.debug("environmentParams: {}", environmentParams);
+                    log.debug("Environment: {}", pb.environment());
 
                     pb.directory(scriptDir);
                     pb.redirectErrorStream(true);

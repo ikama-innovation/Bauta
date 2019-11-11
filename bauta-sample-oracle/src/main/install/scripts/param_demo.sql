@@ -4,7 +4,7 @@ set verify off;
 -- &1: scriptParam1
 -- &2: scriptParam2
 -- &3: scriptParam3
-
+select value from v$nls_parameters where parameter in ('NLS_LANGUAGE','NLS_TERRITORY','NLS_CHARACTERSET');
 
 DECLARE
 sp1 VARCHAR2(200) := upper('&1');

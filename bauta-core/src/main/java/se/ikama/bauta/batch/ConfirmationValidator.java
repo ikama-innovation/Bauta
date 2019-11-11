@@ -11,7 +11,7 @@ import java.util.List;
 
 public class ConfirmationValidator implements JobParametersValidator, JobParametersProvider {
 
-    List<String> requiredKeys = Arrays.asList(new String[]{"confirm"});
+    private List<String> requiredKeys = Arrays.asList(new String[]{"confirm"});
 
     @Override
     public void validate(JobParameters parameters) throws JobParametersInvalidException {

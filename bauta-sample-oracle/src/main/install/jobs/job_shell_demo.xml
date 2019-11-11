@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:b="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+    <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
+    <b:job id="Job.04.CommandDemo" parent="job_base">
+        <b:step id="cd_demo">
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.ReportingSystemCommandTasklet">
+                    <property name="command" value="sh demo.sh" />
+                    <property name="workingDirectory" value="${bauta.scriptDir}" />
+                    <property name="checkInterval" value="300" />
+                    <property name="timeout" value="30000" />
+                    <property name="environmentParams">
+                        <map>
+                            <entry key="DEMO_PARAM" value="DEMO_VALUE"/>
+                        </map>
+                    </property>
+                </bean>
+            </b:tasklet>
+        </b:step>
+    </b:job>
+</beans>
