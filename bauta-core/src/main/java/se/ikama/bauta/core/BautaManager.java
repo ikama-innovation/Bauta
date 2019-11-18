@@ -17,7 +17,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.Environment;
 import se.ikama.bauta.batch.JobParametersProvider;
-import se.ikama.bauta.batch.ParamProvidingJobParametersValidator;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -202,6 +201,20 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         }
     }
 
+    private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
+        JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(jobName);
+        FlowJob job = (FlowJob) jobRegistry.getJob(jobName);
+
+        JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
+        if (jobParametersValidator != null && jobParametersValidator instanceof JobParametersProvider) {
+            JobParametersProvider validator = (JobParametersProvider)jobParametersValidator;
+            jobInstanceInfo.setRequiredJobParamKeys(validator.getRequiredKeys());
+            jobInstanceInfo.setOptionalJobParamKeys(validator.getOptionalKeys());
+        }
+        return jobInstanceInfo;
+
+    }
+
     private JobInstanceInfo extractJobInstanceInfo(JobExecution je) throws Exception {
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
         FlowJob job = (FlowJob) jobRegistry.getJob(je.getJobInstance().getJobName());
@@ -298,11 +311,15 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             long latestInstance = jobInstances.get(0);
             out.setInstanceId(latestInstance);
             List<Long> executions = jobOperator.getExecutions(latestInstance);
+
             if (executions.size() > 0) {
                 long latestExecutionId = executions.get(0);
                 JobExecution jobExecution = jobExplorer.getJobExecution(latestExecutionId);
                 out = extractJobInstanceInfo(jobExecution);
             }
+        }
+        else {
+            out = extractBasicJobInfo(jobName);
         }
         return out;
     }
@@ -390,5 +407,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             sb.append(" ").append(env.getProperty("bauta.application.version"));
         }
         return  sb.toString();
+    }
+
+    public void hasJobParameters(String name) {
+
     }
 }

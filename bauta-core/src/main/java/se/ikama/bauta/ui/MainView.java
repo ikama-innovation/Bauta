@@ -254,6 +254,7 @@ public class MainView extends AppLayout implements JobEventListener {
         hl.setSpacing(false);
         hl.setPadding(false);
         Button startButton = new Button("", clickEvent -> {
+            bautaManager.hasJobParameters(item.getName());
             if (item.hasJobParameters()) {
                 Dialog d = createJobParamsDialog(item);
                 d.open();
