@@ -115,8 +115,10 @@ public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport 
                 log.debug("Command is: " + StringUtils.join(commands, ","));
                 ProcessBuilder pb = new ProcessBuilder(commands);
 
-                Map<String, String> env = pb.environment();
-                env.putAll(environmentParams);
+                if (environmentParams != null) {
+                    Map<String, String> env = pb.environment();
+                    env.putAll(environmentParams);
+                }
 
                 pb.directory(workingDirectory);
                 pb.redirectErrorStream(true);
