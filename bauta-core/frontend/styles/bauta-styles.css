@@ -31,6 +31,9 @@
 .step_status[data-exitstatus="STOPPING"] {
     background-color: var(--lumo-primary-color);
 }
+.step_status[data-exitstatus="UNKNOWN"] {
+    background-color: var(--lumo-base-color);
+}
 
 .job-cell-info {
     font-size: 0.8em;
