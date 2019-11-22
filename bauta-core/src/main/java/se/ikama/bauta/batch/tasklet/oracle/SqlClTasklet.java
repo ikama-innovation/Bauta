@@ -131,7 +131,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|sql "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParams;
+                    String cmd = "exit|"+executable+" "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParams;
                     if (System.getProperty("os.name").toLowerCase().contains("win")) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -341,5 +341,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;
     }
+
+
 
 }
