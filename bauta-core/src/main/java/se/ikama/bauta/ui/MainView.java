@@ -9,9 +9,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
@@ -212,7 +210,7 @@ public class MainView extends AppLayout implements JobEventListener {
                         "Params: [[item.params]]<br>" +
                         "</div>"
                 )
-                        .withProperty("executionId", JobInstanceInfo::getExecutionId)
+                        .withProperty("executionId", JobInstanceInfo::getLatestExecutionId)
                         .withProperty("instanceId", JobInstanceInfo::getInstanceId)
                         .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
                         .withProperty("startTime", ji -> ji.getStartTime() != null ? DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US):"-")
@@ -265,6 +263,8 @@ public class MainView extends AppLayout implements JobEventListener {
 
         });
         startButton.setIcon(VaadinIcon.PLAY.create());
+        startButton.getElement().setProperty("title", "Start a new job instance");
+
         hl.add(startButton);
 
         Button stopButton = new Button("", clickEvent -> {
@@ -277,11 +277,13 @@ public class MainView extends AppLayout implements JobEventListener {
         });
         stopButton.setIcon(VaadinIcon.STOP.create());
         stopButton.getStyle().set("margin-left", "4px");
+        stopButton.getElement().setProperty("title", "Stop a running job");
+
         hl.add(stopButton);
 
         Button restartButton = new Button("", clickEvent -> {
             try {
-                bautaManager.restartJob(item.getExecutionId());
+                bautaManager.restartJob(item.getLatestExecutionId());
             } catch (Exception e) {
                 showErrorMessage(e.getMessage());
                 //TODO: Error handling
@@ -290,11 +292,13 @@ public class MainView extends AppLayout implements JobEventListener {
         });
         restartButton.setIcon(VaadinIcon.ROTATE_LEFT.create());
         restartButton.getStyle().set("margin-left", "4px");
+        restartButton.getElement().setProperty("title", "Restart a failed or interrupted job. Will pick up where it left off.");
+
         hl.add(restartButton);
 
         Button abandonButton = new Button("", clickEvent -> {
             try {
-                bautaManager.abandonJob(item.getExecutionId());
+                bautaManager.abandonJob(item.getLatestExecutionId());
             } catch (Exception e) {
                 showErrorMessage(e.getMessage());
                 e.printStackTrace();
@@ -354,8 +358,10 @@ public class MainView extends AppLayout implements JobEventListener {
             Component statusLabel = createStatusLabel(step.getExecutionStatus());
             Label stepNameLabel = new Label(step.getName());
             stepNameLabel.getStyle().set("font-size", "0.8em");
+
             Div div = new Div(stepNameLabel, statusLabel);
             div.setClassName("step-row");
+            div.getElement().setProperty("title", "jobInstanceId: "+step.getJobInstanceId()+", executionId: "+step.getJobExecutionId()+", duration: "+step.getDuration());
 
             if (step.isRunning()) {
                 ProgressBar pb = new ProgressBar();
@@ -436,7 +442,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
 
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
-            ul.add(new ListItem("ExecutionId: " + ji.getExecutionId().toString()));
+            ul.add(new ListItem("ExecutionId: " + ji.getLatestExecutionId().toString()));
             ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US)));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
             ul.add(new ListItem("Params: " + ji.getJobParameters().toString()));
@@ -447,8 +453,34 @@ public class MainView extends AppLayout implements JobEventListener {
             grid.setWidthFull();
             grid.addColumn(StepInfo::getName).setHeader("Name").setAutoWidth(true);
             //grid.addColumn(StepInfo::getExecutionStatus).setHeader("Status");
+
             grid.addComponentColumn(item -> createStatusLabel(item.getExecutionStatus())).setHeader("Status");
             grid.addComponentColumn(item -> new Label(DurationFormatUtils.formatDuration(item.getDuration(), "HH:mm:ss"))).setHeader("Duration");
+            grid.addComponentColumn(item -> {
+                Div reportDiv = new Div();
+                if (item.getReportUrls() != null) {
+                    for (String url : item.getReportUrls()) {
+                        Icon icon = null;
+
+                        if (url.endsWith(".html")) {
+                            icon = VaadinIcon.CHART.create();
+                        } else if (url.endsWith(".log")) {
+                            icon = VaadinIcon.FILE_PROCESS.create();
+                        } else if (url.toUpperCase().endsWith(".CSV") || url.toUpperCase().endsWith(".XLSX")) {
+                            icon = VaadinIcon.FILE_TABLE.create();
+                        } else {
+                            icon = VaadinIcon.FILE_O.create();
+                        }
+                        icon.setSize("1.2em");
+                        Anchor reportAnchor = new Anchor("../" + url, icon);
+
+                        reportAnchor.setTarget("reports");
+                        reportAnchor.getStyle().set("font-size", "0.8em").set("margin-left", "5px");
+                        reportDiv.add(reportAnchor);
+                    }
+                }
+                return reportDiv;
+            });
             grid.setItems(ji.getSteps());
             div.add(grid);
             vl.add(div);

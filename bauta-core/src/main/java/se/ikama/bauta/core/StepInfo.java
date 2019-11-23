@@ -10,6 +10,8 @@ public class StepInfo {
     private List<String> reportUrls;
     private String exitDescription;
     private long duration;
+    private long jobInstanceId;
+    private long jobExecutionId;
 
     public StepInfo(String name) {
         this.name = name;
@@ -70,5 +72,21 @@ public class StepInfo {
 
     public long getDuration() {
         return duration;
+    }
+
+    public long getJobInstanceId() {
+        return jobInstanceId;
+    }
+
+    public void setJobInstanceId(long jobInstanceId) {
+        this.jobInstanceId = jobInstanceId;
+    }
+
+    public long getJobExecutionId() {
+        return jobExecutionId;
+    }
+
+    public void setJobExecutionId(long jobExecutionId) {
+        this.jobExecutionId = jobExecutionId;
     }
 }

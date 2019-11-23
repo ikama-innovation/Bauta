@@ -30,6 +30,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 import se.ikama.bauta.util.PropertiesUtils;
 
@@ -222,9 +223,19 @@ public class BatchConfiguration {
     }
 
     @Bean
+    @Primary
     TaskExecutor taskExecutor() {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
         executor.setConcurrencyLimit(-1);
+        return executor;
+    }
+    @Bean (name = "multiTaskExecutor")
+    TaskExecutor multiTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(25);
+        executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;
     }
 

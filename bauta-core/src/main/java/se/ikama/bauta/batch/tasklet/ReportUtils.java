@@ -11,14 +11,14 @@ import java.io.File;
 public class ReportUtils {
 
     public static File generateReportFile(String reportDir, StepExecution stepExecution, String filename) {
-        String outputDir = FilenameUtils.concat(reportDir, stepExecution.getJobExecution().getJobInstance().getJobName() + "/" + stepExecution.getJobExecution().getJobId() + "/" + stepExecution.getStepName());
+        String outputDir = FilenameUtils.concat(reportDir, stepExecution.getJobExecution().getJobInstance().getJobName() + "/" + stepExecution.getJobExecution().getJobId() + "_" + stepExecution.getJobExecutionId() + "/" + stepExecution.getStepName());
         String path = FilenameUtils.concat(outputDir, filename);
         File file = new File(path);
         return file;
     }
 
     public static String generateReportUrl(StepExecution stepExecution, String filename) {
-        String reportUrl = "reports/" + stepExecution.getJobExecution().getJobInstance().getJobName() + "/" + stepExecution.getJobExecution().getJobId() + "/" + stepExecution.getStepName() + "/" + filename;
+        String reportUrl = "reports/" + stepExecution.getJobExecution().getJobInstance().getJobName() + "/" + stepExecution.getJobExecution().getJobId() + "_" + stepExecution.getJobExecutionId()+"/" + stepExecution.getStepName() + "/" + filename;
         return reportUrl;
     }
 }

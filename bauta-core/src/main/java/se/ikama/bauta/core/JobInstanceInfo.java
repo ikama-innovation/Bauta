@@ -7,7 +7,7 @@ public class JobInstanceInfo {
     private String name;
     private String executionStatus;
     private String exitStatus;
-    private Long executionId;
+    private Long latestExecutionId;
     private Long instanceId;
     private Date startTime;
     private Date endTime;
@@ -38,12 +38,12 @@ public class JobInstanceInfo {
         this.executionStatus = executionStatus;
     }
 
-    public Long getExecutionId() {
-        return executionId;
+    public Long getLatestExecutionId() {
+        return latestExecutionId;
     }
 
-    public void setExecutionId(Long executionId) {
-        this.executionId = executionId;
+    public void setLatestExecutionId(Long latestExecutionId) {
+        this.latestExecutionId = latestExecutionId;
     }
 
     public Long getInstanceId() {
@@ -107,7 +107,7 @@ public class JobInstanceInfo {
     }
 
     public boolean isRestartable() {
-        return executionId != null && exitStatus != null && (exitStatus.equals("STOPPED") || exitStatus.equals("FAILED"));
+        return latestExecutionId != null && exitStatus != null && (exitStatus.equals("STOPPED") || exitStatus.equals("FAILED"));
     }
 
     @Override
@@ -128,7 +128,7 @@ public class JobInstanceInfo {
         return "JobInstanceInfo{" +
                 "name='" + name + '\'' +
                 ", executionStatus='" + executionStatus + '\'' +
-                ", executionId=" + executionId +
+                ", executionId=" + latestExecutionId +
                 ", instanceId=" + instanceId +
                 '}';
     }
