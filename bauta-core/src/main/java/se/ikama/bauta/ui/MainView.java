@@ -364,12 +364,12 @@ public class MainView extends AppLayout implements JobEventListener {
             div.getElement().setProperty("title", "jobInstanceId: "+step.getJobInstanceId()+", executionId: "+step.getJobExecutionId()+", duration: "+step.getDuration());
 
             if (step.isRunning()) {
-                ProgressBar pb = new ProgressBar();
-                pb.setIndeterminate(true);
-                pb.setWidth("40px");
-                pb.setHeight("6px");
-                pb.setClassName("step-progress");
-                div.add(pb);
+                //ProgressBar pb = new ProgressBar();
+                //pb.setIndeterminate(true);
+                //pb.setClassName("step-progress");
+                //Div spinner = new Div();
+                //spinner.addClassName("ring-spinner");
+                //div.add(spinner);
             }
             if (step.getReportUrls() != null) {
                 for (String url : step.getReportUrls()) {
