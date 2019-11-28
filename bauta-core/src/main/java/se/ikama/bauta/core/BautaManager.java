@@ -6,22 +6,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.JobRegistry;
+import org.springframework.batch.core.configuration.xml.SimpleFlowFactoryBean;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.job.flow.FlowJob;
+import org.springframework.batch.core.job.flow.State;
+import org.springframework.batch.core.job.flow.support.SimpleFlow;
+import org.springframework.batch.core.job.flow.support.state.StepState;
 import org.springframework.batch.core.launch.*;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.tasklet.TaskletStep;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import se.ikama.bauta.batch.JobParametersProvider;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class BautaManager implements StepExecutionListener, JobExecutionListener, ApplicationContextAware {
 
@@ -39,10 +49,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private HashSet<JobEventListener> jobEventListeners = new HashSet<>();
     private ApplicationContext applicationContext;
 
+    private HashSet<Long> scheduledUpdateJobExecutionIds = new HashSet<Long>();
+
     /**
      * Holds last known information about the steps of a job
      */
     private TreeMap<String, JobInstanceInfo> cachedJobInstanceInfos = new TreeMap<>();
+    ScheduledExecutorService jobUpdateScheduler;
 
     @Value("${bauta.rebuildServerCommand}")
     private String rebuildServerCommand;
@@ -56,6 +69,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         this.jobOperator = jobOperator;
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
+        jobUpdateScheduler = Executors.newScheduledThreadPool(1);
     }
 
 
@@ -177,17 +191,38 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
-        log.debug("beforeJob: {}", stepExecution);
+
+        log.debug("beforeStep: {}", stepExecution);
         fireJobEvent(stepExecution.getJobExecution());
+        // Sometimes, the step status may still be in STARTING phase when we get here.
+        // To ensure that we will get the STARTED status, schedule an update in a second or so
+        scheduleDelayedJobEvent(stepExecution.getJobExecutionId());
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         log.debug("afterStep: {}", stepExecution);
-        log.debug("Job: {}", stepExecution.getJobExecution());
 
         fireJobEvent(stepExecution.getJobExecution());
         return stepExecution.getExitStatus();
+    }
+
+    /**
+     * Will fire a jobEvent in a second from now.
+     * @param jobExecutionId
+     */
+    private void scheduleDelayedJobEvent(long jobExecutionId) {
+        Runnable update = new Runnable() {
+            @Override
+            public void run() {
+                JobExecution je = jobExplorer.getJobExecution(jobExecutionId);
+                if (je != null) {
+                    log.debug("Firing delayed update for {}", jobExecutionId);
+                    fireJobEvent(je);
+                }
+            }
+        };
+        jobUpdateScheduler.schedule(update, 2000, TimeUnit.MILLISECONDS);
     }
 
     private void fireJobEvent(JobExecution je) {
@@ -198,13 +233,52 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             log.warn("Failed to extract job info", e);
         }
         for (JobEventListener jel : jobEventListeners) {
-            jel.onJobChange(jobInstanceInfo);
+            try {
+                jel.onJobChange(jobInstanceInfo);
+            }
+            catch (Exception e)  {
+                log.error("Failed to call onJobChange in one of the listeners", e);
+            }
         }
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(jobName);
         FlowJob job = (FlowJob) jobRegistry.getJob(jobName);
+
+        /*
+        Attempt to retrieve batch flow information
+
+        Map<String, SimpleFlowFactoryBean> beans = applicationContext.getBeansOfType(SimpleFlowFactoryBean.class);
+        for (Map.Entry<String, SimpleFlowFactoryBean> es : beans.entrySet()) {
+            log.debug("key: {}, value: {}", es.getKey(), es.getValue().getObjectType().toString());
+            String name = es.getValue().getObject().getName();
+            if (name.equals(jobName))  {
+                log.debug("Found the corresponding bean");
+
+                State startState = es.getValue().getObject().getStartState();
+                log.debug("Start state is: {} of type {}" ,  startState.getName(), startState.getClass().getName());
+                for(String stepName : ((StepState)startState).getStepNames()) {
+                    log.debug("   with step name " + stepName);
+                }
+                Collection<State> states = es.getValue().getObject().getStates();
+                for (State state : states) {
+                    log.debug("State: {} of type {}", state.getName(), state.getClass().getName());
+                    if (state instanceof StepState) {
+                        StepState stepState = (StepState)state;
+
+                        log.debug("  has the following steps:");
+                        for (String stepName : stepState.getStepNames()) {
+                            log.debug("     {}", stepName);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        */
+
+
 
         JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
         if (jobParametersValidator != null && jobParametersValidator instanceof JobParametersProvider) {
@@ -217,8 +291,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     private JobInstanceInfo extractJobInstanceInfo(JobExecution je, boolean mergeOlderExecutions) throws Exception {
+        String jobName = je.getJobInstance().getJobName();
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
         FlowJob job = (FlowJob) jobRegistry.getJob(je.getJobInstance().getJobName());
+
         JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
         if (jobParametersValidator != null && jobParametersValidator instanceof JobParametersProvider) {
             JobParametersProvider validator = (JobParametersProvider)jobParametersValidator;
@@ -236,6 +312,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         jobInstanceInfo.setJobParameters(jp);
         if (je.getEndTime() != null) {
             long duration = je.getEndTime().getTime() - je.getStartTime().getTime();
+            jobInstanceInfo.setDuration(duration);
+        }
+        else {
+            long duration = new Date().getTime() - je.getStartTime().getTime();
             jobInstanceInfo.setDuration(duration);
         }
         HashSet<String> stepNames = new HashSet<>();
@@ -276,7 +356,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             long duration = se.getEndTime().getTime() - se.getStartTime().getTime();
             si.setDuration(duration);
         }
-
+        else {
+            long duration = new Date().getTime() - se.getStartTime().getTime();
+            si.setDuration(duration);
+        }
         try {
             si.setReportUrls((List<String>) se.getExecutionContext().get("reportUrls"));
         } catch (ClassCastException e) {
@@ -343,6 +426,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
+
     }
 
     /**

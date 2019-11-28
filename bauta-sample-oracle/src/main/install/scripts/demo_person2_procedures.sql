@@ -1,6 +1,6 @@
 -- Creates a stored procedure which we will later execute as a scheduled job
 exec drop_table_if_exists('person2');
-create tablex person2 (
+create table person2 (
     person_id int,
     last_name varchar2(255),
     first_name varchar2(255),

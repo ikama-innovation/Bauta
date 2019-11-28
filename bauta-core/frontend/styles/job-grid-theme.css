@@ -1,3 +1,7 @@
+/*
+Custom styles for the job grid
+We want to align items vertically at the top in grid cells
+*/
 :host td {
     align-items: baseline !important;
     padding-bottom: 10px !important;

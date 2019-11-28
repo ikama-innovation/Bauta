@@ -1,6 +1,7 @@
 package se.ikama.bauta.ui;
 
 
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -21,6 +22,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
+import com.vaadin.flow.component.page.Viewport;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
@@ -56,6 +58,7 @@ import java.util.stream.Stream;
 // @PWA(name = "Project Base for Vaadin Flow with Spring", shortName = "Project Base")
 @CssImport(value = "./styles/job-grid-theme.css", themeFor = "vaadin-grid")
 @CssImport(value = "./styles/bauta-styles.css")
+@Viewport("width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes, viewport-fit=cover")
 @DependsOn("bautaManager")
 public class MainView extends AppLayout implements JobEventListener {
 
@@ -194,8 +197,7 @@ public class MainView extends AppLayout implements JobEventListener {
         grid.setVerticalScrollingEnabled(false);
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.setDetailsVisibleOnClick(false);
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER,
-                GridVariant.LUMO_NO_ROW_BORDERS);
+        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
 
         Grid.Column<JobInstanceInfo> c = grid.addColumn(item -> item.getName());
         c.setClassNameGenerator(item -> "job_cell");
@@ -333,6 +335,9 @@ public class MainView extends AppLayout implements JobEventListener {
         startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         restartButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         stopButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        abandonButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        infoButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
         vl.add(hl);
 
         if (item.getOptionalJobParamKeys() != null && item.getOptionalJobParamKeys().size() > 0) {
@@ -350,6 +355,7 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     private Component createStepComponent(Grid<JobInstanceInfo> grid, JobInstanceInfo jobInstanceInfo) {
+
         VerticalLayout vl = new VerticalLayout();
         vl.setAlignItems(FlexComponent.Alignment.START);
         vl.setSpacing(false);
@@ -361,7 +367,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
             Div div = new Div(stepNameLabel, statusLabel);
             div.setClassName("step-row");
-            div.getElement().setProperty("title", "jobInstanceId: "+step.getJobInstanceId()+", executionId: "+step.getJobExecutionId()+", duration: "+step.getDuration());
+            div.getElement().setProperty("title", "jobInstanceId: "+step.getJobInstanceId()+", executionId: "+step.getJobExecutionId()+", duration: "+step.getDuration()+"ms");
 
             if (step.isRunning()) {
                 //ProgressBar pb = new ProgressBar();
@@ -370,6 +376,19 @@ public class MainView extends AppLayout implements JobEventListener {
                 //Div spinner = new Div();
                 //spinner.addClassName("ring-spinner");
                 //div.add(spinner);
+                /*
+                Icon spinner = VaadinIcon.COG.create();
+                spinner.addClassName("rotate");
+                spinner.getStyle()
+                        .set("margin-bottom", "0")
+                        .set("margin-top", "0")
+                        .set("padding", "0").set("color","var(--lumo-primary-color)");
+                spinner.setSize("0.8em");
+                Div spinnerDiv = new Div(spinner);
+                spinnerDiv.getStyle().set("margin-left", "5px").set("margin-top", "0").set("margin-bottom", "0").set("padding", "0").set("max-height","20");
+                div.add(spinnerDiv);
+
+                 */
             }
             if (step.getReportUrls() != null) {
                 for (String url : step.getReportUrls()) {
