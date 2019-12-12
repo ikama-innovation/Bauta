@@ -13,6 +13,7 @@ import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.ConfigurableEnvironment;
 import se.ikama.bauta.core.BautaConfig;
 import se.ikama.bauta.core.BautaManager;
@@ -22,7 +23,7 @@ import static se.ikama.bauta.core.BautaConfigParams.*;
 @Configuration
 @ConditionalOnClass(BautaManager.class)
 @EnableConfigurationProperties(BautaProperties.class)
-@ComponentScan(basePackages = {"se.ikama.bauta.cli","se.ikama.bauta.ui","se.ikama.bauta.autoconfigure","se.ikama.bauta.config"})
+@ComponentScan(basePackages = {"se.ikama.bauta.autoconfigure","se.ikama.bauta.config","se.ikama.bauta.cli","se.ikama.bauta.ui","se.ikama.bauta.rest","se.ikama.bauta.scheduling"})
 public class BautaAutoConfiguration implements EnvironmentPostProcessor {
 
     @Autowired
@@ -45,6 +46,7 @@ public class BautaAutoConfiguration implements EnvironmentPostProcessor {
 
     @Bean
     @ConditionalOnMissingBean
+    @DependsOn("dataSourceInitializer")
     public BautaManager bautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
 
         return new BautaManager(bautaConfig, jobOperator, jobRepository, jobExplorer, jobRegistry);

@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -32,10 +31,8 @@ import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
-import se.ikama.bauta.util.PropertiesUtils;
 
 import javax.sql.DataSource;
-import java.util.Properties;
 
 @PropertySource("bauta_default.yml")
 @Configuration()
@@ -238,6 +235,5 @@ public class BatchConfiguration {
         executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;
     }
-
 
 }

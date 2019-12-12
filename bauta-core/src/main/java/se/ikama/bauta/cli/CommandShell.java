@@ -65,7 +65,7 @@ public class CommandShell implements Quit.Command {
     @ShellMethod("Start a job")
     public String start(String jobName) throws JobInstanceAlreadyExistsException, JobParametersInvalidException, NoSuchJobException {
         Long executionId = null;
-        executionId = bautaManager.startJob(jobName, null);
+        executionId = bautaManager.startJob(jobName, (String)null);
         return "Started: " + jobName + " with execution id " + executionId;
     }
 

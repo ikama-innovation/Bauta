@@ -6,26 +6,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.JobRegistry;
-import org.springframework.batch.core.configuration.xml.SimpleFlowFactoryBean;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.job.flow.FlowJob;
-import org.springframework.batch.core.job.flow.State;
-import org.springframework.batch.core.job.flow.support.SimpleFlow;
-import org.springframework.batch.core.job.flow.support.state.StepState;
 import org.springframework.batch.core.launch.*;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.step.tasklet.TaskletStep;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.event.ApplicationContextEvent;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.support.CronTrigger;
 import se.ikama.bauta.batch.JobParametersProvider;
+import se.ikama.bauta.scheduling.JobTrigger;
+import se.ikama.bauta.scheduling.JobTriggerDao;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -55,6 +56,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
      * Holds last known information about the steps of a job
      */
     private TreeMap<String, JobInstanceInfo> cachedJobInstanceInfos = new TreeMap<>();
+
     ScheduledExecutorService jobUpdateScheduler;
 
     @Value("${bauta.rebuildServerCommand}")
@@ -62,6 +64,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @Autowired
     Environment env;
+
+    // Task scheduler for scheduled jobs
+    private ThreadPoolTaskScheduler threadPoolTaskScheduler;
+
+    @Autowired
+    JobTriggerDao jobTriggerDao;
 
     public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
         this.bautaConfig = bautaConfig;
@@ -75,17 +83,57 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @PostConstruct
     public void init() {
-
+        threadPoolTaskScheduler
+                = new ThreadPoolTaskScheduler();
+        threadPoolTaskScheduler.setPoolSize(5);
+        threadPoolTaskScheduler.setThreadNamePrefix(
+                "JobTriggerScheduler");
         log.info("Home is {}", bautaConfig.getProperty(BautaConfigParams.HOME_DIR));
         log.info("properties: {}", getServerInfo().toArray());
+        initializeScheduling(false);
 
     }
+    public  void initializeScheduling(boolean refresh) {
+        log.debug("Initializing scheduling");
+        if (refresh) {
+            log.debug("Shutting down taskScheduler");
+            threadPoolTaskScheduler.shutdown();
+            log.debug("Done");
+        }
+        threadPoolTaskScheduler.initialize();
+        List<JobTrigger> jobTriggers = jobTriggerDao.loadTriggers();
+        log.debug("Found {} triggers", jobTriggers.size());
+        for (JobTrigger jt : jobTriggers) {
+            if (jt.getTriggerType() == JobTrigger.TriggerType.CRON) {
+                Runnable jobStarter = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            log.info("Starting job {} based on cron '{}'", jt.getJobName(), jt.getCron());
+                            startJob(jt.getJobName(), jt.getJobParameters());
+                            log.debug("Done!");
 
+                        } catch (Exception e) {
+                            //jobTriggerDao.logTriggering("Failed to start CRON-triggered job " +jt.getJobName(), e);
+                            log.error("Failed to start job via CRON trigger", e);
+                        }
+                    }
+                };
+                CronTrigger trigger = new CronTrigger(jt.getCron());
+                log.debug("Scheduling {} at '{}'", jt.getJobName(), jt.getCron());
+                threadPoolTaskScheduler.schedule(jobStarter, trigger);
+            }
+        }
+    }
 
-    public Long startJob(String jobName, Map<String, String> params) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
+    public Long startJob(String jobName, String jobParams) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
             jobName = listJobNames().get(i);
+        }
+        Set<Long> runningExecutions = jobOperator.getRunningExecutions(jobName);
+        if (runningExecutions != null && runningExecutions.size() > 0) {
+            throw new JobInstanceAlreadyExistsException("Job " + jobName+" is already running");
         }
         DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
         StringBuilder paramsStr = new StringBuilder();
@@ -97,13 +145,27 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 paramsStr.append("(").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
             }
         }
-        if (params != null && params.size() > 0) {
-            for(Map.Entry param : params.entrySet()) {
-                paramsStr.append(","+param.getKey()).append("=").append(param.getValue());
-            }
+        if (jobParams != null) {
+            paramsStr.append(","+jobParams);
         }
         log.debug("Starting job {} with jobParams: {}", jobName, paramsStr);
         return jobOperator.start(jobName, paramsStr.toString());
+    }
+    public Long startJob(String jobName, Map<String, String> params) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
+        StringBuilder paramsStr = new StringBuilder();
+        boolean first = true;
+        if (params != null && params.size() > 0) {
+            for(Map.Entry param : params.entrySet()) {
+                if (!first) {
+                    paramsStr.append(",");
+                }
+                else {
+                    first = false;
+                }
+                paramsStr.append(param.getKey()).append("=").append(param.getValue());
+            }
+        }
+        return startJob(jobName, paramsStr.toString());
     }
 
     public void stopJob(String jobName) {
@@ -182,11 +244,35 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void afterJob(JobExecution jobExecution) {
         log.debug("afterJob: {}", jobExecution);
-        if (!jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
-            // Create a cached version of the job
-
+        if (jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
+            handleJobCompletionTriggers(jobExecution.getJobInstance().getJobName());
         }
         fireJobEvent(jobExecution);
+    }
+
+    private void handleJobCompletionTriggers(String completedJobName) {
+        log.debug("Handling jobCompletionTriggers for {}", completedJobName);
+        List<JobTrigger> jobTriggers = jobTriggerDao.getJobCompletionTriggersFor(completedJobName);
+        log.debug("Found {} job triggers for {} ", jobTriggers.size(), completedJobName);
+        for (JobTrigger jt : jobTriggers) {
+            Runnable jobStarter = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String jobToStart = jt.getJobName();
+                        log.info("Starting job {} triggered by completion of job '{}'", jobToStart, completedJobName);
+                        startJob(jobToStart, jt.getJobParameters());
+                        jobTriggerDao.logSuccess(jt);
+                        log.debug("Done!");
+
+                    } catch (Exception e) {
+                        jobTriggerDao.logFailure(jt, e.getMessage());
+                        log.error("Failed to start job via CRON trigger", e);
+                    }
+                }
+            };
+            threadPoolTaskScheduler.schedule(jobStarter, Instant.now());
+        }
     }
 
     @Override
@@ -497,9 +583,5 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             sb.append(" ").append(env.getProperty("bauta.application.version"));
         }
         return  sb.toString();
-    }
-
-    public void hasJobParameters(String name) {
-
     }
 }

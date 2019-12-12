@@ -1,7 +1,6 @@
 package se.ikama.bauta.ui;
 
 
-
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -23,7 +22,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.page.Viewport;
-import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
@@ -66,11 +64,13 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
+    @Autowired
+    SchedulingView schedulingView;
+
     //private UI ui;
     Grid<JobInstanceInfo> grid = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
-    private boolean initialized = false;
 
     public MainView() {
 
@@ -108,16 +108,25 @@ public class MainView extends AppLayout implements JobEventListener {
         Map<Tab, Component> tabsToPages = new HashMap<>();
         Component jobPage = createJobView();
         jobPage.setVisible(true);
+        // Job tab
         Tab jobTab = new Tab("Jobs");
         Component aboutPage = createAboutView();
         aboutPage.setVisible(false);
+        // About tab
         Tab aboutTab = new Tab("About");
+        // Scheduling
+        Tab schedulingTab = new Tab("Scheduling");
+
+
         tabsToPages.put(jobTab, jobPage);
         tabsToPages.put(aboutTab, aboutPage);
-        Tabs tabs = new Tabs(jobTab, aboutTab);
+        tabsToPages.put(schedulingTab, schedulingView);
+        schedulingView.setVisible(false);
+
+        Tabs tabs = new Tabs(jobTab, schedulingTab, aboutTab);
         tabs.setSelectedTab(jobTab);
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        Div pages = new Div(jobPage, aboutPage);
+        Div pages = new Div(jobPage, schedulingView, aboutPage);
         Set<Component> pagesShown = Stream.of(jobPage)
                 .collect(Collectors.toSet());
         tabs.addSelectedChangeListener(event -> {
@@ -254,7 +263,6 @@ public class MainView extends AppLayout implements JobEventListener {
         hl.setSpacing(false);
         hl.setPadding(false);
         Button startButton = new Button("", clickEvent -> {
-            bautaManager.hasJobParameters(item.getName());
             if (item.hasJobParameters()) {
                 Dialog d = createJobParamsDialog(item);
                 d.open();

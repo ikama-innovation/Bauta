@@ -6,3 +6,11 @@ We want to align items vertically at the top in grid cells
     align-items: baseline !important;
     padding-bottom: 10px !important;
 }
+
+:host td.log_cell {
+    font-size: 0.8em !important;
+    padding-bottom: 0px !important;
+}
+:host td.scheduler_cell {
+     padding-bottom: 0px !important;
+ }
