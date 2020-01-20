@@ -73,7 +73,7 @@ public class MainView extends AppLayout implements JobEventListener {
     Tabs menuTabs = null;
 
     public MainView() {
-
+        log.debug("Constructing main view. Hashcode: {}", this.hashCode());
 
     }
 
@@ -472,7 +472,7 @@ public class MainView extends AppLayout implements JobEventListener {
             ul.add(new ListItem("ExecutionId: " + ji.getLatestExecutionId().toString()));
             ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US)));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
-            ul.add(new ListItem("Params: " + ji.getJobParameters().toString()));
+            ul.add(new ListItem("Params: " + ji.getJobParameters()));
             ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus())));
             div.add(ul);
             Grid<StepInfo> grid = new Grid<>();
@@ -579,7 +579,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
-        log.info("onJobChange {} ", jobInstanceInfo);
+        log.debug("onJobChange {} ", jobInstanceInfo);
 
         this.getUI().get().access(() -> {
             grid.getDataProvider().refreshItem(jobInstanceInfo);

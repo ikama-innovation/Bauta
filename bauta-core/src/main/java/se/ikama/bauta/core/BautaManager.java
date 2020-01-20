@@ -111,10 +111,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                         try {
                             log.info("Starting job {} based on cron '{}'", jt.getJobName(), jt.getCron());
                             startJob(jt.getJobName(), jt.getJobParameters());
+                            jobTriggerDao.logSuccess(jt);
                             log.debug("Done!");
 
                         } catch (Exception e) {
                             //jobTriggerDao.logTriggering("Failed to start CRON-triggered job " +jt.getJobName(), e);
+                            jobTriggerDao.logFailure(jt, e.getMessage());
                             log.error("Failed to start job via CRON trigger", e);
                         }
                     }
@@ -502,11 +504,16 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
 
     public void registerJobChangeListener(JobEventListener jobEventListener) {
+        log.debug("registering JobChangeListener {}", jobEventListener.hashCode());
         this.jobEventListeners.add(jobEventListener);
+        log.debug("Number of listeners is {}", jobEventListeners.size());
+
     }
 
     public void unregisterJobChangeListener(JobEventListener jobEventListener) {
+        log.debug("unregistering JobChangeListener {}", jobEventListener.hashCode());
         this.jobEventListeners.remove(jobEventListener);
+        log.debug("Number of listeners is {}", jobEventListeners.size());
     }
 
     @Override

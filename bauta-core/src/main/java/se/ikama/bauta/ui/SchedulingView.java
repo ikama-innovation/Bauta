@@ -1,5 +1,7 @@
 package se.ikama.bauta.ui;
 
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -7,10 +9,7 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.html.ListItem;
-import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -140,6 +139,17 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 
     }
+
+    @Override
+    public void setVisible(boolean b) {
+        super.setVisible(b);
+        update();
+    }
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        update();
+    }
+
 
     private com.vaadin.flow.component.Component createTimestampColumn(Date timestamp) {
         DateFormat tstampFormat = new SimpleDateFormat("YYMMdd HH:mm:ss");
@@ -277,14 +287,15 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
         layout.add(cron);
         UnorderedList cronHelp = new UnorderedList();
-        cronHelp.add(new ListItem("0 30 2 * * *  Every night at 02:30"));
-        cronHelp.add(new ListItem("0 30 14 * * MON-FRI  Every Monday to Friday at 14:30"));
-        cronHelp.add(new ListItem("0 0 * * * *  Every hour"));
-        cronHelp.add(new ListItem("0 0 8-10 * * * 8, 9 and 10 o'clock of every day."));
-        cronHelp.add(new ListItem("0 0/30 8-10 * * * 8:00, 8:30, 9:00, 9:30, 10:00 and 10:30 every day."));
-
+        cronHelp.add(new ListItem("'0 30 2 * * *': Every night at 02:30"));
+        cronHelp.add(new ListItem("'0 30 14 * * MON-FRI': Every Monday to Friday at 14:30"));
+        cronHelp.add(new ListItem("'0 0 * * * *': Every hour"));
+        cronHelp.add(new ListItem("'0 0 8-10 * * *': 8, 9 and 10 o'clock of every day."));
+        cronHelp.add(new ListItem("'0 0/30 8-10 * * *': 8:00, 8:30, 9:00, 9:30, 10:00 and 10:30 every day."));
+        Anchor cronLink = new Anchor("https://www.freeformatter.com/cron-expression-generator-quartz.html","More");
+        cronLink.setTarget("cron-help");
         Details cronDetails = new Details(VaadinIcon.QUESTION_CIRCLE.create(),
-                cronHelp);
+                new Div(new Text("{seconds} {minutes} {hours} {day of month} {month} {day of week}"),cronHelp, cronLink));
         layout.add(cronDetails);
 
         TextField jobParameters = new TextField();
