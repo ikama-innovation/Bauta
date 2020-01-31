@@ -34,6 +34,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                         <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
                             <property name="sleepTimeMs" value="100" />
                             <property name="repeats" value="300" />
+                            <property name="emulateFailures" value="2" />
                         </bean>
                     </b:tasklet>
                 </b:step>

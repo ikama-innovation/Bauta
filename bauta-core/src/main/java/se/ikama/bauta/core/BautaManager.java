@@ -380,6 +380,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     private JobInstanceInfo extractJobInstanceInfo(JobExecution je, boolean mergeOlderExecutions) throws Exception {
         String jobName = je.getJobInstance().getJobName();
+        log.debug("extractJobInstanceInfo: {}, mergeOlder: {}", jobName, mergeOlderExecutions);
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
         FlowJob job = (FlowJob) jobRegistry.getJob(je.getJobInstance().getJobName());
 
@@ -412,9 +413,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             jobInstanceInfo.appendStep(si);
             stepNames.add(si.getName());
         }
+        log.debug("1. stepNames: {}", stepNames);
         if (mergeOlderExecutions) {
+            log.debug("merging with older executions");
             List<Long> jobExecutions = jobOperator.getExecutions(je.getJobInstance().getInstanceId());
             for (Long executionId : jobExecutions) {
+                log.debug("executionId: {}", executionId);
                 if (executionId >= je.getId()) {
                     continue;
                 }
@@ -424,14 +428,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                     if (!stepNames.contains(seh.getStepName())) {
                         jobInstanceInfo.insertStepAt(extractStepInfo(seh), i);
                         stepNames.add(seh.getStepName());
+                        log.debug("Found old step, {}. Stepname: {}", seh.getStepName(), stepNames);
                         i++;
-                    } else {
-                        break;
                     }
                 }
             }
         }
-
+        log.debug("Done");
         return jobInstanceInfo;
     }
 

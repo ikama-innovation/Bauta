@@ -48,7 +48,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
             // Schedule
             log.debug("Scheduling..");
             //cc.setAttribute("job_name", "JABBA" + new Date());
-            jobName = "JABBA" + new Date();
+            jobName = "Dummy" + new Date();
             //sc.incrementWriteCount(1);
             Thread.currentThread().sleep(sleepTimeMs);
             log.debug("Done!");
