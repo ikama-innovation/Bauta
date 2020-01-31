@@ -15,6 +15,7 @@ buildNumber.properties
 out
 **/out/
 
+**/*.log
 
 .idea/
 **/*.iml
@@ -24,4 +25,6 @@ nbactions.xml
 # Vaadin
 node_modules
 *.js
+**/package.json
+**/package-lock.json
 
