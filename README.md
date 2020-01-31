@@ -36,6 +36,8 @@ This enables you to automate complete chains of job executions and to control th
 |bauta-autoconfigure|Manages auto-configuration. Currently limited, but when Bauta grows this will be used to make sure not to start unnecessary features/resources|
 
 ## Getting started
+
+### Try out sample applications
 1. Clone either the bauta-sample or bauta-sample-oracle to get started.
 2. You need Java SDK 1.8 or later and Maven to build and run the application. To build: mvn clean install
 3. Create a home directory for logs, job configuration files, reports etc. Set bauta.homeDir.
@@ -43,6 +45,10 @@ This enables you to automate complete chains of job executions and to control th
 5. Create job configurations and put them in bauta.jobDir
 6. Run the application using the run.sh script. The application will be available at http://localhost:8080/ui
 7. Start your job by clicking the play button
+
+### Build your own application
+1. Create your own Maven-based project which depends on `bauta-starter`. Use sample projects as a starting point
+2. Follow steps 2-7 above
 
 ## Configuration
 
