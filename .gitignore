@@ -21,4 +21,7 @@ out
 .mvn/
 
 nbactions.xml
+# Vaadin
+node_modules
+*.js
 
