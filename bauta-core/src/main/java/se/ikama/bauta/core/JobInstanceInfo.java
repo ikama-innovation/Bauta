@@ -16,6 +16,7 @@ public class JobInstanceInfo {
     private List<StepInfo> steps = new ArrayList<>();
     private List<String> requiredJobParamKeys;
     private List<String> optionalJobParamKeys;
+    private int executionCount;
 
 
     public JobInstanceInfo(String jobName) {
@@ -100,6 +101,13 @@ public class JobInstanceInfo {
 
     public long getDuration() {
         return duration;
+    }
+
+    public int getExecutionCount() {
+        return this.executionCount;
+    }
+    public void setExecutionCount(int executionCount) {
+        this.executionCount = executionCount;
     }
 
     public void setDuration(long duration) {

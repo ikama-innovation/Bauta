@@ -371,10 +371,20 @@ public class MainView extends AppLayout implements JobEventListener {
         for (StepInfo step : jobInstanceInfo.getSteps()) {
             Component statusLabel = createStatusLabel(step.getExecutionStatus());
             Label stepNameLabel = new Label(step.getName());
-            stepNameLabel.getStyle().set("font-size", "0.8em");
+            stepNameLabel.addClassName("step-label");
 
             Div div = new Div(stepNameLabel, statusLabel);
-            div.setClassName("step-row");
+            div.addClassName("step-row");
+            if (step.isFirstInSplit()) {
+                div.addClassName("split-first");
+            }
+            else if (step.isLastInSplit()) {
+                div.addClassName("split-last");
+            }
+            else if (step.getSplitId() != null) {
+                div.addClassName("split");
+            }
+
             div.getElement().setProperty("title", "jobInstanceId: "+step.getJobInstanceId()+", executionId: "+step.getJobExecutionId()+", duration: "+step.getDuration()+"ms");
 
             if (step.isRunning()) {

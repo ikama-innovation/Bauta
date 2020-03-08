@@ -40,31 +40,31 @@ public class SqlValidation implements ResultSetExtractor {
      * All validation queries will be timed. You can validate that the execution time stays below a given number by setting this parameter.
      * Time is in ms.
      */
-    private Long maxExecutionTime = null;
+    private Long maxExecutionTime;
     /**
      * Validates that the result is greater than this number
      */
-    private Integer result_gt = null;
+    private Integer result_gt;
 
     /**
      * Validates that the result is less than this number
      */
-    private Integer result_lt = null;
+    private Integer result_lt;
 
     /**
      * Validates that the result is greater or equal to this number
      */
-    private Integer result_gte = null;
+    private Integer result_gte;
 
     /**
      * Validates that the result is less or equal to this number
      */
-    private Integer result_lte = null;
+    private Integer result_lte;
 
     /**
      * Validates that the result is equal to this number
      */
-    private String result_equals = null;
+    private String result_equals;
 
     private List<String> columnNames;
     private List<Object> columnTypes;

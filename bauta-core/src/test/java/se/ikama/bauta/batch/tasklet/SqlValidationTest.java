@@ -3,9 +3,7 @@ package se.ikama.bauta.batch.tasklet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.output.StringBuilderWriter;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import se.ikama.bauta.batch.tasklet.SqlValidation;
 
 import java.io.IOException;
 import java.math.BigDecimal;

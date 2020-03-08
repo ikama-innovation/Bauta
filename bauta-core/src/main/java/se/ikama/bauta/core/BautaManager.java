@@ -15,13 +15,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.event.ApplicationContextEvent;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import se.ikama.bauta.batch.JobParametersProvider;
+import se.ikama.bauta.core.metadata.JobMetadata;
+import se.ikama.bauta.core.metadata.JobMetadataReader;
+import se.ikama.bauta.core.metadata.StepMetadata;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 
@@ -70,6 +70,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @Autowired
     JobTriggerDao jobTriggerDao;
+
+    @Autowired
+    JobMetadataReader jobMetadataReader;
 
     public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
         this.bautaConfig = bautaConfig;
@@ -333,40 +336,17 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(jobName);
         FlowJob job = (FlowJob) jobRegistry.getJob(jobName);
-
-        /*
-        Attempt to retrieve batch flow information
-
-        Map<String, SimpleFlowFactoryBean> beans = applicationContext.getBeansOfType(SimpleFlowFactoryBean.class);
-        for (Map.Entry<String, SimpleFlowFactoryBean> es : beans.entrySet()) {
-            log.debug("key: {}, value: {}", es.getKey(), es.getValue().getObjectType().toString());
-            String name = es.getValue().getObject().getName();
-            if (name.equals(jobName))  {
-                log.debug("Found the corresponding bean");
-
-                State startState = es.getValue().getObject().getStartState();
-                log.debug("Start state is: {} of type {}" ,  startState.getName(), startState.getClass().getName());
-                for(String stepName : ((StepState)startState).getStepNames()) {
-                    log.debug("   with step name " + stepName);
-                }
-                Collection<State> states = es.getValue().getObject().getStates();
-                for (State state : states) {
-                    log.debug("State: {} of type {}", state.getName(), state.getClass().getName());
-                    if (state instanceof StepState) {
-                        StepState stepState = (StepState)state;
-
-                        log.debug("  has the following steps:");
-                        for (String stepName : stepState.getStepNames()) {
-                            log.debug("     {}", stepName);
-                        }
-                    }
-                }
-                break;
+        JobMetadata jobMetadata = jobMetadataReader.getMetadata(jobName);
+        if (jobMetadata != null) {
+            for (StepMetadata stepMetadata : jobMetadata.getAllSteps()) {
+                StepInfo stepInfo = new StepInfo(stepMetadata.getId());
+                stepInfo.setExecutionStatus("UNKNOWN");
+                stepInfo.setType(stepMetadata.getStepType().toString());
+                stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
+                stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
+                jobInstanceInfo.appendStep(stepInfo);
             }
         }
-        */
-
-
 
         JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
         if (jobParametersValidator != null && jobParametersValidator instanceof JobParametersProvider) {
@@ -383,6 +363,19 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         log.debug("extractJobInstanceInfo: {}, mergeOlder: {}", jobName, mergeOlderExecutions);
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
         FlowJob job = (FlowJob) jobRegistry.getJob(je.getJobInstance().getJobName());
+        JobMetadata jobMetadata = jobMetadataReader.getMetadata(jobName);
+        HashMap<String, StepInfo> idToStepInfo = new HashMap<>();
+        for (StepMetadata stepMetadata : jobMetadata.getAllSteps()) {
+            StepInfo stepInfo = new StepInfo(stepMetadata.getId());
+            stepInfo.setExecutionStatus("UNKNOWN");
+            stepInfo.setType(stepMetadata.getStepType().toString());
+            stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
+            stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
+            stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
+
+            jobInstanceInfo.appendStep(stepInfo);
+            idToStepInfo.put(stepMetadata.getId(), stepInfo);
+        }
 
         JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
         if (jobParametersValidator != null && jobParametersValidator instanceof JobParametersProvider) {
@@ -399,21 +392,17 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         Properties jp = je.getJobParameters().toProperties();
         jp.remove("start");
         jobInstanceInfo.setJobParameters(jp);
+        long totalDuration = 0;
+        int executionCount = 1;
         if (je.getEndTime() != null) {
-            long duration = je.getEndTime().getTime() - je.getStartTime().getTime();
-            jobInstanceInfo.setDuration(duration);
+            totalDuration += je.getEndTime().getTime() - je.getStartTime().getTime();
         }
-        else {
-            long duration = new Date().getTime() - je.getStartTime().getTime();
-            jobInstanceInfo.setDuration(duration);
-        }
-        HashSet<String> stepNames = new HashSet<>();
         for (StepExecution se : je.getStepExecutions()) {
-            StepInfo si = extractStepInfo(se);
-            jobInstanceInfo.appendStep(si);
-            stepNames.add(si.getName());
+            StepInfo si = idToStepInfo.get(se.getStepName());
+            if (si == null) throw new RuntimeException("Expected stepInfo to exist");
+            extractStepInfo(si, se);
         }
-        log.debug("1. stepNames: {}", stepNames);
+
         if (mergeOlderExecutions) {
             log.debug("merging with older executions");
             List<Long> jobExecutions = jobOperator.getExecutions(je.getJobInstance().getInstanceId());
@@ -422,24 +411,29 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 if (executionId >= je.getId()) {
                     continue;
                 }
+
                 JobExecution jeh = jobExplorer.getJobExecution(executionId);
-                int i = 0;
+                if (jeh.getEndTime() != null) {
+                    totalDuration += jeh.getEndTime().getTime() - jeh.getStartTime().getTime();
+                }
                 for (StepExecution seh : jeh.getStepExecutions()) {
-                    if (!stepNames.contains(seh.getStepName())) {
-                        jobInstanceInfo.insertStepAt(extractStepInfo(seh), i);
-                        stepNames.add(seh.getStepName());
-                        log.debug("Found old step, {}. Stepname: {}", seh.getStepName(), stepNames);
-                        i++;
+                    StepInfo si = idToStepInfo.get(seh.getStepName());
+                    if (si != null && si.getJobExecutionId() == null) {
+                        extractStepInfo(si, seh);
+                        log.debug("Found old step, {}.", seh.getStepName());
                     }
                 }
             }
+        }
+
+        if (totalDuration > 0 ) {
+            jobInstanceInfo.setDuration(totalDuration);
         }
         log.debug("Done");
         return jobInstanceInfo;
     }
 
-    private StepInfo extractStepInfo(StepExecution se) {
-        StepInfo si = new StepInfo(se.getStepName());
+    private void extractStepInfo(StepInfo si, StepExecution se) {
         si.setExecutionStatus(se.getStatus().name());
         si.setJobExecutionId(se.getJobExecutionId());
         si.setJobInstanceId(se.getJobExecution().getJobId());
@@ -458,7 +452,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             log.warn("Class cast error:  'reportUrls', Step: {}", se.getStepName());
         }
         si.setExitDescription(se.getExitStatus().getExitDescription());
-        return si;
     }
 
     public List<JobInstanceInfo> jobDetails() throws Exception {
@@ -486,6 +479,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     private JobInstanceInfo fetchJobInfo(String jobName) throws Exception {
         JobInstanceInfo out = new JobInstanceInfo(jobName);
+
         List<Long> jobInstances = jobOperator.getJobInstances(jobName, 0, 1);
         if (jobInstances.size() > 0) {
             long latestInstance = jobInstances.get(0);

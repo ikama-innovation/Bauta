@@ -1,36 +1,27 @@
 package se.ikama.bauta.core;
 
+import lombok.Data;
+
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class StepInfo {
 
     private String name;
     private String executionStatus;
+    private String type;
     private List<String> reportUrls;
     private String exitDescription;
     private long duration;
-    private long jobInstanceId;
-    private long jobExecutionId;
+    private Long jobInstanceId;
+    private Long jobExecutionId;
+    private String splitId;
+    private boolean firstInSplit;
+    private boolean lastInSplit;
 
     public StepInfo(String name) {
         this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getExecutionStatus() {
-        return executionStatus;
-    }
-
-    public void setExecutionStatus(String executionStatus) {
-        this.executionStatus = executionStatus;
     }
 
     @Override
@@ -46,47 +37,8 @@ public class StepInfo {
         return Objects.hash(name);
     }
 
-    public void setReportUrls(List<String> reportUrls) {
-        this.reportUrls = reportUrls;
-    }
-
-    public List<String> getReportUrls() {
-        return reportUrls;
-    }
 
     public boolean isRunning() {
         return "STARTED".equals(this.executionStatus) || "STARTING".equals(this.executionStatus);
-    }
-
-    public void setExitDescription(String exitDescription) {
-        this.exitDescription = exitDescription;
-    }
-
-    public String getExitDescription() {
-        return exitDescription;
-    }
-
-    public void setDuration(long duration) {
-        this.duration = duration;
-    }
-
-    public long getDuration() {
-        return duration;
-    }
-
-    public long getJobInstanceId() {
-        return jobInstanceId;
-    }
-
-    public void setJobInstanceId(long jobInstanceId) {
-        this.jobInstanceId = jobInstanceId;
-    }
-
-    public long getJobExecutionId() {
-        return jobExecutionId;
-    }
-
-    public void setJobExecutionId(long jobExecutionId) {
-        this.jobExecutionId = jobExecutionId;
     }
 }

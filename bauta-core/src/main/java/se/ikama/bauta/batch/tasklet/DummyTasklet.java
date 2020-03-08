@@ -72,11 +72,11 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
 
 
         if (finished) {
+            checkCount = 0;
             if (failureCount < emulateFailures) {
                 failureCount++;
                 throw new JobExecutionException("Emulated execution failure. Failure count: " + failureCount);
             }
-            checkCount = 0;
             failureCount=0;
             return RepeatStatus.FINISHED;
         } else {

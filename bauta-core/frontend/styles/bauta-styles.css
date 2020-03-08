@@ -1,3 +1,7 @@
+.step-label {
+    font-size: 0.8em;
+    margin-left: 4px;
+}
 .step_status {
     display: inline-block;
     margin-left: 5px;
@@ -39,7 +43,7 @@
     background-color: var(--lumo-primary-color);
 }
 .step_status[data-exitstatus="UNKNOWN"] {
-    background-color: var(--lumo-base-color);
+    background-color: var(--lumo-contrast-30pct);
 }
 @-webkit-keyframes blinker {
     from {opacity: 1.0;}
@@ -52,8 +56,23 @@
     display: flex;
     align-items: baseline;
     flex-flow: row wrap;
-    margin: 2px;
+    margin: 0px;
+    padding: 2px;
 }
+.split-first {
+    background-image: url("../static/images/split-first.png");
+    background-repeat: no-repeat;
+}
+.split {
+    background-image: url("../static/images/split.png");
+    background-repeat: no-repeat;
+}
+.split-last {
+    background-image: url("../static/images/split-last.png");
+    background-repeat: no-repeat;
+    background-position: bottom 0px left 0px;
+}
+
 .step-progress {
     width: 20px;
 }

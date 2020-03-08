@@ -3,12 +3,11 @@ package se.ikama.bauta.cli;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.shell.standard.commands.Quit;
-import se.ikama.bauta.core.BautaManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.commands.Quit;
+import se.ikama.bauta.core.BautaManager;
 
 import javax.annotation.PostConstruct;
 import java.util.Collection;

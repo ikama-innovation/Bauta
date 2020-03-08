@@ -23,7 +23,7 @@ import static se.ikama.bauta.core.BautaConfigParams.*;
 @Configuration
 @ConditionalOnClass(BautaManager.class)
 @EnableConfigurationProperties(BautaProperties.class)
-@ComponentScan(basePackages = {"se.ikama.bauta.autoconfigure","se.ikama.bauta.config","se.ikama.bauta.cli","se.ikama.bauta.ui","se.ikama.bauta.rest","se.ikama.bauta.scheduling"})
+@ComponentScan(basePackages = {"se.ikama.bauta.autoconfigure","se.ikama.bauta.config","se.ikama.bauta.core.metadata","se.ikama.bauta.cli","se.ikama.bauta.ui","se.ikama.bauta.rest","se.ikama.bauta.scheduling"})
 public class BautaAutoConfiguration implements EnvironmentPostProcessor {
 
     @Autowired

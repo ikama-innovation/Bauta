@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:util="http://www.springframework.org/schema/util"
        xmlns:b="http://www.springframework.org/schema/batch"
-       xsi:schemaLocation="
-http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
     <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
     <b:job id="Job.05.SplitDemo" parent="job_base">
+        <b:description>Demonstrates how to use splits to run steps in parallel</b:description>
         <b:step id="sd_one" next="sd_twothreefour" parent="step_base">
+            <b:description>Step one description</b:description>
             <b:tasklet>
                 <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
                     <property name="sleepTimeMs" value="100" />

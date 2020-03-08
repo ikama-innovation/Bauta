@@ -1,6 +1,5 @@
 package se.ikama.bauta.batch.tasklet.oracle;
 
-import se.ikama.bauta.batch.tasklet.ReportUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -20,6 +19,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
+import se.ikama.bauta.batch.tasklet.ReportUtils;
 
 import java.io.*;
 import java.util.ArrayList;
