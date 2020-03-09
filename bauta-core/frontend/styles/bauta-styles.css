@@ -45,6 +45,9 @@
 .step_status[data-exitstatus="UNKNOWN"] {
     background-color: var(--lumo-contrast-30pct);
 }
+.step_status.old_execution {
+    opacity: 0.7;
+}
 @-webkit-keyframes blinker {
     from {opacity: 1.0;}
     to {opacity: 0.3;}

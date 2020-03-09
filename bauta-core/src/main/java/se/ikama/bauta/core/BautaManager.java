@@ -344,6 +344,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setType(stepMetadata.getStepType().toString());
                 stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
                 stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
+                stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
                 jobInstanceInfo.appendStep(stepInfo);
             }
         }
@@ -360,21 +361,22 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     private JobInstanceInfo extractJobInstanceInfo(JobExecution je, boolean mergeOlderExecutions) throws Exception {
         String jobName = je.getJobInstance().getJobName();
-        log.debug("extractJobInstanceInfo: {}, mergeOlder: {}", jobName, mergeOlderExecutions);
+        log.debug("extractJobInstanceInfo: {}, mergeOlder: {}", je, mergeOlderExecutions);
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
         FlowJob job = (FlowJob) jobRegistry.getJob(je.getJobInstance().getJobName());
-        JobMetadata jobMetadata = jobMetadataReader.getMetadata(jobName);
         HashMap<String, StepInfo> idToStepInfo = new HashMap<>();
-        for (StepMetadata stepMetadata : jobMetadata.getAllSteps()) {
-            StepInfo stepInfo = new StepInfo(stepMetadata.getId());
-            stepInfo.setExecutionStatus("UNKNOWN");
-            stepInfo.setType(stepMetadata.getStepType().toString());
-            stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
-            stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
-            stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
-
-            jobInstanceInfo.appendStep(stepInfo);
-            idToStepInfo.put(stepMetadata.getId(), stepInfo);
+        if (mergeOlderExecutions) {
+            JobMetadata jobMetadata = jobMetadataReader.getMetadata(jobName);
+            for (StepMetadata stepMetadata : jobMetadata.getAllSteps()) {
+                StepInfo stepInfo = new StepInfo(stepMetadata.getId());
+                stepInfo.setExecutionStatus("UNKNOWN");
+                stepInfo.setType(stepMetadata.getStepType().toString());
+                stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
+                stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
+                stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
+                jobInstanceInfo.appendStep(stepInfo);
+                idToStepInfo.put(stepMetadata.getId(), stepInfo);
+            }
         }
 
         JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
@@ -396,10 +398,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         int executionCount = 1;
         if (je.getEndTime() != null) {
             totalDuration += je.getEndTime().getTime() - je.getStartTime().getTime();
+            jobInstanceInfo.setLatestDuration(totalDuration);
         }
         for (StepExecution se : je.getStepExecutions()) {
             StepInfo si = idToStepInfo.get(se.getStepName());
-            if (si == null) throw new RuntimeException("Expected stepInfo to exist");
+            if (si == null) {
+                si = new StepInfo(se.getStepName());
+                jobInstanceInfo.appendStep(si);
+            }
             extractStepInfo(si, se);
         }
 
@@ -411,7 +417,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 if (executionId >= je.getId()) {
                     continue;
                 }
-
+                executionCount++;
                 JobExecution jeh = jobExplorer.getJobExecution(executionId);
                 if (jeh.getEndTime() != null) {
                     totalDuration += jeh.getEndTime().getTime() - jeh.getStartTime().getTime();
@@ -429,6 +435,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         if (totalDuration > 0 ) {
             jobInstanceInfo.setDuration(totalDuration);
         }
+        jobInstanceInfo.setExecutionCount(executionCount);
         log.debug("Done");
         return jobInstanceInfo;
     }

@@ -19,7 +19,15 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </b:step>
         <b:split id="sd_twothreefour" next="sd_five" task-executor="multiTaskExecutor">
             <b:flow >
-                <b:step parent="step_base" id="sd_two" >
+                <b:step parent="step_base" id="sd_two" next="sd_twoandahalf">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="100" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd_twoandahalf" >
                     <b:tasklet>
                         <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
                             <property name="sleepTimeMs" value="100" />

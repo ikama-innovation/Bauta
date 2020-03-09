@@ -212,11 +212,14 @@ public class MainView extends AppLayout implements JobEventListener {
         c.setClassNameGenerator(item -> "job_cell");
         //grid.addColumn(item->createJobInfo(grid, item)).setHeader("Status");
         grid.addColumn(TemplateRenderer.<JobInstanceInfo>of(
-                "<div class='job-cell-info'>ExecutionID: [[item.executionId]]<br>" +
+                "<div class='job-cell-info'>"+
                         "Instance ID: [[item.instanceId]]<br>" +
+                        "ExecutionID: [[item.executionId]]<br>" +
+                        "Executions: [[item.executionCount]]<br>" +
                         "Started: [[item.startTime]]<br>" +
                         "Ended: [[item.endTime]]<br>" +
-                        "Duration: [[item.duration]]<br>" +
+                        "Latest Duration: [[item.latestDuration]]<br>" +
+                        "Total Duration: [[item.duration]]<br>" +
                         "Exit status: <div class='step_status' data-exitstatus$={{item.exitStatus}}>[[item.exitStatus]]</div><br>" +
                         "Params: [[item.params]]<br>" +
                         "</div>"
@@ -224,9 +227,11 @@ public class MainView extends AppLayout implements JobEventListener {
                         .withProperty("executionId", JobInstanceInfo::getLatestExecutionId)
                         .withProperty("instanceId", JobInstanceInfo::getInstanceId)
                         .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
+                        .withProperty("executionCount", JobInstanceInfo::getExecutionCount)
                         .withProperty("startTime", ji -> ji.getStartTime() != null ? DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US):"-")
                         .withProperty("endTime", ji -> ji.getEndTime() != null ? DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US) : "-")
                         .withProperty("duration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss") : "")
+                        .withProperty("latestDuration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getLatestDuration(), "HH:mm:ss") : "")
                         .withProperty("params", ji -> ji.getJobParameters() != null ? ji.getJobParameters().toString() : "")
         );
 
@@ -368,8 +373,15 @@ public class MainView extends AppLayout implements JobEventListener {
         vl.setAlignItems(FlexComponent.Alignment.START);
         vl.setSpacing(false);
         vl.setPadding(false);
+
         for (StepInfo step : jobInstanceInfo.getSteps()) {
-            Component statusLabel = createStatusLabel(step.getExecutionStatus());
+            long diff = 0;
+            if (jobInstanceInfo.getLatestExecutionId() != null && step.getJobExecutionId() != null) {
+                diff = jobInstanceInfo.getLatestExecutionId() - step.getJobExecutionId();
+            }
+
+            Component statusLabel = createStatusLabel(step.getExecutionStatus(), diff > 0);
+
             Label stepNameLabel = new Label(step.getName());
             stepNameLabel.addClassName("step-label");
 
@@ -455,9 +467,10 @@ public class MainView extends AppLayout implements JobEventListener {
         return vl;
     }
 
-    private Component createStatusLabel(String executionStatus) {
+    private Component createStatusLabel(String executionStatus, boolean oldExecution) {
         Div statusLabel = new Div();
         statusLabel.addClassName("step_status");
+        if (oldExecution) statusLabel.addClassName("old_execution");
         statusLabel.getElement().setAttribute("data-exitstatus",executionStatus);
         statusLabel.setText(executionStatus);
         //statusLabel.getStyle().set("background-color", batchStatusToColor(executionStatus));
@@ -483,7 +496,7 @@ public class MainView extends AppLayout implements JobEventListener {
             ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US)));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
             ul.add(new ListItem("Params: " + ji.getJobParameters()));
-            ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus())));
+            ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus(), false)));
             div.add(ul);
             Grid<StepInfo> grid = new Grid<>();
             grid.setHeightByRows(true);
@@ -491,7 +504,7 @@ public class MainView extends AppLayout implements JobEventListener {
             grid.addColumn(StepInfo::getName).setHeader("Name").setAutoWidth(true);
             //grid.addColumn(StepInfo::getExecutionStatus).setHeader("Status");
 
-            grid.addComponentColumn(item -> createStatusLabel(item.getExecutionStatus())).setHeader("Status");
+            grid.addComponentColumn(item -> createStatusLabel(item.getExecutionStatus(), false)).setHeader("Status");
             grid.addComponentColumn(item -> new Label(DurationFormatUtils.formatDuration(item.getDuration(), "HH:mm:ss"))).setHeader("Duration");
             grid.addComponentColumn(item -> {
                 Div reportDiv = new Div();
