@@ -2,7 +2,7 @@
     font-size: 0.8em;
     margin-left: 4px;
 }
-.step_status {
+.batch_status {
     display: inline-block;
     margin-left: 5px;
     padding-left: 3px;
@@ -12,15 +12,15 @@
     font-size: 0.6em;
     color: #eeeeee;
     border-radius: var(--lumo-border-radius-m);
-    background-color: var(--lumo-base-color);
+    background-color: var(--lumo-contrast-30pct);
 }
-.step_status[data-exitstatus="COMPLETED"] {
+.batch_status[data-status="COMPLETED"] {
     background-color: var(--lumo-success-color);
 }
-.step_status[data-exitstatus="ABANDONED"] {
+.batch_status[data-status="ABANDONED"] {
     background-color: var(--lumo-error-color-50pct);
 }
-.step_status[data-exitstatus="STARTED"] {
+.batch_status[data-status="STARTED"] {
     background-color:var(--lumo-primary-color);
 
     text-decoration: blink;
@@ -30,22 +30,22 @@
     -webkit-animation-timing-function:ease-in-out;
     -webkit-animation-direction: alternate;
 }
-.step_status[data-exitstatus="STARTING"] {
+.batch_status[data-status="STARTING"] {
     background-color:var(--lumo-primary-color);
 }
-.step_status[data-exitstatus="FAILED"] {
+.batch_status[data-status="FAILED"] {
     background-color: var(--lumo-error-color);
 }
-.step_status[data-exitstatus="STOPPED"] {
+.batch_status[data-status="STOPPED"] {
     background-color: var(--lumo-primary-color);
 }
-.step_status[data-exitstatus="STOPPING"] {
+.batch_status[data-status="STOPPING"] {
     background-color: var(--lumo-primary-color);
 }
-.step_status[data-exitstatus="UNKNOWN"] {
+.batch_status[data-status="UNKNOWN"] {
     background-color: var(--lumo-contrast-30pct);
 }
-.step_status.old_execution {
+.batch_status.old_execution {
     opacity: 0.7;
 }
 @-webkit-keyframes blinker {

@@ -45,6 +45,7 @@ import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
 
 import javax.annotation.PostConstruct;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -216,16 +217,18 @@ public class MainView extends AppLayout implements JobEventListener {
                         "Instance ID: [[item.instanceId]]<br>" +
                         "ExecutionID: [[item.executionId]]<br>" +
                         "Executions: [[item.executionCount]]<br>" +
+                        "Status: <div class='batch_status' data-status$={{item.status}}>[[item.status]]</div><br>" +
                         "Started: [[item.startTime]]<br>" +
                         "Ended: [[item.endTime]]<br>" +
                         "Latest Duration: [[item.latestDuration]]<br>" +
                         "Total Duration: [[item.duration]]<br>" +
-                        "Exit status: <div class='step_status' data-exitstatus$={{item.exitStatus}}>[[item.exitStatus]]</div><br>" +
+                        "Exit status: <div class='batch_status' data-status$={{item.exitStatus}}>[[item.exitStatus]]</div><br>" +
                         "Params: [[item.params]]<br>" +
                         "</div>"
                 )
                         .withProperty("executionId", JobInstanceInfo::getLatestExecutionId)
                         .withProperty("instanceId", JobInstanceInfo::getInstanceId)
+                        .withProperty("status", JobInstanceInfo::getExecutionStatus)
                         .withProperty("exitStatus", JobInstanceInfo::getExitStatus)
                         .withProperty("executionCount", JobInstanceInfo::getExecutionCount)
                         .withProperty("startTime", ji -> ji.getStartTime() != null ? DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US):"-")
@@ -242,7 +245,7 @@ public class MainView extends AppLayout implements JobEventListener {
         try {
             grid.setItems(bautaManager.jobDetails());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
         }
         jobView.add(grid);
@@ -301,8 +304,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 bautaManager.restartJob(item.getLatestExecutionId());
             } catch (Exception e) {
                 showErrorMessage(e.getMessage());
-                //TODO: Error handling
-                e.printStackTrace();
+                log.warn("Failed to restart job", e);
             }
         });
         restartButton.setIcon(VaadinIcon.ROTATE_LEFT.create());
@@ -316,7 +318,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 bautaManager.abandonJob(item.getLatestExecutionId());
             } catch (Exception e) {
                 showErrorMessage(e.getMessage());
-                e.printStackTrace();
+                log.warn("Failed to abandon job", e);
             }
         });
         abandonButton.getElement().setProperty("title", "Abandons a job. Useful when the process was killed while a job was running and is now stuck in running state.");
@@ -397,7 +399,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 div.addClassName("split");
             }
 
-            div.getElement().setProperty("title", "jobInstanceId: "+step.getJobInstanceId()+", executionId: "+step.getJobExecutionId()+", duration: "+step.getDuration()+"ms");
+            div.getElement().setProperty("title", "ExecutionId: "+step.getJobExecutionId()+", duration: "+DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")+", next: " + step.getNextId());
 
             if (step.isRunning()) {
                 //ProgressBar pb = new ProgressBar();
@@ -445,12 +447,18 @@ public class MainView extends AppLayout implements JobEventListener {
                 Icon icon = VaadinIcon.EXCLAMATION_CIRCLE.create();
                 Button descriptionButton = new Button(icon, clickEvent -> {
                     Dialog infoDialog = new Dialog();
+                    VerticalLayout infoLayout = new VerticalLayout();
+                    infoLayout.setMargin(false);
+                    infoLayout.setPadding(false);
                     infoDialog.setCloseOnEsc(true);
-                    Label l = new Label(step.getExitDescription());
-                    l.getStyle().set("font-size", "0.8em").set("font-family", "monospace");
-
-                    infoDialog.add(l);
-                    infoDialog.setWidth("600px");
+                    Pre l = new Pre(step.getExitDescription());
+                    l.getStyle().set("font-size", "0.6em").set("font-family", "monospace").set("background-color","inherit");
+                    l.setWidthFull();
+                    //l.setHeightFull();
+                    infoLayout.add(new H3(step.getName()));
+                    infoLayout.add(l);
+                    infoDialog.add(infoLayout);
+                    infoDialog.setWidth("800px");
                     infoDialog.setHeight("300px");
                     infoDialog.open();
                 });
@@ -469,15 +477,16 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private Component createStatusLabel(String executionStatus, boolean oldExecution) {
         Div statusLabel = new Div();
-        statusLabel.addClassName("step_status");
+        statusLabel.addClassName("batch_status");
         if (oldExecution) statusLabel.addClassName("old_execution");
-        statusLabel.getElement().setAttribute("data-exitstatus",executionStatus);
+        statusLabel.getElement().setAttribute("data-status",executionStatus);
         statusLabel.setText(executionStatus);
         //statusLabel.getStyle().set("background-color", batchStatusToColor(executionStatus));
         return statusLabel;
     }
 
     private Component createJobHistory(String jobName) {
+        log.debug("createJobHistory: {}", jobName);
         VerticalLayout vl = new VerticalLayout();
         List<JobInstanceInfo> jobs = null;
         try {
@@ -486,14 +495,16 @@ public class MainView extends AppLayout implements JobEventListener {
             showErrorMessage("Failed to fetch job history: " + e.getMessage());
         }
         for (JobInstanceInfo ji : jobs) {
+            log.debug("jobInstanceInfo: {}", ji);
+            log.debug("Start time is {}", ji.getStartTime());
+            log.debug("End time is {}", ji.getEndTime());
             Div div = new Div();
             div.setWidthFull();
             UnorderedList ul = new UnorderedList();
 
-
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
             ul.add(new ListItem("ExecutionId: " + ji.getLatestExecutionId().toString()));
-            ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US)));
+            ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + (ji.getEndTime() != null ? DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US) : "-")));
             ul.add(new ListItem("Duration: " + DurationFormatUtils.formatDuration(ji.getDuration(), "HH:mm:ss")));
             ul.add(new ListItem("Params: " + ji.getJobParameters()));
             ul.add(new ListItem(new Label("Exit status: "), createStatusLabel(ji.getExitStatus(), false)));

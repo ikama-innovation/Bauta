@@ -19,6 +19,7 @@ public class StepInfo {
     private String splitId;
     private boolean firstInSplit;
     private boolean lastInSplit;
+    private String nextId;
 
     public StepInfo(String name) {
         this.name = name;
