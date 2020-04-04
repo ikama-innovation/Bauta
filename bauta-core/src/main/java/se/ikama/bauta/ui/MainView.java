@@ -376,6 +376,8 @@ public class MainView extends AppLayout implements JobEventListener {
         vl.setSpacing(false);
         vl.setPadding(false);
 
+        String currentFlowId = null;
+        int flowColor = 0;
         for (StepInfo step : jobInstanceInfo.getSteps()) {
             long diff = 0;
             if (jobInstanceInfo.getLatestExecutionId() != null && step.getJobExecutionId() != null) {
@@ -386,9 +388,17 @@ public class MainView extends AppLayout implements JobEventListener {
 
             Label stepNameLabel = new Label(step.getName());
             stepNameLabel.addClassName("step-label");
+            if (step.getFlowId() != null) {
+                if (!step.getFlowId().equals(currentFlowId)) {
+                    currentFlowId = step.getFlowId();
+                    flowColor = flowColor == 0 ? 1 : 0;
+                }
+                stepNameLabel.addClassName("flow-"+flowColor);
+            }
 
             Div div = new Div(stepNameLabel, statusLabel);
             div.addClassName("step-row");
+
             if (step.isFirstInSplit()) {
                 div.addClassName("split-first");
             }
@@ -398,6 +408,7 @@ public class MainView extends AppLayout implements JobEventListener {
             else if (step.getSplitId() != null) {
                 div.addClassName("split");
             }
+
 
             div.getElement().setProperty("title", "ExecutionId: "+step.getJobExecutionId()+", duration: "+DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")+", next: " + step.getNextId());
 

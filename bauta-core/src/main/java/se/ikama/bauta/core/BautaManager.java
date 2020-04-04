@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class BautaManager implements StepExecutionListener, JobExecutionListener, ApplicationContextAware {
 
@@ -48,6 +49,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     JobRegistry jobRegistry;
 
     private HashSet<JobEventListener> jobEventListeners = new HashSet<>();
+    private ReentrantLock jobEvenetListenerLock = new ReentrantLock();
     private ApplicationContext applicationContext;
 
     private HashSet<Long> scheduledUpdateJobExecutionIds = new HashSet<Long>();
@@ -323,6 +325,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         } catch (Exception e) {
             log.warn("Failed to extract job info", e);
         }
+        jobEvenetListenerLock.lock();
         for (JobEventListener jel : jobEventListeners) {
             try {
                 jel.onJobChange(jobInstanceInfo);
@@ -331,6 +334,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 log.error("Failed to call onJobChange in one of the listeners", e);
             }
         }
+        jobEvenetListenerLock.unlock();
+
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
@@ -345,6 +350,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
                 stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
                 stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
+                stepInfo.setFlowId(stepMetadata.getFlow() != null ? stepMetadata.getFlow().getId() : null);
                 stepInfo.setNextId(stepMetadata.getNextId());
                 jobInstanceInfo.appendStep(stepInfo);
             }
@@ -373,6 +379,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setExecutionStatus("UNKNOWN");
                 stepInfo.setType(stepMetadata.getStepType().toString());
                 stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
+                stepInfo.setFlowId(stepMetadata.getFlow() != null ? stepMetadata.getFlow().getId() : null);
                 stepInfo.setNextId(stepMetadata.getNextId());
                 stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
                 stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
@@ -511,14 +518,18 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     public void registerJobChangeListener(JobEventListener jobEventListener) {
         log.debug("registering JobChangeListener {}", jobEventListener.hashCode());
+        this.jobEvenetListenerLock.lock();
         this.jobEventListeners.add(jobEventListener);
+        this.jobEvenetListenerLock.unlock();
         log.debug("Number of listeners is {}", jobEventListeners.size());
 
     }
 
     public void unregisterJobChangeListener(JobEventListener jobEventListener) {
         log.debug("unregistering JobChangeListener {}", jobEventListener.hashCode());
+        this.jobEvenetListenerLock.lock();
         this.jobEventListeners.remove(jobEventListener);
+        this.jobEvenetListenerLock.unlock();
         log.debug("Number of listeners is {}", jobEventListeners.size());
     }
 

@@ -7,14 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Metadata representation of the entire "Job flow".
+ *
  */
 @Data
 public class FlowMetadata {
+    private String id;
     private List<StepMetadata> steps = new ArrayList<>();
     private SplitMetadata split;
     public void addStep(StepMetadata step) {
         steps.add(step);
+        step.setFlow(this);
     }
     public String toString() {
         return "FlowMetadata("

@@ -22,6 +22,7 @@ public class StepMetadata extends SubFlow {
     private String description;
 
     private SplitMetadata split;
+    private FlowMetadata flow;
     private boolean firstInSplit;
     private boolean lastInSplit;
 

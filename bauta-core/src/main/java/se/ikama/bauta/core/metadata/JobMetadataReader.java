@@ -154,7 +154,7 @@ public class JobMetadataReader {
             steps.get(0).setFirstInSplit(true);
             steps.get(steps.size()-1).setLastInSplit(true);
         }
-        log.debug("Parsed job : " + job);
+        log.debug("Parsed job : " + job.toTreeString());
 
     }
 
@@ -207,6 +207,7 @@ public class JobMetadataReader {
 
     private void parseFlow(Element e, JobMetadata job, SplitMetadata split) {
         FlowMetadata flow = new FlowMetadata();
+        flow.setId(UUID.randomUUID().toString());
         flow.setSplit(split);
         split.addFlow(flow);
         NodeList childNodes = e.getChildNodes();

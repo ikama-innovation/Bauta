@@ -17,6 +17,7 @@ public class StepInfo {
     private Long jobInstanceId;
     private Long jobExecutionId;
     private String splitId;
+    private String flowId;
     private boolean firstInSplit;
     private boolean lastInSplit;
     private String nextId;

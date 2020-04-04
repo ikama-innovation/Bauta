@@ -2,6 +2,16 @@
     font-size: 0.8em;
     margin-left: 4px;
 }
+.step-label.flow-0 {
+    border-left: 5px solid #ffffff;
+    padding-left: 5px;
+    margin-left: 0;
+}
+.step-label.flow-1 {
+    border-left: 5px solid #bbbbbb;
+    padding-left: 5px;
+    margin-left: 0;
+}
 .batch_status {
     display: inline-block;
     margin-left: 5px;
