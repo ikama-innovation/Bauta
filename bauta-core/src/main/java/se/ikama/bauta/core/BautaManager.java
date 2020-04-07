@@ -49,7 +49,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     JobRegistry jobRegistry;
 
     private HashSet<JobEventListener> jobEventListeners = new HashSet<>();
-    private ReentrantLock jobEvenetListenerLock = new ReentrantLock();
+    private ReentrantLock jobEventListenerLock = new ReentrantLock();
     private ApplicationContext applicationContext;
 
     private HashSet<Long> scheduledUpdateJobExecutionIds = new HashSet<Long>();
@@ -325,16 +325,19 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         } catch (Exception e) {
             log.warn("Failed to extract job info", e);
         }
-        jobEvenetListenerLock.lock();
-        for (JobEventListener jel : jobEventListeners) {
-            try {
-                jel.onJobChange(jobInstanceInfo);
+        // Lock access to the listener set to prevent concurrent modification issues
+        jobEventListenerLock.lock();
+        try {
+            for (JobEventListener jel : jobEventListeners) {
+                try {
+                    jel.onJobChange(jobInstanceInfo);
+                } catch (Exception e) {
+                    log.error("Failed to call onJobChange in one of the listeners", e);
+                }
             }
-            catch (Exception e)  {
-                log.error("Failed to call onJobChange in one of the listeners", e);
-            }
+        } finally {
+            jobEventListenerLock.unlock();
         }
-        jobEvenetListenerLock.unlock();
 
     }
 
@@ -518,19 +521,28 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     public void registerJobChangeListener(JobEventListener jobEventListener) {
         log.debug("registering JobChangeListener {}", jobEventListener.hashCode());
-        this.jobEvenetListenerLock.lock();
-        this.jobEventListeners.add(jobEventListener);
-        this.jobEvenetListenerLock.unlock();
-        log.debug("Number of listeners is {}", jobEventListeners.size());
+        this.jobEventListenerLock.lock();
+        try {
+            this.jobEventListeners.add(jobEventListener);
+            log.debug("Number of listeners is {}", jobEventListeners.size());
+        }
+        finally {
+            this.jobEventListenerLock.unlock();
+        }
 
     }
 
     public void unregisterJobChangeListener(JobEventListener jobEventListener) {
         log.debug("unregistering JobChangeListener {}", jobEventListener.hashCode());
-        this.jobEvenetListenerLock.lock();
-        this.jobEventListeners.remove(jobEventListener);
-        this.jobEvenetListenerLock.unlock();
-        log.debug("Number of listeners is {}", jobEventListeners.size());
+        this.jobEventListenerLock.lock();
+        try {
+            this.jobEventListeners.remove(jobEventListener);
+            log.debug("Number of listeners is {}", jobEventListeners.size());
+        }
+        finally {
+            this.jobEventListenerLock.unlock();
+        }
+
     }
 
     @Override
