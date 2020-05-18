@@ -37,18 +37,60 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </b:step>
             </b:flow>
             <b:flow >
-                <b:step parent="step_base" id="sd_three" >
+                <b:step parent="step_base" id="sd_three_one" next="sd_three_two">
                     <b:tasklet>
                         <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
                             <property name="sleepTimeMs" value="100" />
                             <property name="repeats" value="300" />
-                            <property name="emulateFailures" value="2" />
+
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd_three_two" next="sd_three_three">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="300" />
+
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd_three_three" >
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="300" />
+                            <property name="emulateFailures" value="1" />
                         </bean>
                     </b:tasklet>
                 </b:step>
             </b:flow>
             <b:flow >
-                <b:step parent="step_base" id="sd_four" >
+                <b:step parent="step_base" id="sd_four_one" next="sd_four_two">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd_four_two"  next="sd_four_three">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd_four_three" next="sd_four_four"  >
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd_four_four" >
                     <b:tasklet>
                         <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
                             <property name="sleepTimeMs" value="100" />

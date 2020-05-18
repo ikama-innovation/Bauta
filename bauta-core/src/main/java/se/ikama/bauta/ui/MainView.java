@@ -27,9 +27,11 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
@@ -45,7 +47,12 @@ import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -80,14 +87,14 @@ public class MainView extends AppLayout implements JobEventListener {
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
-        log.debug("Attach");
+        log.debug("Attach {}", this.hashCode());
         bautaManager.registerJobChangeListener(this);
     }
 
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
-        log.debug("Detach");
+        log.debug("Detach {}", hashCode());
         bautaManager.unregisterJobChangeListener(this);
     }
 
@@ -148,11 +155,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
 
         rightPanel.getStyle().set("margin-right", "20px");
-            /*Button upgradeBautaButton = new Button("");
-            upgradeBautaButton.getElement().setProperty("title", "Upgrades the Bauta framework to the latest version");
-            upgradeBautaButton.setIcon(VaadinIcon.POWER_OFF.create());
-            //upgradeBautaButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            */
 
         Button upgradeInstanceButton = new Button("", clickEvent -> {
             try {
@@ -165,18 +167,28 @@ public class MainView extends AppLayout implements JobEventListener {
         });
         upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
         upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
-        //upgradeInstanceButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
         Label buildInfo = new Label(bautaManager.getShortServerInfo());
         buildInfo.setClassName("build-info");
-        //buildInfo.getStyle().set("font-size", "0.75em");
-        //buildInfo.getStyle().set("margin-right", "10px");
-        rightPanel.add(buildInfo);
-        rightPanel.add(upgradeInstanceButton);
-        //rightPanel.add(upgradeBautaButton);
+        // Job report
+        Anchor download = new Anchor(new StreamResource("job_report.csv", () -> {
+            try {
+                return createJobReport();
+            }
+            catch(Exception e) {
+                showErrorMessage("Failed to generate report: " + e.getMessage());
+                return null;
+            }
 
-        //rightPanel.add(new Button("Another"));
+        }),"");
+        download.getElement().setAttribute("download", true);
+        download.add(new Button(new Icon(VaadinIcon.DOWNLOAD_ALT)));
+        download.getElement().setProperty("title", "Job report with execution durations");
+
+        rightPanel.add(buildInfo);
+        rightPanel.add(download);
+        rightPanel.add(upgradeInstanceButton);
 
         rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right");
 
@@ -240,8 +252,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
         grid.addComponentColumn(item -> createStepComponent(grid, item));
         grid.addComponentColumn(item -> createButtons(grid, item));
-
-        //grid.addColumn(item->item.getSteps().toArray().toString()).setHeader("Steps");
         try {
             grid.setItems(bautaManager.jobDetails());
         } catch (Exception e) {
@@ -278,7 +288,6 @@ public class MainView extends AppLayout implements JobEventListener {
             else {
                 doStartJob(item, null);
             }
-
         });
         startButton.setIcon(VaadinIcon.PLAY.create());
         startButton.getElement().setProperty("title", "Start a new job instance");
@@ -338,6 +347,8 @@ public class MainView extends AppLayout implements JobEventListener {
         infoButton.setIcon(VaadinIcon.BULLETS.create());
         infoButton.getStyle().set("margin-left", "4px");
         hl.add(infoButton);
+
+        
         if ("STARTED".equals(item.getExecutionStatus())) {
             startButton.setEnabled(false);
             restartButton.setEnabled(false);
@@ -366,6 +377,117 @@ public class MainView extends AppLayout implements JobEventListener {
             vl.add(l);
         }
         return vl;
+
+    }
+
+    private InputStream createJobReport() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        final String EOL = "\n";
+        final String SEP = ";";
+        final String SEP2 = ";;";
+        final String SEP3 = ";;;";
+        final String SEP4 = ";;;;";
+        final String charset = "ISO-8859-1";
+        // Job;Split;Flow;Status;Duration
+        sb.append("Job").append(SEP).append("Split").append(SEP).append("Flow").append(SEP).append("Status").append(SEP).append("Duration").append(EOL);
+        NumberFormat format = new DecimalFormat("####0.#", DecimalFormatSymbols.getInstance(new Locale("sv","SE")));
+        List<JobInstanceInfo> jobDetails = bautaManager.jobDetails();
+        for (JobInstanceInfo job : jobDetails) {
+            String currentSplit = null;
+            String currentFlow = null;
+            HashMap<String, MutableLong> flowDurations = new HashMap<>();
+            // Which flows runs within which splits?
+            HashMap<String, Set<String>> splitToFlows = new HashMap<>();
+            HashMap<String, Long> splitDurations = new HashMap<>();
+            HashMap<String, String> flowAlias = new HashMap<>();
+            int flowCount = 0;
+            // First round, calculate flow durations
+            for (StepInfo step : job.getSteps()) {
+                if (step.getFlowId() != null) {
+                    if (currentFlow == null || !step.getFlowId().equals(currentFlow)) {
+                        currentFlow = step.getFlowId();
+                        flowDurations.put(currentFlow, new MutableLong(0));
+                        flowCount++;
+                        flowAlias.put(currentFlow, "flow-"+flowCount);
+                        splitToFlows.putIfAbsent(step.getSplitId(), new HashSet<>());
+                        splitToFlows.get(step.getSplitId()).add(step.getFlowId());
+                    }
+                    if (flowDurations.containsKey(currentFlow)) {
+                        flowDurations.get(currentFlow).add(step.getDuration());
+                    }
+                } else {
+                    currentFlow = null;
+                }
+            }
+            // Calculate Split durations by calculating max of its flow durations
+            for (StepInfo step : job.getSteps()) {
+                if (step.getSplitId() != null) {
+                    if (currentSplit == null || !step.getSplitId().equals(currentSplit)) {
+                        currentSplit = step.getSplitId();
+                        Set<String> flowIds = splitToFlows.get(step.getSplitId());
+                        if (flowIds != null) {
+                            long maxFlowDuration = 0;
+                            for (String flowId : flowIds) {
+                                maxFlowDuration = Math.max(maxFlowDuration, flowDurations.get(flowId).longValue());
+                            }
+                            splitDurations.put(currentSplit, maxFlowDuration);
+                        }
+                    }
+                } else {
+                    currentSplit = null;
+                }
+            }
+            // Calculate total duration: sum of splits + steps that are not part of a split
+            Long totalDuration = splitDurations.values().stream().collect(Collectors.summingLong(Long::longValue));
+            for (StepInfo step : job.getSteps()) {
+                if (step.getSplitId() == null) {
+                    totalDuration += step.getDuration();
+                }
+            }
+
+            sb.append(SEP4).append(EOL);
+            sb.append(job.getName()).append(SEP4)
+                    .append(job.getExecutionStatus()).append(SEP)
+                    .append(DurationFormatUtils.formatDuration(totalDuration, "HH:mm:ss"))
+                    .append(EOL);
+
+            for (StepInfo step : job.getSteps()) {
+                if (step.getSplitId() != null && splitDurations.containsKey(step.getSplitId())) {
+                    Long duration = splitDurations.remove(step.getSplitId());
+                    sb.append(SEP)
+                            .append(step.getSplitId()).append(SEP)
+                            .append(SEP3)
+                            .append(duration != null ? DurationFormatUtils.formatDuration(duration, "HH:mm:ss") : "")
+                            .append(EOL);
+                }
+                if (step.getFlowId() != null && flowDurations.containsKey(step.getFlowId())) {
+                    MutableLong duration = flowDurations.remove(step.getFlowId());
+                    String alias = flowAlias.get(step.getFlowId());
+                    sb.append(SEP)
+                            .append(step.getSplitId()).append(SEP)
+                            .append(alias).append(SEP)
+                            .append(SEP2)
+                            .append(duration != null ? DurationFormatUtils.formatDuration(duration.longValue(), "HH:mm:ss") : "")
+                            .append(EOL);
+                }
+                sb.append(SEP)
+                        .append(StringUtils.trimToEmpty(step.getSplitId())).append(SEP)
+                        .append(step.getFlowId() != null ? flowAlias.get(step.getFlowId()) : "").append(SEP)
+                        .append(step.getName()).append(SEP)
+                        .append(step.getExecutionStatus()).append(SEP)
+                        .append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"))
+                        .append(EOL);
+            }
+        }
+        String s = sb.toString();
+        try {
+            byte[] bytes = s.getBytes(charset);
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            return bais;
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
 
     }
 
@@ -624,7 +746,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
-        log.debug("onJobChange {} ", jobInstanceInfo);
+        log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
 
         this.getUI().get().access(() -> {
             grid.getDataProvider().refreshItem(jobInstanceInfo);

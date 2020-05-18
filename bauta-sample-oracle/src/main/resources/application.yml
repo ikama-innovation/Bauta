@@ -1,3 +1,4 @@
+
 # A fancy name for your implementation of Bauta
 bauta.application.name: Oracle Sample
 bauta.application.description: Demo of Oracle-based batch automation
@@ -18,6 +19,8 @@ bauta.logDir: ${bauta.homeDir}/logs
 spring.shell.interactive.enabled: false
 vaadin.productionMode: true
 
+# Http session timeout
+server.servlet.session.timeout: 60m
 
 # Rebuild command. Typically stops bauta process, fetches latest code, scripts, beans from VCS
 # and then starts a fresh process

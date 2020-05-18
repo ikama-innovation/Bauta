@@ -26,18 +26,18 @@ import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BautaManager implements StepExecutionListener, JobExecutionListener, ApplicationContextAware {
 
     Logger log = LoggerFactory.getLogger(this.getClass().getName());
+    private Date startTime = new Date();
     private BautaConfig bautaConfig;
 
     JobRepository jobRepository;
@@ -53,6 +53,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private ApplicationContext applicationContext;
 
     private HashSet<Long> scheduledUpdateJobExecutionIds = new HashSet<Long>();
+
+    /**
+     * Updates job listeners in a separate thread.
+     */
+    private ExecutorService jobEventListenerUpdater = Executors.newSingleThreadExecutor();
 
     /**
      * Holds last known information about the steps of a job
@@ -76,6 +81,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Autowired
     JobMetadataReader jobMetadataReader;
 
+
+
     public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
         this.bautaConfig = bautaConfig;
         this.jobRepository = jobRepository;
@@ -96,7 +103,55 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         log.info("Home is {}", bautaConfig.getProperty(BautaConfigParams.HOME_DIR));
         log.info("properties: {}", getServerInfo().toArray());
         initializeScheduling(false);
+        TimerTask cleanupTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (hasRunningExecutions()) {
+                    log.warn("Detected running job(s) at startup. Probably means that server was stopped while steps were running. ");
+                    log.warn("Attempting cleanup..");
+                    cleanUp();
+                }
+            }
+        };
+        Timer timer = new Timer("Timer", true);
+        timer.schedule(cleanupTimerTask, 15000);
+    }
+    @PreDestroy
+    private void shutdown() {
+        log.info("Shutting down..");
+        jobEventListenerUpdater.shutdownNow();
+        log.info("Done!");
+    }
 
+    private void cleanUp() {
+        log.info("Cleaning up job executions");
+        for (String jobName:listJobNames()) {
+            try {
+                for (Long executionId : jobOperator.getRunningExecutions(jobName)) {
+                    JobExecution je = jobExplorer.getJobExecution(executionId);
+                    if (startTime.after(je.getStartTime())) {
+                        log.warn("Job {}, executionId {} is stored as running, but startTime is before (re)start. Changing to FAILED", jobName, executionId);
+                        je.setEndTime(new Date());
+                        je.setStatus(BatchStatus.FAILED);
+                        je.setExitStatus(ExitStatus.FAILED);
+                        for(StepExecution se : je.getStepExecutions()) {
+                            if (se.getExitStatus().isRunning()) {
+                                log.warn("Step {} is stored as running. Changing to FAILED", se.getStepName());
+                                se.setStatus(BatchStatus.FAILED);
+                                se.setEndTime(new Date());
+                                se.setExitStatus(ExitStatus.FAILED);
+                                jobRepository.update(se);
+                            }
+                        }
+                        jobRepository.update(je);
+                        fireJobEvent(je);
+                    }
+                }
+            }
+            catch(Exception e) {
+                log.error("Failure during cleanup", e);
+            }
+        }
     }
     public  void initializeScheduling(boolean refresh) {
         log.debug("Initializing scheduling");
@@ -183,6 +238,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         try {
             Set<Long> ids = jobOperator.getRunningExecutions(jobName);
             for (Long id : ids) {
+                jobOperator.stop(id);
                 jobOperator.stop(id);
             }
         } catch (Exception e) {
@@ -319,26 +375,33 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     private void fireJobEvent(JobExecution je) {
-        JobInstanceInfo jobInstanceInfo = null;
         try {
-            jobInstanceInfo = extractJobInstanceInfo(je, true);
+            final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(je, true);
+            jobEventListenerUpdater.execute(()-> {
+                // Lock access to the listener set to prevent concurrent modification issues
+                jobEventListenerLock.lock();
+                try {
+                    log.debug("Updating {} listeners ..", jobEventListeners.size());
+                    for (JobEventListener jel : jobEventListeners) {
+                        try {
+                            long t = System.nanoTime();
+                            jel.onJobChange(jobInstanceInfo);
+                            t = System.nanoTime() - t;
+                            double tMs = Math.round(t/1000000.0);
+                            if (tMs > 1000) {
+                                log.warn("Call to onJobChange took {} ms. Listeners must execute fast", tMs);
+                            }
+                        } catch (Exception e) {
+                            log.error("Failed to call onJobChange in one of the listeners", e);
+                        }
+                    }
+                } finally {
+                    jobEventListenerLock.unlock();
+                }
+            });
         } catch (Exception e) {
             log.warn("Failed to extract job info", e);
         }
-        // Lock access to the listener set to prevent concurrent modification issues
-        jobEventListenerLock.lock();
-        try {
-            for (JobEventListener jel : jobEventListeners) {
-                try {
-                    jel.onJobChange(jobInstanceInfo);
-                } catch (Exception e) {
-                    log.error("Failed to call onJobChange in one of the listeners", e);
-                }
-            }
-        } finally {
-            jobEventListenerLock.unlock();
-        }
-
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
@@ -482,6 +545,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         }
         return out;
     }
+    public JobInstanceInfo jobDetails(String jobName) throws Exception {
+        return fetchJobInfo(jobName);
+    }
 
     public List<JobInstanceInfo> jobHistory(String jobName) throws Exception {
         ArrayList<JobInstanceInfo> out = new ArrayList<>();
@@ -601,6 +667,18 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         info.add("Script dir: " + env.getProperty("bauta.scriptDir","---"));
         info.add("Staging DB: " + env.getProperty("bauta.stagingDB.url","---"));
         info.add("Staging DB user: " + env.getProperty("bauta.stagingDB.username","---"));
+
+        // JVM info
+        int MB = 1024*1024;
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / MB;
+        long freeMemory = runtime.freeMemory() / MB;
+        long totalMemory = runtime.totalMemory() / MB;
+        long maxMemory = runtime.maxMemory() / MB;
+        info.add("JVM used mem: " + usedMemory);
+        info.add("JVM free mem: " + freeMemory);
+        info.add("JVM total mem: " + totalMemory);
+        info.add("JVM max mem: " + maxMemory);
 
         return info;
     }

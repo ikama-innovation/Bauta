@@ -61,6 +61,11 @@ public class BatchConfiguration {
     @Value("${bauta.stagingDB.password}")
     String stagingDbPassword;
 
+    @Value(value = "${bauta.jobRepository.isolationLevelForCreate:ISOLATION_SERIALIZABLE}")
+    String isolationLevelForCreate;
+
+
+
     /**
      * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
      * Typically not needed. One use-case is when using Oracle Wallet for authentication. Then you
@@ -131,7 +136,8 @@ public class BatchConfiguration {
 
                 factory.setDataSource(dataSource);
                 factory.setTransactionManager(batchTransactionManager());
-                factory.setIsolationLevelForCreate("ISOLATION_REPEATABLE_READ");
+                log.debug("jobRepository.isolationLevelForCreate: {}", isolationLevelForCreate);
+                factory.setIsolationLevelForCreate(isolationLevelForCreate);
                 factory.setTablePrefix("BATCH_");
                 factory.setMaxVarCharLength(1000);
 
