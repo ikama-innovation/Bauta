@@ -1,7 +1,7 @@
 # Bauta
 Bauta is a batch automation framework based on [Spring Batch](https://spring.io/projects/spring-batch) and [Spring Boot](https://spring.io/projects/spring-boot). It adds a user interface in which you can start/stop/restart jobs, monitor step/job status. Also provides some add-ons to jobs and steps, such as report/log generation, job parameter handling etc. 
 
-Bauta supports can be run on your personal computer or on a server to support team workflows. It can be setup to automatically stop, install latest batch jobs/scripts etc from GIT and restart. This makes it convenient for teams to develop and deploy their batch jobs.
+You can run your jobs locally on your personal computer or on a server to support team collaboration. It can be setup to automatically stop, install latest batch jobs/scripts etc from GIT and restart. This makes it convenient for teams to develop and deploy their batch jobs.
 
 ![alt text](docs/bauta_jobs.PNG "Bauta Job view")
 *Job view*
