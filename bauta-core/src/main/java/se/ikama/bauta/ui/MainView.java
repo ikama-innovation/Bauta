@@ -28,6 +28,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.shared.ui.Transport;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.apache.commons.lang3.StringUtils;
@@ -57,7 +58,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Push
+@Push(transport = Transport.LONG_POLLING)
 @Route("")
 //@Theme(value = Material.class, variant = Material.LIGHT)
 @Theme(value = Lumo.class, variant = Lumo.DARK)
@@ -87,7 +88,9 @@ public class MainView extends AppLayout implements JobEventListener {
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
-        log.debug("Attach {}", this.hashCode());
+        String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
+        String address = attachEvent.getSession().getBrowser().getAddress();
+        log.debug("Attach {}, {}, {}", this.hashCode(), browser, address);
         bautaManager.registerJobChangeListener(this);
     }
 
@@ -747,7 +750,6 @@ public class MainView extends AppLayout implements JobEventListener {
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
         log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
-
         this.getUI().get().access(() -> {
             grid.getDataProvider().refreshItem(jobInstanceInfo);
         });

@@ -5,15 +5,20 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.configuration.DuplicateJobException;
+import org.springframework.batch.core.configuration.JobFactory;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
 import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
+import org.springframework.batch.core.configuration.support.MapJobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobOperator;
 import org.springframework.batch.core.repository.JobRepository;
@@ -21,6 +26,11 @@ import org.springframework.batch.core.repository.support.JobRepositoryFactoryBea
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.context.annotation.*;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -33,6 +43,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
+import java.util.Collection;
+import java.util.Properties;
 
 @PropertySource("bauta_default.yml")
 @Configuration()
@@ -40,7 +52,7 @@ import javax.sql.DataSource;
         "classpath:spring_beans/job_common.xml",
         "file://${bauta.jobBeansDir}/*.xml"
 })
-@EnableBatchProcessing()
+//@EnableBatchProcessing()
 @EnableVaadin("se.ikama.bauta.ui")
 public class BatchConfiguration {
 
@@ -61,8 +73,13 @@ public class BatchConfiguration {
     @Value("${bauta.stagingDB.password}")
     String stagingDbPassword;
 
-    @Value(value = "${bauta.jobRepository.isolationLevelForCreate:ISOLATION_SERIALIZABLE}")
+    @Value(value = "${bauta.jobRepository.isolationLevelForCreate:ISOLATION_READ_COMMITTED}")
     String isolationLevelForCreate;
+
+    @Value(value = "${bauta.hsqldb.properties:hsqldb.tx=mvcc}")
+    String hsqldbProperties;
+
+
 
 
 
@@ -77,14 +94,15 @@ public class BatchConfiguration {
 
     @Bean()
     @Primary
-    DataSource batchDataSource() {
+    DataSource dataSource() {
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
         dataSource.setUrl("jdbc:hsqldb:file:" + homeDir + "/db/data");
         dataSource.setUsername("sa");
         dataSource.setPassword("");
-
-        log.debug("Creating batch datasource {}", dataSource);
+        dataSource.setConnectionProperties(hsqldbProperties);
+        log.info("Creating batch datasource {}", dataSource);
+        log.info("HSQLDB properties: {}", hsqldbProperties);
         return dataSource;
     }
 
@@ -92,7 +110,7 @@ public class BatchConfiguration {
     @Bean
     public DataSourceInitializer dataSourceInitializer() {
         final DataSourceInitializer initializer = new DataSourceInitializer();
-        initializer.setDataSource(batchDataSource());
+        initializer.setDataSource(dataSource());
         initializer.setDatabasePopulator(databasePopulator());
         return initializer;
     }
@@ -106,92 +124,71 @@ public class BatchConfiguration {
     }
 
 
-    @Bean(name = "batchTransactionManager")
-    PlatformTransactionManager batchTransactionManager() {
-
-        return new DataSourceTransactionManager(batchDataSource());
-    }
-
     @Bean
-    public BatchConfigurer batchConfigurer() {
-        log.debug("Creating Bauta batch configurer.");
-        BatchConfigurer bf = new DefaultBatchConfigurer(batchDataSource()) {
+    @Primary
+    PlatformTransactionManager transactionManager() {
 
-            @Autowired()
-            @Qualifier("batchDataSource")
-            DataSource dataSource;
-
-            //@Autowired()
-            //@Qualifier("batchTransactionManager")
-            //PlatformTransactionManager txManager;
-
-            @Override
-            public PlatformTransactionManager getTransactionManager() {
-                return batchTransactionManager();
-            }
-
-            @Override
-            protected JobRepository createJobRepository() throws Exception {
-                JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
-
-                factory.setDataSource(dataSource);
-                factory.setTransactionManager(batchTransactionManager());
-                log.debug("jobRepository.isolationLevelForCreate: {}", isolationLevelForCreate);
-                factory.setIsolationLevelForCreate(isolationLevelForCreate);
-                factory.setTablePrefix("BATCH_");
-                factory.setMaxVarCharLength(1000);
-
-                return factory.getObject();
-            }
-
-            @Override
-            public JobExplorer createJobExplorer() throws Exception {
-                JobExplorerFactoryBean jobExplorer = new JobExplorerFactoryBean();
-                jobExplorer.setDataSource(dataSource);
-                jobExplorer.setTablePrefix("BATCH_");
-                jobExplorer.afterPropertiesSet();
-                return jobExplorer.getObject();
-
-            }
-
-            @Override
-            public JobLauncher createJobLauncher() throws Exception {
-                SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
-                jobLauncher.setJobRepository(getJobRepository());
-                jobLauncher.setTaskExecutor(taskExecutor());
-                jobLauncher.afterPropertiesSet();
-                return jobLauncher;
-            }
-        };
-        return bf;
-
+        return new DataSourceTransactionManager(dataSource());
     }
 
 
+
     @Bean
-    JobOperator jobOperator(JobExplorer jobExplorer,
-                            JobRepository jobRepository,
-                            JobRegistry jobRegistry,
-                            JobLauncher jobLauncher) {
-        log.debug("Creating job operator {}", jobRepository);
+    JobRepository jobRepository() throws Exception {
+        JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
+
+        factory.setDataSource(dataSource());
+        factory.setTransactionManager(transactionManager());
+        log.info("jobRepository.isolationLevelForCreate: {}", isolationLevelForCreate);
+        factory.setIsolationLevelForCreate(isolationLevelForCreate);
+        factory.setTablePrefix("BATCH_");
+        factory.setMaxVarCharLength(1000);
+        factory.afterPropertiesSet();
+
+        return factory.getObject();
+    }
+
+    @Bean
+    public JobExplorer jobExplorer() throws Exception {
+        JobExplorerFactoryBean jobExplorer = new JobExplorerFactoryBean();
+        jobExplorer.setDataSource(dataSource());
+        jobExplorer.setTablePrefix("BATCH_");
+        jobExplorer.afterPropertiesSet();
+        return jobExplorer.getObject();
+
+    }
+
+    @Bean
+    public JobLauncher jobLauncher() throws Exception {
+        SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
+        jobLauncher.setJobRepository(jobRepository());
+        jobLauncher.setTaskExecutor(taskExecutor());
+        jobLauncher.afterPropertiesSet();
+        return jobLauncher;
+    }
+
+
+    @Bean()
+    JobOperator jobOperator() throws Exception {
         SimpleJobOperator jobOperator = new SimpleJobOperator();
 
-        jobOperator.setJobExplorer(jobExplorer);
-        jobOperator.setJobRepository(jobRepository);
-        jobOperator.setJobRegistry(jobRegistry);
-        jobOperator.setJobLauncher(jobLauncher);
-
+        jobOperator.setJobExplorer(jobExplorer());
+        jobOperator.setJobRepository(jobRepository());
+        jobOperator.setJobRegistry(jobRegistry());
+        jobOperator.setJobLauncher(jobLauncher());
+        jobOperator.afterPropertiesSet();
         return jobOperator;
     }
 
-    //@Bean
-    //public JobRegistry jobRegistry() throws Exception {
-    //   return new MapJobRegistry();
-    //}
     @Bean
-    public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
+    @Primary
+    public JobRegistry jobRegistry()  {
+        return new MapJobRegistry();
+    }
+    @Bean
+    public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor() {
         JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();
-        postProcessor.setJobRegistry(jobRegistry);
+        postProcessor.setJobRegistry(jobRegistry());
         return postProcessor;
     }
 

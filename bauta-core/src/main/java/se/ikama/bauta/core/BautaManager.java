@@ -55,11 +55,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private HashSet<Long> scheduledUpdateJobExecutionIds = new HashSet<Long>();
 
     /**
-     * Updates job listeners in a separate thread.
-     */
-    private ExecutorService jobEventListenerUpdater = Executors.newSingleThreadExecutor();
-
-    /**
      * Holds last known information about the steps of a job
      */
     private TreeMap<String, JobInstanceInfo> cachedJobInstanceInfos = new TreeMap<>();
@@ -89,7 +84,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         this.jobOperator = jobOperator;
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
-        jobUpdateScheduler = Executors.newScheduledThreadPool(1);
+        jobUpdateScheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
 
@@ -119,7 +114,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @PreDestroy
     private void shutdown() {
         log.info("Shutting down..");
-        jobEventListenerUpdater.shutdownNow();
+        jobUpdateScheduler.shutdownNow();
+        threadPoolTaskScheduler.shutdown();
         log.info("Done!");
     }
 
@@ -144,7 +140,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                             }
                         }
                         jobRepository.update(je);
-                        fireJobEvent(je);
+                        fireJobEvent(je, 0);
                     }
                 }
             }
@@ -252,7 +248,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     public void abandonJob(long executionId) throws Exception {
         JobExecution je = jobOperator.abandon(executionId);
-        fireJobEvent(je);
+        fireJobEvent(je, 0);
     }
 
     public Collection<String> listJobSummaries() throws NoSuchJobException, NoSuchJobInstanceException, NoSuchJobExecutionException {
@@ -301,7 +297,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void beforeJob(JobExecution jobExecution) {
         log.debug("beforeJob: {}", jobExecution);
-        fireJobEvent(jobExecution);
+        fireJobEvent(jobExecution, 0);
     }
 
     @Override
@@ -310,7 +306,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         if (jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
             handleJobCompletionTriggers(jobExecution.getJobInstance().getJobName());
         }
-        fireJobEvent(jobExecution);
+        fireJobEvent(jobExecution, 0);
     }
 
     private void handleJobCompletionTriggers(String completedJobName) {
@@ -342,42 +338,26 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void beforeStep(StepExecution stepExecution) {
 
         log.debug("beforeStep: {}", stepExecution);
-        fireJobEvent(stepExecution.getJobExecution());
+        fireJobEvent(stepExecution.getJobExecution(), 0);
         // Sometimes, the step status may still be in STARTING phase when we get here.
         // To ensure that we will get the STARTED status, schedule an update in a second or so
-        scheduleDelayedJobEvent(stepExecution.getJobExecutionId());
+        fireJobEvent(stepExecution.getJobExecution(), 2000);
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         log.debug("afterStep: {}", stepExecution);
 
-        fireJobEvent(stepExecution.getJobExecution());
+        fireJobEvent(stepExecution.getJobExecution(), 0);
         return stepExecution.getExitStatus();
     }
 
-    /**
-     * Will fire a jobEvent in a second from now.
-     * @param jobExecutionId
-     */
-    private void scheduleDelayedJobEvent(long jobExecutionId) {
-        Runnable update = new Runnable() {
-            @Override
-            public void run() {
-                JobExecution je = jobExplorer.getJobExecution(jobExecutionId);
-                if (je != null) {
-                    log.debug("Firing delayed update for {}", jobExecutionId);
-                    fireJobEvent(je);
-                }
-            }
-        };
-        jobUpdateScheduler.schedule(update, 2000, TimeUnit.MILLISECONDS);
-    }
 
-    private void fireJobEvent(JobExecution je) {
-        try {
-            final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(je, true);
-            jobEventListenerUpdater.execute(()-> {
+
+    private void fireJobEvent(JobExecution je, int delayMs) {
+        Runnable jobEventUpdate = () -> {
+            try {
+                final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(je, true);
                 // Lock access to the listener set to prevent concurrent modification issues
                 jobEventListenerLock.lock();
                 try {
@@ -389,19 +369,23 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                             t = System.nanoTime() - t;
                             double tMs = Math.round(t/1000000.0);
                             if (tMs > 1000) {
-                                log.warn("Call to onJobChange took {} ms. Listeners must execute fast", tMs);
+                                log.warn("Call to onJobChange in {} took {} ms. Listeners must execute fast", jel, tMs);
                             }
                         } catch (Exception e) {
                             log.error("Failed to call onJobChange in one of the listeners", e);
                         }
                     }
+                    log.debug("Done!");
+
                 } finally {
                     jobEventListenerLock.unlock();
                 }
-            });
-        } catch (Exception e) {
-            log.warn("Failed to extract job info", e);
-        }
+
+            } catch (Exception e) {
+                log.warn("Failed to extract job info", e);
+            }
+        };
+        jobUpdateScheduler.schedule(jobEventUpdate, delayMs, TimeUnit.MILLISECONDS);
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {

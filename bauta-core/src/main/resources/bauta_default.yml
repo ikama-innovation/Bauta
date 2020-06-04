@@ -1,9 +1,14 @@
 # Default properties
 vaadin.urlMapping: /ui/*
-#vaadin.compatibilityMode=true
+vaadin.heartbeatInverval: 30
+
+server.servlet.session.timeout: 300
+
 bauta.version: '@project.version@'
 bauta.buildTime: '@bautabuildtimestamp@'
 bauta.build: 0
 
+hsqldb.tx: mvcc
+bauta.jobRepository.isolationLevelForCreate: ISOLATION_READ_COMMITTED
 
 
