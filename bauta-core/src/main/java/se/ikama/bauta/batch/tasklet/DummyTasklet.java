@@ -23,7 +23,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
     boolean stopping = false;
     String name;
     int repeats = 10;
-    int sleepTimeMs = 10;
+    int sleepTimeMs = 1000;
     Integer checkCount = null;
     String jobName;
     int emulateFailures = 0;

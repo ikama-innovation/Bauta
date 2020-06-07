@@ -58,7 +58,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Push(transport = Transport.LONG_POLLING)
+@Push()
 @Route("")
 //@Theme(value = Material.class, variant = Material.LIGHT)
 @Theme(value = Lumo.class, variant = Lumo.DARK)

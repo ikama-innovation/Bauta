@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>bauta-core</artifactId>
     <name>bauta-core</name>
-    <version>0.0.21</version>
+    <version>0.0.22</version>
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>0.0.21</version>
+        <version>0.0.22</version>
     </parent>
     <properties>
         <vaadin.version>14.1.28</vaadin.version>
@@ -76,7 +76,8 @@
             <version>${vaadin.version}</version>
             <exclusions>
                 <!-- Excluding so that webjars are not included. -->
-                <exclusion><groupId>com.vaadin</groupId>
+                <exclusion>
+                    <groupId>com.vaadin</groupId>
                     <artifactId>vaadin-core</artifactId></exclusion>
             </exclusions>
         </dependency>

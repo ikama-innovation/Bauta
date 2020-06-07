@@ -5,32 +5,18 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.configuration.DuplicateJobException;
-import org.springframework.batch.core.configuration.JobFactory;
 import org.springframework.batch.core.configuration.JobRegistry;
-import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
 import org.springframework.batch.core.configuration.support.MapJobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.JobOperator;
-import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.context.annotation.*;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -43,8 +29,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
-import java.util.Collection;
-import java.util.Properties;
 
 @PropertySource("bauta_default.yml")
 @Configuration()
@@ -76,11 +60,8 @@ public class BatchConfiguration {
     @Value(value = "${bauta.jobRepository.isolationLevelForCreate:ISOLATION_READ_COMMITTED}")
     String isolationLevelForCreate;
 
-    @Value(value = "${bauta.hsqldb.properties:hsqldb.tx=mvcc}")
-    String hsqldbProperties;
-
-
-
+    @Value(value = "${bauta.batchDataSource.url:jdbc:hsqldb:file:${bauta.homeDir}/db/data;hsqldb.tx=mvcc}")
+    String batchDataSourceUrl;
 
 
     /**
@@ -97,12 +78,20 @@ public class BatchConfiguration {
     DataSource dataSource() {
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
-        dataSource.setUrl("jdbc:hsqldb:file:" + homeDir + "/db/data");
+        dataSource.setUrl(batchDataSourceUrl);
         dataSource.setUsername("sa");
         dataSource.setPassword("");
-        dataSource.setConnectionProperties(hsqldbProperties);
+        try {
+            log.info("Batch DB url: {}", batchDataSourceUrl);
+            log.info("Driver is {}", dataSource.getConnection().getMetaData().getDriverName());
+            log.info("TX isolation {}", dataSource.getConnection().getMetaData().getDefaultTransactionIsolation());
+            log.info("DB Product name {}", dataSource.getConnection().getMetaData().getDatabaseProductName());
+        }
+        catch(Exception e) {
+
+        }
+        //dataSource.setConnectionProperties(hsqldbProperties);
         log.info("Creating batch datasource {}", dataSource);
-        log.info("HSQLDB properties: {}", hsqldbProperties);
         return dataSource;
     }
 

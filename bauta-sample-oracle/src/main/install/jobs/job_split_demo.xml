@@ -17,7 +17,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </bean>
             </b:tasklet>
         </b:step>
-        <b:split id="sd_twothreefour" next="sd_five" task-executor="multiTaskExecutor">
+        <b:split id="sd_twothreefour" next="sd_sixteen" task-executor="multiTaskExecutor">
             <b:flow >
                 <b:step parent="step_base" id="sd_two" next="sd_twoandahalf">
                     <b:tasklet>
@@ -60,10 +60,10 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                         <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
                             <property name="sleepTimeMs" value="100" />
                             <property name="repeats" value="300" />
-                            <property name="emulateFailures" value="1" />
                         </bean>
                     </b:tasklet>
                 </b:step>
+
             </b:flow>
             <b:flow >
                 <b:step parent="step_base" id="sd_four_one" next="sd_four_two">
@@ -99,8 +99,109 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                     </b:tasklet>
                 </b:step>
             </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_six">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_seven">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_eight">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_nine">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_ten">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_eleven">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_twelve">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_thirteen">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_fourteen">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd_fifteen">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="100" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+
         </b:split>
-        <b:step id="sd_five" parent="step_base">
+        <b:step id="sd_sixteen" parent="step_base">
             <b:tasklet>
                 <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
                     <property name="sleepTimeMs" value="100" />

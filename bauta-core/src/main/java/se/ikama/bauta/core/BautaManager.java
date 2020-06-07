@@ -140,7 +140,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                             }
                         }
                         jobRepository.update(je);
-                        fireJobEvent(je, 0);
+                        fireJobEvent(je.getId(), 0);
                     }
                 }
             }
@@ -248,7 +248,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     public void abandonJob(long executionId) throws Exception {
         JobExecution je = jobOperator.abandon(executionId);
-        fireJobEvent(je, 0);
+        fireJobEvent(je.getId(), 0);
     }
 
     public Collection<String> listJobSummaries() throws NoSuchJobException, NoSuchJobInstanceException, NoSuchJobExecutionException {
@@ -297,7 +297,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void beforeJob(JobExecution jobExecution) {
         log.debug("beforeJob: {}", jobExecution);
-        fireJobEvent(jobExecution, 0);
+        fireJobEvent(jobExecution.getId(), 0);
     }
 
     @Override
@@ -306,7 +306,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         if (jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
             handleJobCompletionTriggers(jobExecution.getJobInstance().getJobName());
         }
-        fireJobEvent(jobExecution, 0);
+        fireJobEvent(jobExecution.getId(), 0);
     }
 
     private void handleJobCompletionTriggers(String completedJobName) {
@@ -338,26 +338,29 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void beforeStep(StepExecution stepExecution) {
 
         log.debug("beforeStep: {}", stepExecution);
-        fireJobEvent(stepExecution.getJobExecution(), 0);
+        fireJobEvent(stepExecution.getJobExecution().getId(), 0);
         // Sometimes, the step status may still be in STARTING phase when we get here.
         // To ensure that we will get the STARTED status, schedule an update in a second or so
-        fireJobEvent(stepExecution.getJobExecution(), 2000);
+        //fireJobEvent(stepExecution.getJobExecution().getId(), 2000);
     }
 
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         log.debug("afterStep: {}", stepExecution);
 
-        fireJobEvent(stepExecution.getJobExecution(), 0);
+        fireJobEvent(stepExecution.getJobExecution().getId(), 0);
         return stepExecution.getExitStatus();
     }
 
 
 
-    private void fireJobEvent(JobExecution je, int delayMs) {
+    private void fireJobEvent(Long jobExecutionId, int delayMs) {
+
+        log.debug("fireJobEvent, executionId: {}", jobExecutionId);
+
         Runnable jobEventUpdate = () -> {
             try {
-                final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(je, true);
+                final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(jobExecutionId, true);
                 // Lock access to the listener set to prevent concurrent modification issues
                 jobEventListenerLock.lock();
                 try {
@@ -384,8 +387,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             } catch (Exception e) {
                 log.warn("Failed to extract job info", e);
             }
+
+
         };
         jobUpdateScheduler.schedule(jobEventUpdate, delayMs, TimeUnit.MILLISECONDS);
+
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
@@ -416,7 +422,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     }
 
-    private JobInstanceInfo extractJobInstanceInfo(JobExecution je, boolean mergeOlderExecutions) throws Exception {
+    private JobInstanceInfo extractJobInstanceInfo(Long jobExecutionId, boolean mergeOlderExecutions) throws Exception {
+        JobExecution je = jobExplorer.getJobExecution(jobExecutionId);
         String jobName = je.getJobInstance().getJobName();
         log.debug("extractJobInstanceInfo: {}, mergeOlder: {}", je, mergeOlderExecutions);
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
@@ -539,7 +546,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         for (JobInstance ji : jobInstances) {
             List<JobExecution> jobExecutions = jobExplorer.getJobExecutions(ji);
             for(JobExecution je: jobExecutions) {
-                out.add(extractJobInstanceInfo(je, false));
+                out.add(extractJobInstanceInfo(je.getId(), false));
             }
         }
         return out;
@@ -558,7 +565,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             if (executions.size() > 0) {
                 long latestExecutionId = executions.get(0);
                 JobExecution jobExecution = jobExplorer.getJobExecution(latestExecutionId);
-                out = extractJobInstanceInfo(jobExecution, true);
+                out = extractJobInstanceInfo(jobExecution.getId(), true);
             }
         }
         else {
