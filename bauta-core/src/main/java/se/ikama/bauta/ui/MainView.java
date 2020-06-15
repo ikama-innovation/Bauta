@@ -73,16 +73,17 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
-    @Autowired
-    SchedulingView schedulingView;
 
     //private UI ui;
     Grid<JobInstanceInfo> grid = null;
+    Grid<String> serverInfoGrid = null;
+    Label buildInfo = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
 
-    public MainView() {
+    public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
+        createMainView(schedulingView);
 
     }
 
@@ -104,12 +105,21 @@ public class MainView extends AppLayout implements JobEventListener {
     @PostConstruct
     @DependsOn("bautaManager")
     public void init() {
-        createMainView();
+        log.info("init");
+        try {
+            grid.setItems(bautaManager.jobDetails());
+            serverInfoGrid.setItems(bautaManager.getServerInfo());
+            buildInfo.setText(bautaManager.getShortServerInfo());
+        } catch (Exception e) {
+            log.warn("Failed to fetch job details", e);
+            showErrorMessage("Failed to fetch job details");
+        }
+        log.info("init.end");
+
     }
 
-    private void createMainView() {
-        log.debug("Creating main view");
-
+    private void createMainView(SchedulingView schedulingView) {
+        log.debug("createMainView");
         Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
         img.setHeight("28px");
         DrawerToggle drawerToggle = new DrawerToggle();
@@ -127,7 +137,6 @@ public class MainView extends AppLayout implements JobEventListener {
         Tab aboutTab = new Tab("About");
         // Scheduling
         Tab schedulingTab = new Tab("Scheduling");
-
 
         tabsToPages.put(jobTab, jobPage);
         tabsToPages.put(aboutTab, aboutPage);
@@ -172,7 +181,7 @@ public class MainView extends AppLayout implements JobEventListener {
         upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
         upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
-        Label buildInfo = new Label(bautaManager.getShortServerInfo());
+        buildInfo = new Label();
         buildInfo.setClassName("build-info");
         // Job report
         Anchor download = new Anchor(new StreamResource("job_report.csv", () -> {
@@ -196,17 +205,19 @@ public class MainView extends AppLayout implements JobEventListener {
         rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right");
 
         this.addToNavbar(rightPanel);
+        log.debug("createMainView.end");
 
     }
 
     private Component createAboutView() {
         VerticalLayout aboutView = new VerticalLayout();
+        aboutView.setHeightFull();
         aboutView.setWidthFull();
-        UnorderedList ul = new UnorderedList();
-        for (String i : bautaManager.getServerInfo()) {
-            ul.add(new ListItem(i));
-        }
-        aboutView.add(ul);
+        serverInfoGrid = new Grid<String>(String.class, false);
+        serverInfoGrid.addColumn(item -> item);
+        serverInfoGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        serverInfoGrid.setHeightFull();
+        aboutView.add(serverInfoGrid);
         return aboutView;
     }
 
@@ -255,12 +266,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         grid.addComponentColumn(item -> createStepComponent(grid, item));
         grid.addComponentColumn(item -> createButtons(grid, item));
-        try {
-            grid.setItems(bautaManager.jobDetails());
-        } catch (Exception e) {
-            log.warn("Failed to fetch job details", e);
-            showErrorMessage("Failed to fetch job details");
-        }
+
         jobView.add(grid);
         return jobView;
     }

@@ -34,7 +34,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class BautaManager implements StepExecutionListener, JobExecutionListener, ApplicationContextAware {
+public class BautaManager implements StepExecutionListener, JobExecutionListener {
 
     Logger log = LoggerFactory.getLogger(this.getClass().getName());
     private Date startTime = new Date();
@@ -48,17 +48,22 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     JobRegistry jobRegistry;
 
+    /**
+     * Listeners for job updates
+     */
     private HashSet<JobEventListener> jobEventListeners = new HashSet<>();
-    private ReentrantLock jobEventListenerLock = new ReentrantLock();
-    private ApplicationContext applicationContext;
-
-    private HashSet<Long> scheduledUpdateJobExecutionIds = new HashSet<Long>();
 
     /**
-     * Holds last known information about the steps of a job
+     * Lock to prevent concurrent modification of the job event list
      */
-    private TreeMap<String, JobInstanceInfo> cachedJobInstanceInfos = new TreeMap<>();
+    private ReentrantLock jobEventListenerLock = new ReentrantLock();
 
+    // Task scheduler for scheduled jobs
+    private ThreadPoolTaskScheduler threadPoolTaskScheduler;
+
+    /**
+     * Schedulurer for single-threaded execution of job updates
+     */
     ScheduledExecutorService jobUpdateScheduler;
 
     @Value("${bauta.rebuildServerCommand}")
@@ -67,8 +72,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Autowired
     Environment env;
 
-    // Task scheduler for scheduled jobs
-    private ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
     @Autowired
     JobTriggerDao jobTriggerDao;
@@ -85,6 +88,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
         jobUpdateScheduler = Executors.newSingleThreadScheduledExecutor();
+
     }
 
 
@@ -378,7 +382,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                             log.error("Failed to call onJobChange in one of the listeners", e);
                         }
                     }
-                    log.debug("Done!");
+                    log.debug("Done updating listeners!");
 
                 } finally {
                     jobEventListenerLock.unlock();
@@ -387,11 +391,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             } catch (Exception e) {
                 log.warn("Failed to extract job info", e);
             }
-
-
         };
         jobUpdateScheduler.schedule(jobEventUpdate, delayMs, TimeUnit.MILLISECONDS);
-
+        log.debug("fireJobEvent.end");
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {
@@ -595,16 +597,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         try {
             this.jobEventListeners.remove(jobEventListener);
             log.debug("Number of listeners is {}", jobEventListeners.size());
-        }
-        finally {
+        } finally {
             this.jobEventListenerLock.unlock();
         }
-
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
 
     }
 

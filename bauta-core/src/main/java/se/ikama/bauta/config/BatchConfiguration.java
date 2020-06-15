@@ -63,7 +63,6 @@ public class BatchConfiguration {
     @Value(value = "${bauta.batchDataSource.url:jdbc:hsqldb:file:${bauta.homeDir}/db/data;hsqldb.tx=mvcc}")
     String batchDataSourceUrl;
 
-
     /**
      * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
      * Typically not needed. One use-case is when using Oracle Wallet for authentication. Then you
@@ -77,6 +76,7 @@ public class BatchConfiguration {
     @Primary
     DataSource dataSource() {
         BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setMaxTotal(20);
         dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
         dataSource.setUrl(batchDataSourceUrl);
         dataSource.setUsername("sa");
@@ -214,13 +214,16 @@ public class BatchConfiguration {
     @Bean
     @Primary
     TaskExecutor taskExecutor() {
-        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor();
-        executor.setConcurrencyLimit(-1);
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("bauta-");
+        executor.setConcurrencyLimit(10);
+        executor.setThreadNamePrefix("bauta-");
+
         return executor;
     }
     @Bean (name = "multiTaskExecutor")
     TaskExecutor multiTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("bautam-");
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(20);
         executor.setQueueCapacity(25);
