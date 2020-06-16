@@ -147,6 +147,7 @@ public class MainView extends AppLayout implements JobEventListener {
         tabs.setSelectedTab(jobTab);
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
         Div pages = new Div(jobPage, schedulingView, aboutPage);
+        pages.setHeightFull();
         Set<Component> pagesShown = Stream.of(jobPage)
                 .collect(Collectors.toSet());
         tabs.addSelectedChangeListener(event -> {
@@ -215,7 +216,7 @@ public class MainView extends AppLayout implements JobEventListener {
         aboutView.setWidthFull();
         serverInfoGrid = new Grid<String>(String.class, false);
         serverInfoGrid.addColumn(item -> item);
-        serverInfoGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        serverInfoGrid.addThemeVariants(GridVariant.LUMO_COMPACT, GridVariant.LUMO_NO_ROW_BORDERS, GridVariant.LUMO_ROW_STRIPES);
         serverInfoGrid.setHeightFull();
         aboutView.add(serverInfoGrid);
         return aboutView;
