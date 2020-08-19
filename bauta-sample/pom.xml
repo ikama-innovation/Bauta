@@ -3,18 +3,18 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>bauta-sample</artifactId>
     <name>bauta-sample</name>
-    <version>0.0.27</version>
+    <version>0.0.28</version>
 
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>0.0.27</version>
+        <version>0.0.28</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>se.ikama</groupId>
             <artifactId>bauta-starter</artifactId>
-            <version>0.0.27</version>
+            <version>0.0.28</version>
 
         </dependency>
         <dependency>
