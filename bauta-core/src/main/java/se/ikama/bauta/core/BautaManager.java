@@ -48,7 +48,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     JobRegistry jobRegistry;
 
-    private List<String> jobNames = Collections.synchronizedList(new ArrayList<>());
+    private SortedSet<String> jobNames = Collections.synchronizedSortedSet(new TreeSet<>());
 
     private Map<String, JobInstanceInfo> jobInstanceInfoCache = Collections.synchronizedMap(new HashMap<>());
     /**
@@ -194,7 +194,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public Long startJob(String jobName, String jobParams) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
-            jobName = listJobNames().get(i);
+            jobName = listJobNames().toArray(new String[0])[i];
+
         }
         Set<Long> runningExecutions = jobOperator.getRunningExecutions(jobName);
         if (runningExecutions != null && runningExecutions.size() > 0) {
@@ -236,7 +237,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void stopJob(String jobName) {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
-            jobName = listJobNames().get(i);
+            jobName = listJobNames().toArray(new String[0])[i];
+
         }
         try {
             Set<Long> ids = jobOperator.getRunningExecutions(jobName);
@@ -279,11 +281,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return out;
     }
 
-    public List<String> listJobNames() {
+    public SortedSet<String> listJobNames() {
         if (jobOperator.getJobNames().size() == 0) {
             // Job operator is not initialized yet. Use metadata
             log.debug("Job names from metadata");
-            return new ArrayList<String>(jobMetadataReader.getJobMetadata().keySet());
+            TreeSet<String> metaJobNames = new TreeSet<>();
+            metaJobNames.addAll(jobMetadataReader.getJobMetadata().keySet());
+            return metaJobNames;
         }
         else if (jobNames.size() == 0) {
             log.debug("Initializing jobNames");
