@@ -34,6 +34,7 @@ import java.util.concurrent.FutureTask;
  */
 public class SqlClTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
 
+
     private static final Logger log = LoggerFactory.getLogger(SqlClTasklet.class);
 
     private List<String> scriptFiles = null;
@@ -162,14 +163,14 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
                     Process process = pb.start();
 
-                    log.debug("Starting process for {}", scriptFile);
+                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
 
                     return process.waitFor();
                 }
             });
 
             long t0 = System.currentTimeMillis();
-            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
+            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName());
             taskExecutor.execute(systemCommandTask);
 
             while (true) {

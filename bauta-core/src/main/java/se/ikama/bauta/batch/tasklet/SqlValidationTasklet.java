@@ -98,7 +98,7 @@ public class SqlValidationTasklet extends ThymeleafReportTasklet implements Repo
         context.setVariable("name", getReportName());
         int failedValidations = validate();
         context.setVariable("validations", validations);
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), "ISO-8859-15")) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), "utf-8")) {
             templateEngine.process("sql_validation_report", context, writer);
         }
 

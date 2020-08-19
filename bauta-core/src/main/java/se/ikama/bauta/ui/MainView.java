@@ -105,7 +105,7 @@ public class MainView extends AppLayout implements JobEventListener {
     @PostConstruct
     @DependsOn("bautaManager")
     public void init() {
-        log.info("init");
+        log.debug("init");
         try {
             grid.setItems(bautaManager.jobDetails());
             serverInfoGrid.setItems(bautaManager.getServerInfo());
@@ -114,7 +114,7 @@ public class MainView extends AppLayout implements JobEventListener {
             log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
         }
-        log.info("init.end");
+        log.debug("init.end");
 
     }
 
@@ -397,7 +397,7 @@ public class MainView extends AppLayout implements JobEventListener {
         final String SEP2 = ";;";
         final String SEP3 = ";;;";
         final String SEP4 = ";;;;";
-        final String charset = "ISO-8859-1";
+        final String charset = "utf-8";
         // Job;Split;Flow;Status;Duration
         sb.append("Job").append(SEP).append("Split").append(SEP).append("Flow").append(SEP).append("Status").append(SEP).append("Duration").append(EOL);
         NumberFormat format = new DecimalFormat("####0.#", DecimalFormatSymbols.getInstance(new Locale("sv","SE")));
@@ -542,7 +542,10 @@ public class MainView extends AppLayout implements JobEventListener {
             }
 
 
-            div.getElement().setProperty("title", "ExecutionId: "+step.getJobExecutionId()+", duration: "+DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")+", next: " + step.getNextId());
+            div.getElement().setProperty("title", "ExecutionId: "+step.getJobExecutionId()
+                    +"&#10;start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
+                    +"&#10;duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
+                    + "&#10;, next: " + step.getNextId());
 
             if (step.isRunning()) {
                 //ProgressBar pb = new ProgressBar();
@@ -645,6 +648,7 @@ public class MainView extends AppLayout implements JobEventListener {
             div.setWidthFull();
             UnorderedList ul = new UnorderedList();
 
+            ListItem li = new ListItem("test");
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
             ul.add(new ListItem("ExecutionId: " + ji.getLatestExecutionId().toString()));
             ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + (ji.getEndTime() != null ? DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US) : "-")));

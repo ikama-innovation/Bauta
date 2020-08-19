@@ -48,6 +48,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     JobRegistry jobRegistry;
 
+    private List<String> jobNames = Collections.synchronizedList(new ArrayList<>());
+
+    private Map<String, JobInstanceInfo> jobInstanceInfoCache = Collections.synchronizedMap(new HashMap<>());
     /**
      * Listeners for job updates
      */
@@ -60,6 +63,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     // Task scheduler for scheduled jobs
     private ThreadPoolTaskScheduler threadPoolTaskScheduler;
+
 
     /**
      * Schedulurer for single-threaded execution of job updates
@@ -88,11 +92,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
         jobUpdateScheduler = Executors.newSingleThreadScheduledExecutor();
-
     }
 
 
-    @PostConstruct
+    @PostConstruct()
     public void init() {
         threadPoolTaskScheduler
                 = new ThreadPoolTaskScheduler();
@@ -112,8 +115,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 }
             }
         };
-        Timer timer = new Timer("Timer", true);
-        timer.schedule(cleanupTimerTask, 15000);
+        Timer timer = new Timer("Cleanup", true);
+        timer.schedule(cleanupTimerTask, 10000);
     }
     @PreDestroy
     private void shutdown() {
@@ -144,7 +147,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                             }
                         }
                         jobRepository.update(je);
-                        fireJobEvent(je.getId(), 0);
+                        fireJobEvent(je, 0);
                     }
                 }
             }
@@ -252,7 +255,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     public void abandonJob(long executionId) throws Exception {
         JobExecution je = jobOperator.abandon(executionId);
-        fireJobEvent(je.getId(), 0);
+        fireJobEvent(je, 0);
     }
 
     public Collection<String> listJobSummaries() throws NoSuchJobException, NoSuchJobInstanceException, NoSuchJobExecutionException {
@@ -277,11 +280,21 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     public List<String> listJobNames() {
-        ArrayList<String> out = new ArrayList<>();
-        out.addAll(jobOperator.getJobNames());
-        out.sort(String::compareTo);
-        return out;
+        if (jobOperator.getJobNames().size() == 0) {
+            // Job operator is not initialized yet. Use metadata
+            log.debug("Job names from metadata");
+            return new ArrayList<String>(jobMetadataReader.getJobMetadata().keySet());
+        }
+        else if (jobNames.size() == 0) {
+            log.debug("Initializing jobNames");
+            jobNames.addAll(jobOperator.getJobNames());
+            log.debug("jobNames: {}", jobNames);
+            return jobNames;
+
+        }
+        else return jobNames;
     }
+
     private boolean hasRunningExecutions() {
         log.debug("Checking if we have running executions");
         for (String jobName : listJobNames()) {
@@ -301,7 +314,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void beforeJob(JobExecution jobExecution) {
         log.debug("beforeJob: {}", jobExecution);
-        fireJobEvent(jobExecution.getId(), 0);
+        fireJobEvent(jobExecution, 0);
     }
 
     @Override
@@ -310,7 +323,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         if (jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
             handleJobCompletionTriggers(jobExecution.getJobInstance().getJobName());
         }
-        fireJobEvent(jobExecution.getId(), 0);
+
+        fireJobEvent(jobExecution, 0);
     }
 
     private void handleJobCompletionTriggers(String completedJobName) {
@@ -342,7 +356,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void beforeStep(StepExecution stepExecution) {
 
         log.debug("beforeStep: {}", stepExecution);
-        fireJobEvent(stepExecution.getJobExecution().getId(), 0);
+        fireJobEvent(stepExecution.getJobExecution(), 0);
         // Sometimes, the step status may still be in STARTING phase when we get here.
         // To ensure that we will get the STARTED status, schedule an update in a second or so
         //fireJobEvent(stepExecution.getJobExecution().getId(), 2000);
@@ -352,19 +366,20 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public ExitStatus afterStep(StepExecution stepExecution) {
         log.debug("afterStep: {}", stepExecution);
 
-        fireJobEvent(stepExecution.getJobExecution().getId(), 0);
+        fireJobEvent(stepExecution.getJobExecution(), 0);
         return stepExecution.getExitStatus();
     }
 
 
 
-    private void fireJobEvent(Long jobExecutionId, int delayMs) {
+    private void fireJobEvent(JobExecution jobExecution, int delayMs) {
 
-        log.debug("fireJobEvent, executionId: {}", jobExecutionId);
+        log.debug("fireJobEvent, execution: {}", jobExecution);
 
         Runnable jobEventUpdate = () -> {
             try {
-                final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(jobExecutionId, true);
+                final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(jobExecution, true);
+                jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
                 // Lock access to the listener set to prevent concurrent modification issues
                 jobEventListenerLock.lock();
                 try {
@@ -424,8 +439,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     }
 
-    private JobInstanceInfo extractJobInstanceInfo(Long jobExecutionId, boolean mergeOlderExecutions) throws Exception {
-        JobExecution je = jobExplorer.getJobExecution(jobExecutionId);
+    private JobInstanceInfo extractJobInstanceInfo(JobExecution je, boolean mergeOlderExecutions) throws Exception {
         String jobName = je.getJobInstance().getJobName();
         log.debug("extractJobInstanceInfo: {}, mergeOlder: {}", je, mergeOlderExecutions);
         JobInstanceInfo jobInstanceInfo = new JobInstanceInfo(je.getJobInstance().getJobName());
@@ -512,14 +526,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         si.setExecutionStatus(se.getStatus().name());
         si.setJobExecutionId(se.getJobExecutionId());
         si.setJobInstanceId(se.getJobExecution().getJobId());
-        if (se.getEndTime() != null) {
-            long duration = se.getEndTime().getTime() - se.getStartTime().getTime();
-            si.setDuration(duration);
-        }
-        else {
-            long duration = new Date().getTime() - se.getStartTime().getTime();
-            si.setDuration(duration);
-        }
         try {
             si.setReportUrls((List<String>) se.getExecutionContext().get("reportUrls"));
         } catch (ClassCastException e) {
@@ -527,14 +533,22 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             log.warn("Class cast error:  'reportUrls', Step: {}", se.getStepName());
         }
         si.setExitDescription(se.getExitStatus().getExitDescription());
+        si.setStartTime(se.getStartTime());
+        si.setEndTime(se.getEndTime());
+
     }
 
     public List<JobInstanceInfo> jobDetails() throws Exception {
+        long t = System.nanoTime();
         ArrayList<JobInstanceInfo> out = new ArrayList<>();
-        Set<String> jobNames = jobOperator.getJobNames();
-        for (String jobName : jobNames) {
+        for (String jobName : listJobNames()) {
             JobInstanceInfo jobInstanceInfo = fetchJobInfo(jobName);
             out.add(jobInstanceInfo);
+        }
+        if (log.isDebugEnabled()) {
+            t = System.nanoTime() - t;
+            double ms = Math.round(t/1000000.0);
+            log.debug("jobDetails returned {} jobs, took {} ms", out.size(), ms);
         }
         return out;
     }
@@ -548,7 +562,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         for (JobInstance ji : jobInstances) {
             List<JobExecution> jobExecutions = jobExplorer.getJobExecutions(ji);
             for(JobExecution je: jobExecutions) {
-                out.add(extractJobInstanceInfo(je.getId(), false));
+                out.add(extractJobInstanceInfo(je, false));
             }
         }
         return out;
@@ -556,7 +570,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     private JobInstanceInfo fetchJobInfo(String jobName) throws Exception {
-        JobInstanceInfo out = new JobInstanceInfo(jobName);
+        JobInstanceInfo out = jobInstanceInfoCache.get(jobName);
+        if (out != null) {
+            log.debug("Found job info in cache: {}", jobName);
+            return out;
+        }
+
+        out = new JobInstanceInfo(jobName);
 
         List<Long> jobInstances = jobOperator.getJobInstances(jobName, 0, 1);
         if (jobInstances.size() > 0) {
@@ -567,8 +587,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             if (executions.size() > 0) {
                 long latestExecutionId = executions.get(0);
                 JobExecution jobExecution = jobExplorer.getJobExecution(latestExecutionId);
-                out = extractJobInstanceInfo(jobExecution.getId(), true);
+                out = extractJobInstanceInfo(jobExecution, true);
             }
+            jobInstanceInfoCache.put(jobName, out);
         }
         else {
             out = extractBasicJobInfo(jobName);

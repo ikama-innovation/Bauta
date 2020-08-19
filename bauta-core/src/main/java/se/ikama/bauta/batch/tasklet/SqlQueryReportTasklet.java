@@ -76,7 +76,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
         List<QueryResult> result = fetchData();
         log.debug("Result length is " + result.size());
         context.setVariable("queryResults", result);
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), "ISO-8859-15")) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), "utf-8")) {
             templateEngine.process("dynamic_sql_report", context, writer);
         }
         return new ReportGenerationResult(ReportGenerationResult.ReportGenerationResultStatus.OK);

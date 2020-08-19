@@ -2,6 +2,7 @@ package se.ikama.bauta.core;
 
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,7 +14,6 @@ public class StepInfo {
     private String type;
     private List<String> reportUrls;
     private String exitDescription;
-    private long duration;
     private Long jobInstanceId;
     private Long jobExecutionId;
     private String splitId;
@@ -21,6 +21,8 @@ public class StepInfo {
     private boolean firstInSplit;
     private boolean lastInSplit;
     private String nextId;
+    private Date startTime;
+    private Date endTime;
 
     public StepInfo(String name) {
         this.name = name;
@@ -39,6 +41,19 @@ public class StepInfo {
         return Objects.hash(name);
     }
 
+    public long getDuration() {
+        if (endTime != null && startTime != null) {
+            long duration = endTime.getTime() - startTime.getTime();
+            return duration;
+        }
+        else if (startTime != null){
+            long duration = new Date().getTime() - startTime.getTime();
+            return duration;
+        }
+        else {
+            return 0;
+        }
+    }
 
     public boolean isRunning() {
         return "STARTED".equals(this.executionStatus) || "STARTING".equals(this.executionStatus);

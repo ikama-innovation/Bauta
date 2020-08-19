@@ -31,7 +31,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                     },
                     {
                     "sqlQuery":"select count(*) from person2",
-                    "title":"Execution time should be &lt; 1s",
+                    "title":"Execution time should be &lt; 1s. Demo of unicode: åäöÅÄÖ",
                     "maxExecutionTime":1000
                     }]' />
 

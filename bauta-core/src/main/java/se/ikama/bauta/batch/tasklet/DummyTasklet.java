@@ -11,12 +11,14 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * A dummy tasklet for testing/demo purposes.
  */
 public class DummyTasklet implements StoppableTasklet, Tasklet {
 
+    private String uid = UUID.randomUUID().toString();
     private static final Logger log = LoggerFactory.getLogger(DummyTasklet.class);
     private static int failureCount = 0;
 
@@ -29,7 +31,7 @@ public class DummyTasklet implements StoppableTasklet, Tasklet {
     int emulateFailures = 0;
 
     public DummyTasklet() {
-        log.debug("Creating DummyTasklet {}", name);
+        log.debug("Creating DummyTasklet {}, {}", name, uid);
 
     }
 
