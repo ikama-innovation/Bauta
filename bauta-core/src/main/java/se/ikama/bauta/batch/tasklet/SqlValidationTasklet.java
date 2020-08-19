@@ -3,7 +3,9 @@ package se.ikama.bauta.batch.tasklet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.beans.factory.InitializingBean;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
 import javax.sql.DataSource;
@@ -25,6 +28,7 @@ import java.util.List;
  * Validates the content of the staging database using sql queries and validation rules
  */
 @Slf4j()
+@ToString
 public class SqlValidationTasklet extends ThymeleafReportTasklet implements ReportGenerator, InitializingBean {
 
     @Autowired
@@ -88,6 +92,7 @@ public class SqlValidationTasklet extends ThymeleafReportTasklet implements Repo
     }
 
     @Override
+    @Transactional(readOnly = true, transactionManager = "stagingTransactionManager")
     public ReportGenerationResult generateReport(File reportFile, StepContribution sc, ChunkContext cc) throws Exception {
         Context context = new Context();
         context.setVariable("stepName", cc.getStepContext().getStepName());
@@ -98,9 +103,11 @@ public class SqlValidationTasklet extends ThymeleafReportTasklet implements Repo
         context.setVariable("name", getReportName());
         int failedValidations = validate();
         context.setVariable("validations", validations);
+        log.debug("Writing report ..");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), "utf-8")) {
             templateEngine.process("sql_validation_report", context, writer);
         }
+        log.debug("Writing report, done!");
 
         if (failedValidations > 0) {
             return new ReportGenerationResult(ReportGenerationResult.ReportGenerationResultStatus.Failed, failedValidations + " of " + validations.size() + " validations failed.");
@@ -119,11 +126,12 @@ public class SqlValidationTasklet extends ThymeleafReportTasklet implements Repo
      */
     private int validate() {
         int failed = 0;
+        JdbcTemplate jdbct = new JdbcTemplate(dataSource);
+        jdbct.setQueryTimeout(queryTimeout);
         for (SqlValidation validation : validations) {
             String sql = validation.getSqlQuery();
-            JdbcTemplate jdbct = new JdbcTemplate(dataSource);
-            jdbct.setQueryTimeout(queryTimeout);
-            log.debug("Querying '{}'", sql);
+            int active  = ((BasicDataSource)dataSource).getNumActive();
+            int idle  = ((BasicDataSource)dataSource).getNumIdle();
             try {
                 long t = System.nanoTime();
                 jdbct.query(sql, validation);

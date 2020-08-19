@@ -75,12 +75,14 @@ public class BatchConfiguration {
     @Bean()
     @Primary
     DataSource dataSource() {
+
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setMaxTotal(20);
         dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
         dataSource.setUrl(batchDataSourceUrl);
         dataSource.setUsername("sa");
         dataSource.setPassword("");
+        dataSource.setMaxWaitMillis(10000);
         try {
             log.info("Batch DB url: {}", batchDataSourceUrl);
             log.info("Driver is {}", dataSource.getConnection().getMetaData().getDriverName());
@@ -190,8 +192,11 @@ public class BatchConfiguration {
         log.info("Password is {}", stagingDbPassword != null ? "********" : null);
 
         BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setMaxWaitMillis(10000);
+        dataSource.setMaxTotal(20);
         dataSource.setDriverClassName(stagingDbDriverClassName);
         dataSource.setUrl(stagingDbUrl);
+
         // username + password will typically be required, but may be left out when using something like Oracle Wallet
         if (StringUtils.isNotEmpty(stagingDbUsername) && StringUtils.isNotEmpty(stagingDbPassword)) {
             dataSource.setUsername(stagingDbUsername);

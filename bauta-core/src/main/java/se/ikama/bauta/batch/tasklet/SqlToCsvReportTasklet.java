@@ -10,12 +10,14 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -58,6 +60,7 @@ public class SqlToCsvReportTasklet extends ReportTasklet implements ReportGenera
     }
 
     @Override
+    @Transactional(readOnly = true, transactionManager = "stagingTransactionManager")
     public ReportGenerationResult generateReport(File reportFile, StepContribution sc, ChunkContext cc) throws Exception {
         log.info("Exporting to file. {}", reportFile);
 
@@ -76,7 +79,7 @@ public class SqlToCsvReportTasklet extends ReportTasklet implements ReportGenera
         }
         */
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), Charset.forName(encoding).newEncoder())) {
-            try (PreparedStatement ps = dataSource.getConnection().prepareStatement(sql)) {
+            try (Connection con = dataSource.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setQueryTimeout(queryTimeout);
                 ps.setFetchSize(fetchSize);
                 try (ResultSet rs = ps.executeQuery()) {
