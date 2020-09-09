@@ -4,12 +4,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.*;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.JobExecutionException;
+import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
-import org.springframework.batch.core.step.tasklet.SystemCommandException;
 import org.springframework.batch.core.step.tasklet.SystemProcessExitCodeMapper;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.InitializingBean;
@@ -25,8 +27,10 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Runs  SQL/PLSQL scripts using Oracle SQLcl.
@@ -59,9 +63,21 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
     private long checkInterval = 300;
 
+    /**
+     * In order to properly stop the running sqlcl process, we need to kill the process on the OS level using kill/pkill.
+     * If you for some reason need to disable this feature, set this to false.
+     */
+    private boolean killProcessesOnStop = true;
+
     private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
+
+    /**
+     * A unique id for the group of processes that are started for each script. The uid is added to the command line
+     * to make it possible to find and kill all processes with a command line containing this uid.
+     */
+    private String processUid;
 
     @Autowired
     Environment env;
@@ -132,19 +148,22 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
                     String cmd = "exit|"+executable+" "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParams;
-                    if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
                         commands.add("/c");
-                        //commands.add("exit | " +  executable);
-                        //commands.add(easyConnectionIdentifier);
-                        //commands.add("@" + scriptFile);
-                        //commands.addAll(scriptParameterValues);
                         commands.add(cmd);
                     }
                     else {
                         commands.add("/bin/sh");
                         commands.add("-c");
+                        // Add the processUid as the last script parameter
+                        if (killProcessesOnStop) {
+                            if (processUid == null) {
+                                processUid = UUID.randomUUID().toString();
+                            }
+                            cmd = cmd + " " + processUid;
+                        }
                         commands.add(cmd);
                     }
 
@@ -162,10 +181,23 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
 
                     Process process = pb.start();
-
                     log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
-
-                    return process.waitFor();
+                    try {
+                        return process.waitFor();
+                    }
+                    catch(InterruptedException ie) {
+                        log.debug("Interrupted. Trying to close sqlcl process..");
+                        process.destroyForcibly();
+                        log.debug("After destroy.");
+                        return -1;
+                    }
+                    finally {
+                        try {
+                            process.getOutputStream().flush();
+                        } catch(Exception e) {
+                            log.warn("Failed to flush process output stream");
+                        }
+                    }
                 }
             });
 
@@ -182,31 +214,32 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
                     log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
                     // Not all errors in SQLcl leads to an error code being returned.
-                    // The log file must be checked for erros.
+                    // The log file must be checked for errors.
+
                     checkForErrorsInLog(logFile);
 
                     if (exitCode != 0) {
+
                         throw new JobExecutionException("SQLcl exited with code " + exitCode);
                     }
                     break;
                 } else if (System.currentTimeMillis() - t0 > timeout) {
-                    systemCommandTask.cancel(true);
-                    throw new SystemCommandException("Execution of system executable did not finish within the timeout");
+                    kill (systemCommandTask, "timeout");
                 } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                    systemCommandTask.cancel(true);
-                    throw new JobInterruptedException("Job interrupted while running script '" + scriptFile + "'");
+                    kill (systemCommandTask, "terminateOnly");
                 } else if (stopping) {
-                    // We are in the middle of executing a SQL script. There is no way to stop and restart in a graceful way, so
-                    // an interruptedexception is probably the best we can do.
+                    // We are in the middle of executing a SQL script.
+                    // Only thing we can do is to terminate the processes that have been started.
                     stopping = false;
-                    log.debug("Stop issued. Trying to cancel executable..");
-                    boolean cancelResult = systemCommandTask.cancel(true);
-                    log.debug("Cancel result: {}", cancelResult);
-                    throw new JobExecutionException("Job manually stopped while running script '" + scriptFile + "'");
+                    kill(systemCommandTask, "stop");
                 }
             }
         }
         return RepeatStatus.FINISHED;
+    }
+
+    private boolean runsOnWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
     }
 
     /**
@@ -307,6 +340,39 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
         stopping = true;
     }
 
+    private void kill(FutureTask task, String reason) throws JobExecutionException {
+        if (killProcessesOnStop) {
+            if (processUid == null) {
+                // This should not happen.
+                log.warn("processUid is null, so no way to lookup processes");
+                return;
+            }
+            if (!runsOnWindows()) {
+                // On linux, there will be several sub-processes and there is no way to get access to the PIDs of these.
+                // Instead, we have added the processUid to the end of the command and we can now use the pkill command to
+                // kill all process with that UID.
+                ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", "2", "-f", processUid);
+                try {
+                    log.debug("Trying to kill all processes with UID {}", processUid);
+                    boolean finished = pb.start().waitFor(5, TimeUnit.SECONDS);
+                    log.debug("Kill command exited. Finished before timeout: {}", finished);
+                } catch (Exception e) {
+                    log.warn("Error when trying to kill processes with UID " + processUid, e);
+
+                }
+            } else {
+                //TODO: Handle in windows
+                log.warn("Killing processes is not implemented for windows OS");
+            }
+        }
+        else {
+            // Only think we can do here is to cancel the task
+            task.cancel(true);
+            // .. and throw an excecption to make the step as failed
+            throw new JobExecutionException("Terminating job. Reason: " + reason);
+        }
+    }
+
     /**
      * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
      * convenient in the Spring configuration.
@@ -343,5 +409,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     }
 
 
-
+    public void setKillProcessesOnStop(boolean killProcessesOnStop) {
+        this.killProcessesOnStop = killProcessesOnStop;
+    }
 }

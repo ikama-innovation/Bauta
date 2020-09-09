@@ -1,5 +1,6 @@
 package se.ikama.bauta.batch.tasklet.oracle;
 
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,8 +82,8 @@ public class ScheduledJobTasklet implements StoppableTasklet {
      * @param statusCheckInterval The interval between checks in ms. Valid values are 10000 - 300000
      */
     public void setStatusCheckInterval(Long statusCheckInterval) {
-        if (statusCheckInterval < 10000 || statusCheckInterval > 300000) {
-            throw new IllegalArgumentException("Illegal vaue for statusCheckInterval. Valid values are 10000 - 300000");
+        if (statusCheckInterval < 1000 || statusCheckInterval > 300000) {
+            throw new IllegalArgumentException("Illegal vaue for statusCheckInterval. Valid values are 1000 - 300000");
         }
         this.statusCheckInterval = statusCheckInterval;
     }
@@ -179,6 +180,9 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     private boolean checkRunning(String dbmsJobName, StepContribution contribution) throws SQLException {
         String checkIfRunningSql = "select JOB_NAME, SESSION_ID, SLAVE_PROCESS_ID from USER_SCHEDULER_RUNNING_JOBS where job_name=?";
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(checkIfRunningSql)) {
+            int active  = ((BasicDataSource)dataSource).getNumActive();
+            int idle  = ((BasicDataSource)dataSource).getNumIdle();
+            log.debug("active: {}, idle: {}", active, idle);
             log.debug("Check if running with query '{}'", checkIfRunningSql);
             stmt.setString(1, dbmsJobName);
             ResultSet rs = stmt.executeQuery();
@@ -222,6 +226,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(checkSuccessSql)) {
             log.debug("Checking status: '{}'", checkSuccessSql);
+
             stmt.setString(1, dbmsJobName);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {

@@ -21,6 +21,23 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             </bean>
         </b:validator>
         -->
+        <b:step parent="step_base" id="sleep" next="create_person_1">
+            <b:tasklet>
+                <bean parent="sqlcl-base">
+                    <property name="scriptFiles">
+                        <list>
+                            <value>sleep.sql</value>
+                        </list>
+                    </property>
+                    <property name="scriptParameters">
+                        <list>
+                            <value>120</value>
+                        </list>
+                    </property>
+                    <property name="killProcessesOnStop" value="false" />
+                </bean>
+            </b:tasklet>
+        </b:step>
         <b:step parent="step_base" id="create_person_1" next="convert_person_1">
             <b:description>Create some person1 data</b:description>
             <b:tasklet>
@@ -61,18 +78,24 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             <b:description>Executes the demo_create_person2 procedure in a scheduled DBMS_SCHEDULER job</b:description>
             <b:tasklet>
                 <bean class="se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet">
-                    <property name="action" value="begin demo_create_person2(1000);end;"/>
+                    <property name="action" value="begin demo_create_person2(100000);end;"/>
                     <property name="statusCheckInterval" value="10000" />
                 </bean>
             </b:tasklet>
         </b:step>
-        <b:step parent="step_base" id="convert_person2" next="person_reports">
+        <b:step parent="step_base" id="convert_person2" next="demo_close_connections">
             <b:description>Executes the demo_convert_person2 procedure in a scheduled DBMS_SCHEDULER job</b:description>
             <b:tasklet>
                 <bean class="se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet">
                     <property name="action" value="begin demo_convert_person2();end;"/>
                     <property name="statusCheckInterval" value="10000" />
                 </bean>
+            </b:tasklet>
+        </b:step>
+        <b:step parent="step_base" id="demo_close_connections" next="person_reports">
+            <b:description>Demonstrates how to use the CloseDbConnectionsTasklet</b:description>
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.CloseDbConnectionsTasklet" />
             </b:tasklet>
         </b:step>
         <b:step parent="step_base" id="person_reports" >

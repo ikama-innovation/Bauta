@@ -244,7 +244,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             Set<Long> ids = jobOperator.getRunningExecutions(jobName);
             for (Long id : ids) {
                 jobOperator.stop(id);
-                jobOperator.stop(id);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to stop job " + jobName, e);

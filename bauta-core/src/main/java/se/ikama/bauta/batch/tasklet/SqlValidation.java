@@ -62,7 +62,7 @@ public class SqlValidation implements ResultSetExtractor {
     private Integer result_lte;
 
     /**
-     * Validates that the result is equal to this number
+     * Validates that the result is equal to this number or string
      */
     private String result_equals;
 

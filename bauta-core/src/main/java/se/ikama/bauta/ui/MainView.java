@@ -543,9 +543,9 @@ public class MainView extends AppLayout implements JobEventListener {
 
 
             div.getElement().setProperty("title", "ExecutionId: "+step.getJobExecutionId()
-                    +"&#10;start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
-                    +"&#10;duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
-                    + "&#10;, next: " + step.getNextId());
+                    +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
+                    +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
+                    + ", next: " + step.getNextId());
 
             if (step.isRunning()) {
                 //ProgressBar pb = new ProgressBar();

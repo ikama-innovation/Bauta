@@ -16,8 +16,8 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             <bean class="se.ikama.bauta.batch.ParamProvidingJobParametersValidator">
                 <property name="requiredKeys">
                     <list>
-                        <value>folk_prod_name</value>
-                        <value>rr_prod_name</value>
+                        <value>demo_param1</value>
+                        <value>demo_param2</value>
                     </list>
                 </property>
             </bean>
@@ -61,5 +61,6 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </bean>
             </b:tasklet>
         </b:step>
+
     </b:job>
 </beans>
