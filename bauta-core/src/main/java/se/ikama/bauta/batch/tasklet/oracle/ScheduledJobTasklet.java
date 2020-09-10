@@ -185,16 +185,17 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             log.debug("active: {}, idle: {}", active, idle);
             log.debug("Check if running with query '{}'", checkIfRunningSql);
             stmt.setString(1, dbmsJobName);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                String jobName = rs.getString(1);
-                long sessionId = rs.getLong(2);
-                long slaveProcessId = rs.getLong(3);
-                log.debug("query result: {},{},{}", jobName, sessionId, slaveProcessId);
-                outParams.put("sessionId", sessionId);
-                outParams.put("slaveProcessId", slaveProcessId);
-                contribution.incrementReadCount();
-                return true;
+            try (ResultSet rs = stmt.executeQuery();) {
+                if (rs.next()) {
+                    String jobName = rs.getString(1);
+                    long sessionId = rs.getLong(2);
+                    long slaveProcessId = rs.getLong(3);
+                    log.debug("query result: {},{},{}", jobName, sessionId, slaveProcessId);
+                    outParams.put("sessionId", sessionId);
+                    outParams.put("slaveProcessId", slaveProcessId);
+                    contribution.incrementReadCount();
+                    return true;
+                }
             }
         } catch (Exception e) {
             log.warn("Failed to checkIfRunning", e);
@@ -226,25 +227,29 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(checkSuccessSql)) {
             log.debug("Checking status: '{}'", checkSuccessSql);
+            int active  = ((BasicDataSource)dataSource).getNumActive();
+            int idle  = ((BasicDataSource)dataSource).getNumIdle();
+            log.debug("active: {}, idle: {}", active, idle);
 
             stmt.setString(1, dbmsJobName);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                String jobName = rs.getString(1);
-                status = rs.getString(2);
-                oraError = rs.getLong(3);
-                additionalInfo = rs.getString(4);
-                log.debug("query result: {},{},{},{}", jobName, status, oraError, additionalInfo);
-                if ("FAILED".equals(status)) {
-                    throw new JobExecutionException("Job " + jobName + " failed: " + additionalInfo);
-                }
-                // Just assert that we only received one row
+            try (ResultSet rs = stmt.executeQuery();) {
                 if (rs.next()) {
-                    // table should only contain one row, since we assume that we are using a unique job name
-                    log.warn("Additional row(s) found in user_scheduler_job_run_details. Expected only one row");
+                    String jobName = rs.getString(1);
+                    status = rs.getString(2);
+                    oraError = rs.getLong(3);
+                    additionalInfo = rs.getString(4);
+                    log.debug("query result: {},{},{},{}", jobName, status, oraError, additionalInfo);
+                    if ("FAILED".equals(status)) {
+                        throw new JobExecutionException("Job " + jobName + " failed: " + additionalInfo);
+                    }
+                    // Just assert that we only received one row
+                    if (rs.next()) {
+                        // table should only contain one row, since we assume that we are using a unique job name
+                        log.warn("Additional row(s) found in user_scheduler_job_run_details. Expected only one row");
+                    }
+                } else {
+                    log.debug("No result. Job is not finished.");
                 }
-            } else {
-                log.debug("No result. Job is not finished.");
             }
         } catch (JobExecutionException jee) {
             throw jee;

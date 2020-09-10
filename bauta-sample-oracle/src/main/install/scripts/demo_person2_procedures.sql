@@ -26,5 +26,6 @@ BEGIN
 
   l_stmt := 'create table person2_converted as select  person_id, upper(last_name) as last_name, upper(first_name) as first_name, address, city from person2';
   EXECUTE IMMEDIATE l_stmt;
+  DBMS_LOCK.sleep(120);
 END demo_convert_person2;
 /
