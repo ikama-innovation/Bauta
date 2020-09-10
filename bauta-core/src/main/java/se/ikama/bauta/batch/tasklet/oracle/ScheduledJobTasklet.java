@@ -246,13 +246,14 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             } else {
                 log.debug("No result. Job is not finished.");
             }
+        } catch (JobExecutionException jee) {
+            throw jee;
         } catch (Exception e) {
-            // TODO: What is the best thing to do here? Stop step execution?
-            log.warn("Failed to check status", e);
+            log.warn("Unexpected error when checking status", e);
+            throw new RuntimeException("Unexpected error when checking status", e);
         }
         return status;
     }
-
 
     private String buildStatement(String jobName) {
         /* Build a statement like this
