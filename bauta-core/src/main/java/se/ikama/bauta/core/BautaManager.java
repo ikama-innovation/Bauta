@@ -655,6 +655,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return result;
 
     }
+
     public List<String> getServerInfo() {
         ArrayList<String> info = new ArrayList<>();
         info.add("Profiles: " + env.getProperty("spring.profiles.active","---"));

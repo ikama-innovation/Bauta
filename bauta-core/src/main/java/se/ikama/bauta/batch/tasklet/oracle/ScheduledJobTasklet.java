@@ -54,6 +54,11 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     /* Sleep time (in ms) within the execute method */
     private Long sleepTimeMs = 250L;
 
+    /**
+     * The maximum length of the DBMS_SCHEDULER job name. In older versions of Oracle, the max length is 30 characteres, in newer 255.
+     */
+    private int schedulerNameMaxLength = 255;
+
     /* Time of last status check in the DB */
     private LocalDateTime lastCheck = null;
     private boolean stopping = false;
@@ -88,6 +93,10 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         this.statusCheckInterval = statusCheckInterval;
     }
 
+    public void setSchedulerNameMaxLength(int schedulerNameMaxLength) {
+        this.schedulerNameMaxLength = schedulerNameMaxLength;
+    }
+
     @Override
     public void stop() {
         log.debug("Stopping..");
@@ -106,9 +115,8 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             // Create a unique JOB_NAME. 
             // TODO: This could _potentially_ create non-unique names if another step is started very close in time.
             String stepName = chunkContext.getStepContext().getStepName();
-            SimpleDateFormat format = new SimpleDateFormat("yyMMddHHmmsss");
-            // Max length of job name is 30. Oracle also converts it to uppercase. Must not begin with '_', therefor prepending 'J'
-            dbmsJobName = "J" + StringUtils.right(stepName.toUpperCase().replace("-", "_") + format.format(new Date()), 29);
+
+            dbmsJobName = createSchedulerJobName(stepName);
             log.debug("Creating a new scheduled DBMS job. Job name will be '{}'", dbmsJobName);
             chunkContext.getStepContext().getStepExecution().getExecutionContext().put("DBMS_JOBNAME", dbmsJobName);
             schedule(dbmsJobName, contribution);
@@ -136,12 +144,28 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         return RepeatStatus.CONTINUABLE;
     }
 
+    /**
+     * Max length of job name is 30 in older versions of oracle. 255 in newer. Oracle also converts it to uppercase. Must not begin with '_', therefor prepending 'J'
+     * @param stepName
+     * @return
+     */
+    protected final String createSchedulerJobName(String stepName) {
+        SimpleDateFormat format = new SimpleDateFormat("yyMMddHHmmssSSS");
+        // Max length of job name is 30. Oracle also converts it to uppercase. Must not begin with '_', therefor prepending 'J'
+        if (schedulerNameMaxLength < 31) {
+            return "J" + StringUtils.right(stepName.toUpperCase().replace("-", "_") + format.format(new Date()), schedulerNameMaxLength - 1);
+        }
+        else {
+            return "J_" + StringUtils.right(stepName.toUpperCase().replace("-", "_") + "_" + format.format(new Date()), schedulerNameMaxLength - 1);
+        }
+    }
+
     private void schedule(String dbmsJobName, StepContribution contribution) throws SQLException {
         String sql = buildStatement(dbmsJobName);
         log.debug("Executing statement {}", sql);
 
 
-        // exeute statement
+        // execute statement
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
             boolean hasResult = stmt.execute(sql);
         }
@@ -161,7 +185,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         stopCommandSent = true;
         String sql = buildStopStatement(dbmsJobName);
         log.debug("Executing stop statement {}", sql);
-        // exeute statement
+        // execute statement
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
             boolean hasResult = stmt.execute(sql);
             log.debug("Stop statement executed successfully");
@@ -299,6 +323,5 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         plsql.append("end;").append(lf);
         return plsql.toString();
     }
-
 
 }
