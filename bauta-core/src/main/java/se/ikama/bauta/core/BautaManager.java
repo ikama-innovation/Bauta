@@ -91,7 +91,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         this.jobOperator = jobOperator;
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
-        jobUpdateScheduler = Executors.newSingleThreadScheduledExecutor();
+        jobUpdateScheduler = Executors.newScheduledThreadPool(1);
     }
 
 
@@ -359,7 +359,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void beforeStep(StepExecution stepExecution) {
 
         log.debug("beforeStep: {}", stepExecution);
-        fireJobEvent(stepExecution.getJobExecution(), 0);
+        fireJobEvent(stepExecution.getJobExecution(), 1000);
         // Sometimes, the step status may still be in STARTING phase when we get here.
         // To ensure that we will get the STARTED status, schedule an update in a second or so
         //fireJobEvent(stepExecution.getJobExecution().getId(), 2000);
@@ -378,7 +378,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private void fireJobEvent(JobExecution jobExecution, int delayMs) {
 
         log.debug("fireJobEvent, execution: {}", jobExecution);
-
         Runnable jobEventUpdate = () -> {
             try {
                 final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(jobExecution, true);
@@ -410,6 +409,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 log.warn("Failed to extract job info", e);
             }
         };
+        if (log.isDebugEnabled()) {
+            log.debug("Queue size: {}", ((ScheduledThreadPoolExecutor) jobUpdateScheduler).getQueue().size());
+        }
         jobUpdateScheduler.schedule(jobEventUpdate, delayMs, TimeUnit.MILLISECONDS);
         log.debug("fireJobEvent.end");
     }

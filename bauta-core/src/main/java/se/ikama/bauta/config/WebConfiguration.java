@@ -60,6 +60,9 @@ public class WebConfiguration implements WebMvcConfigurer {
         ServletRegistrationBean<VaadinServlet> bean = new ServletRegistrationBean<>(
                 vaadinServlet, "/frontend/*");
         bean.setName("frontendServlet");
+        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads","10");
+        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads","10");
+
         return bean;
     }
 /*

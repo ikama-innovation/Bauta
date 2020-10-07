@@ -11,4 +11,10 @@ bauta.build: 0
 hsqldb.tx: mvcc
 bauta.jobRepository.isolationLevelForCreate: ISOLATION_READ_COMMITTED
 
+org:
+  atmosphere:
+    cpr:
+      broadcaster:
+        maxProcessingThreads: 10
+
 
