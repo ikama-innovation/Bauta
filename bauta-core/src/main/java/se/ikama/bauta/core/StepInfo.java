@@ -58,4 +58,16 @@ public class StepInfo {
     public boolean isRunning() {
         return "STARTED".equals(this.executionStatus) || "STARTING".equals(this.executionStatus);
     }
+    public boolean isStopped() {
+        return "STOPPED".equals(this.executionStatus) || "STOPPING".equals(this.executionStatus);
+    }
+    public boolean isCompleted() {
+        return "COMPLETED".equals(this.executionStatus);
+    }
+    public boolean isUnknown() {
+        return "UNKNOWN".equals(this.executionStatus);
+    }
+    public boolean isFailed() {
+        return "FAILED".equals(this.executionStatus);
+    }
 }

@@ -1,15 +1,14 @@
 package se.ikama.bauta.ui;
 
 
-import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -23,6 +22,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.page.Viewport;
+import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
@@ -83,6 +84,9 @@ public class MainView extends AppLayout implements JobEventListener {
     Label buildInfo = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
+
+    // Set of all expanded job views. If the job name is present in this set, the corresponding job view should be expanded
+    HashSet<String> expandedJobs = new HashSet<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -506,6 +510,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private Component createStepComponent(Grid<JobInstanceInfo> grid, JobInstanceInfo jobInstanceInfo) {
 
+
         VerticalLayout vl = new VerticalLayout();
         vl.setAlignItems(FlexComponent.Alignment.START);
         vl.setSpacing(false);
@@ -513,6 +518,12 @@ public class MainView extends AppLayout implements JobEventListener {
 
         String currentFlowId = null;
         int flowColor = 0;
+        int stepCompletedCount = 0;
+        int stepStoppedCount = 0;
+        int stepRunningCount = 0;
+        int stepFailedCount = 0;
+        int stepUnknownCount = 0;
+        int stepCount = jobInstanceInfo.getSteps().size();
         for (StepInfo step : jobInstanceInfo.getSteps()) {
             long diff = 0;
             if (jobInstanceInfo.getLatestExecutionId() != null && step.getJobExecutionId() != null) {
@@ -520,6 +531,11 @@ public class MainView extends AppLayout implements JobEventListener {
             }
 
             Component statusLabel = createStatusLabel(step.getExecutionStatus(), diff > 0);
+            if (step.isFailed()) stepFailedCount++;
+            if (step.isCompleted()) stepCompletedCount++;
+            if (step.isRunning()) stepRunningCount++;
+            if (step.isUnknown()) stepUnknownCount++;
+            if (step.isStopped()) stepStoppedCount++;
 
             Label stepNameLabel = new Label(step.getName());
             stepNameLabel.addClassName("step-label");
@@ -621,7 +637,100 @@ public class MainView extends AppLayout implements JobEventListener {
             }
             vl.add(div);
         }
-        return vl;
+        Div progressBar = new Div();
+        progressBar.getStyle().set("display", "flex").set("flex-wrap","nowrap").set("border-radius","4px").set("overflow","hidden").set("font-size","0.75em");
+
+        if (stepCompletedCount > 0) {
+            Div stepsCompleted = new Div();
+            stepsCompleted.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-success-color)");
+            stepsCompleted.setText("" + stepCompletedCount);
+            stepsCompleted.getStyle().set("flex-grow", ""+stepCompletedCount);
+            progressBar.add(stepsCompleted);
+        }
+        if (stepRunningCount > 0) {
+            Div stepsRunning = new Div();
+            stepsRunning.getStyle().set("text-align", "center").set("color", "#eeeeee").set("padding-top", "2px").set("padding-bottom", "2px").set("background-color", "var(--lumo-primary-color)").set("text-decoration", "blink")
+                    .set("-webkit-animation-name", "blinker")
+                    .set("-webkit-animation-duration", "1.5s")
+                    .set("-webkit-animation-iteration-count", "infinite")
+                    .set("-webkit-animation-timing-function", "ease-in-out")
+                    .set("-webkit-animation-direction", "alternate");
+            stepsRunning.setText("" + stepRunningCount);
+            stepsRunning.getStyle().set("flex-grow", ""+stepRunningCount);
+            progressBar.add(stepsRunning);
+        }
+        if (stepFailedCount > 0) {
+            Div stepsFailed = new Div();
+            stepsFailed.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-error-color)");
+            stepsFailed.setText("" + stepFailedCount);
+            stepsFailed.getStyle().set("flex-grow", ""+stepFailedCount);
+            progressBar.add(stepsFailed);
+        }
+        if (stepStoppedCount > 0) {
+            Div stepsStopped = new Div();
+            stepsStopped.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-primary-color-50pct)");
+            stepsStopped.setText("" + stepStoppedCount);
+            stepsStopped.getStyle().set("flex-grow", ""+stepStoppedCount);
+            progressBar.add(stepsStopped);
+        }
+        if (stepUnknownCount > 0) {
+            Div stepsUnknown = new Div();
+            stepsUnknown.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-contrast-10pct)");
+            stepsUnknown.setText("" + stepUnknownCount);
+            stepsUnknown.getStyle().set("flex-grow", ""+stepUnknownCount);
+            progressBar.add(stepsUnknown);
+        }
+
+        progressBar.setWidthFull();
+
+        /*
+        ProgressBar progressBar = new ProgressBar();
+        progressBar.setWidthFull();
+        progressBar.setValue((stepCompletedCount + stepFailedCount)*1.0 / stepCount);
+        if (stepFailedCount > 0) {
+            progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
+        }
+        else if (stepRunningCount == 0 && stepCompletedCount > 0) {
+            progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
+        }
+        */
+
+        Button bExpand = new Button(new Icon(VaadinIcon.ANGLE_DOWN));
+        if (expandedJobs.contains(jobInstanceInfo.getName())) {
+            vl.setVisible(true);
+            bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
+        }
+        else {
+            vl.setVisible(false);
+            bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
+        }
+        HorizontalLayout hl = new HorizontalLayout(progressBar, bExpand);
+        hl.setMargin(false);
+        hl.setPadding(false);
+        hl.setWidthFull();
+        hl.setFlexGrow(1, progressBar);
+        hl.setAlignItems(FlexComponent.Alignment.CENTER);
+        VerticalLayout masterLayout = new VerticalLayout(hl, vl);
+        masterLayout.setPadding(false);
+        masterLayout.setMargin(false);
+        bExpand.addClickListener(e -> {
+                bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
+                if (expandedJobs.remove(jobInstanceInfo.getName())) {
+                    vl.setVisible(false);
+                    bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
+                }
+                else {
+                    expandedJobs.add(jobInstanceInfo.getName());
+                    vl.setVisible(true);
+                    bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
+                }
+                // A trick to force the grid to resize
+                grid.getElement().executeJs("this.notifyResize()");
+        }
+        );
+        masterLayout.setWidthFull();
+
+        return masterLayout;
     }
 
     private Component createStatusLabel(String executionStatus, boolean oldExecution) {
