@@ -192,7 +192,6 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         } catch (Exception e) {
             log.warn("Failed to stop job", e);
         }
-
     }
 
     /**

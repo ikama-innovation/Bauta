@@ -10,11 +10,8 @@ import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.job.flow.FlowJob;
 import org.springframework.batch.core.launch.*;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
@@ -31,7 +28,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BautaManager implements StepExecutionListener, JobExecutionListener {
@@ -61,14 +59,18 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
      */
     private ReentrantLock jobEventListenerLock = new ReentrantLock();
 
+
+    private BlockingQueue<Long> updatedJobExecutions = new LinkedBlockingQueue<>();
+
+    // Single thread that updates jobExecutionListeners
+    private Thread jobExecutionListenerUpdateThread;
+
+    @Value("${bauta.updateThreadSleepBeforeUpdate}")
+    private int updateThreadSleepBeforeUpdate = 300;
+
     // Task scheduler for scheduled jobs
     private ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
-
-    /**
-     * Schedulurer for single-threaded execution of job updates
-     */
-    ScheduledExecutorService jobUpdateScheduler;
 
     @Value("${bauta.rebuildServerCommand}")
     private String rebuildServerCommand;
@@ -91,7 +93,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         this.jobOperator = jobOperator;
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
-        jobUpdateScheduler = Executors.newScheduledThreadPool(1);
+
     }
 
 
@@ -117,11 +119,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         };
         Timer timer = new Timer("Cleanup", true);
         timer.schedule(cleanupTimerTask, 10000);
+
+
+        initListenerPushThread();
+
     }
     @PreDestroy
     private void shutdown() {
         log.info("Shutting down..");
-        jobUpdateScheduler.shutdownNow();
         threadPoolTaskScheduler.shutdown();
         log.info("Done!");
     }
@@ -368,52 +373,66 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         log.debug("afterStep: {}", stepExecution);
-
         fireJobEvent(stepExecution.getJobExecution(), 0);
         return stepExecution.getExitStatus();
     }
 
+    private void fireJobEvent(JobExecution je, int delayMs) {
+        // TODO: Improve. Could potentially ad a job execution multiple times
+        // TODO: Handle delayed
+        if (!updatedJobExecutions.contains(je.getId())) {
+            updatedJobExecutions.add(je.getId());
+        }
 
+    }
 
-    private void fireJobEvent(JobExecution jobExecution, int delayMs) {
+    private void initListenerPushThread() {
 
-        log.debug("fireJobEvent, execution: {}", jobExecution);
         Runnable jobEventUpdate = () -> {
-            try {
-                final JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(jobExecution, true);
-                jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
-                // Lock access to the listener set to prevent concurrent modification issues
-                jobEventListenerLock.lock();
+            while(true) {
                 try {
-                    log.debug("Updating {} listeners ..", jobEventListeners.size());
-                    for (JobEventListener jel : jobEventListeners) {
-                        try {
-                            long t = System.nanoTime();
-                            jel.onJobChange(jobInstanceInfo);
-                            t = System.nanoTime() - t;
-                            double tMs = Math.round(t/1000000.0);
-                            if (tMs > 1000) {
-                                log.warn("Call to onJobChange in {} took {} ms. Listeners must execute fast", jel, tMs);
+                    log.debug("Waiting for updated jobs..");
+                    Long jobExecutionId = updatedJobExecutions.take();
+                    log.debug("Updated job execution: {}, updatedJobExecutions: {}", jobExecutionId, updatedJobExecutions);
+                    // Sleep some time to let the state be properly persisted by spring batch
+                    Thread.sleep(updateThreadSleepBeforeUpdate);
+                    JobExecution je = jobExplorer.getJobExecution(jobExecutionId);
+                    JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(je, true);
+                    jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
+                    // Lock access to the listener set to prevent concurrent modification issues
+                    jobEventListenerLock.lock();
+                    try {
+                        log.debug("Updating {} listeners ..", jobEventListeners.size());
+                        for (JobEventListener jel : jobEventListeners) {
+                            try {
+                                long t = System.nanoTime();
+                                jel.onJobChange(jobInstanceInfo);
+                                t = System.nanoTime() - t;
+                                double tMs = Math.round(t / 1000000.0);
+                                if (tMs > 1000) {
+                                    log.warn("Call to onJobChange in {} took {} ms. Listeners must execute fast", jel, tMs);
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to call onJobChange in one of the listeners", e);
                             }
-                        } catch (Exception e) {
-                            log.error("Failed to call onJobChange in one of the listeners", e);
                         }
+                        log.debug("Done updating listeners!");
+
+                    } finally {
+                        jobEventListenerLock.unlock();
                     }
-                    log.debug("Done updating listeners!");
 
-                } finally {
-                    jobEventListenerLock.unlock();
+                } catch (InterruptedException e) {
+                    log.info("Ending update push thread");
+                    break;
                 }
-
-            } catch (Exception e) {
-                log.warn("Failed to extract job info", e);
+                catch (Exception e) {
+                    log.error("Failed to extract job info and update listeners", e);
+                }
             }
         };
-        if (log.isDebugEnabled()) {
-            log.debug("Queue size: {}", ((ScheduledThreadPoolExecutor) jobUpdateScheduler).getQueue().size());
-        }
-        jobUpdateScheduler.schedule(jobEventUpdate, delayMs, TimeUnit.MILLISECONDS);
-        log.debug("fireJobEvent.end");
+        jobExecutionListenerUpdateThread = new Thread(jobEventUpdate, "JobExListenerUpdater" );
+        jobExecutionListenerUpdateThread.start();
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {

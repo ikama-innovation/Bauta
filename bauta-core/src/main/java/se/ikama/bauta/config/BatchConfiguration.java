@@ -83,6 +83,9 @@ public class BatchConfiguration {
         dataSource.setUsername("sa");
         dataSource.setPassword("");
         dataSource.setMaxWaitMillis(10000);
+        dataSource.setMaxConnLifetimeMillis(1000*60*10);
+        dataSource.setLogExpiredConnections(false);
+
         try {
             log.info("Batch DB url: {}", batchDataSourceUrl);
             log.info("Driver is {}", dataSource.getConnection().getMetaData().getDriverName());
@@ -194,6 +197,10 @@ public class BatchConfiguration {
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setMaxWaitMillis(10000);
         dataSource.setMaxTotal(20);
+        dataSource.setMaxConnLifetimeMillis(1000*60*10);
+        dataSource.setLogExpiredConnections(false);
+
+
         dataSource.setDriverClassName(stagingDbDriverClassName);
         dataSource.setUrl(stagingDbUrl);
 
