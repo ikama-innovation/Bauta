@@ -364,7 +364,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public void beforeStep(StepExecution stepExecution) {
 
         log.debug("beforeStep: {}", stepExecution);
-        fireJobEvent(stepExecution.getJobExecution(), 1000);
+        fireJobEvent(stepExecution, 1000);
         // Sometimes, the step status may still be in STARTING phase when we get here.
         // To ensure that we will get the STARTED status, schedule an update in a second or so
         //fireJobEvent(stepExecution.getJobExecution().getId(), 2000);
@@ -373,8 +373,23 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         log.debug("afterStep: {}", stepExecution);
-        fireJobEvent(stepExecution.getJobExecution(), 0);
+        fireJobEvent(stepExecution, 0);
         return stepExecution.getExitStatus();
+    }
+
+    private void fireJobEvent(StepExecution se, int delay) {
+        String jobName = se.getJobExecution().getJobInstance().getJobName();
+        JobInstanceInfo jii = jobInstanceInfoCache.get(jobName);
+        if (jii != null) {
+            StepInfo si = jii.getStep(se.getStepName());
+            extractStepInfo(si, se);
+            if (!updatedJobExecutions.contains(se.getJobExecutionId())) {
+                updatedJobExecutions.add(se.getJobExecutionId());
+            }
+        }
+        else {
+            fireJobEvent(se.getJobExecution(), 0);
+        }
     }
 
     private void fireJobEvent(JobExecution je, int delayMs) {

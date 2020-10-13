@@ -2,6 +2,7 @@ package se.ikama.bauta.core;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
@@ -74,5 +75,16 @@ public class JobInstanceInfo {
      */
     public boolean hasJobParameters() {
         return (optionalJobParamKeys != null && optionalJobParamKeys.size() > 0) || (requiredJobParamKeys != null && requiredJobParamKeys.size() > 0);
+    }
+
+
+    //TODO: More efficient?
+    public StepInfo getStep(String stepName) {
+        for (StepInfo si : steps) {
+            if (StringUtils.equals(stepName, si.getName())) {
+                return si;
+            }
+        }
+        return null;
     }
 }

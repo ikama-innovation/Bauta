@@ -104,3 +104,43 @@
         -webkit-transform: rotate(359deg);
     }
 }
+
+.step-progress-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 0.75em;
+}
+.step-progress-section {
+    text-align: center;
+    color: #eeeeee;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+.step-progress-completed {
+    background-color: var(--lumo-success-color);
+}
+.step-progress-running {
+    -webkit-animation-name: blinker;
+    -webkit-animation-duration: 1.5s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: ease-in-out;
+    -webkit-animation-direction: alternate;
+    background-color: var(--lumo-primary-color);
+}
+.step-progress-failed {
+    background-color: var(--lumo-error-color);
+}
+.step-progress-stopped {
+    background-color: var(--lumo-primary-color-50pct);
+}
+.step-progress-unknown {
+     background-color: var(--lumo-contrast-10pct);
+ }
+.margin-left {
+    margin-left: 6px;
+}
+.margin-right {
+    margin-right: 6px;
+}

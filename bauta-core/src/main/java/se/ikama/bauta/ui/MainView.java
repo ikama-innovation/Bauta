@@ -18,6 +18,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
@@ -99,6 +100,14 @@ public class MainView extends AppLayout implements JobEventListener {
         String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
         String address = attachEvent.getSession().getBrowser().getAddress();
         log.debug("Attach {}, {}, {}", this.hashCode(), browser, address);
+        try {
+            serverInfoGrid.setItems(bautaManager.getServerInfo());
+            buildInfo.setText(bautaManager.getShortServerInfo());
+            grid.setItems(bautaManager.jobDetails());
+        } catch (Exception e) {
+            log.warn("Failed to fetch job details", e);
+            showErrorMessage("Failed to fetch job details");
+        }
         bautaManager.registerJobChangeListener(this);
     }
 
@@ -107,22 +116,7 @@ public class MainView extends AppLayout implements JobEventListener {
     protected void onDetach(DetachEvent detachEvent) {
         log.debug("Detach {}", hashCode());
         bautaManager.unregisterJobChangeListener(this);
-    }
-
-    @PostConstruct
-    @DependsOn("bautaManager")
-    public void init() {
-        log.debug("init");
-        try {
-            grid.setItems(bautaManager.jobDetails());
-            serverInfoGrid.setItems(bautaManager.getServerInfo());
-            buildInfo.setText(bautaManager.getShortServerInfo());
-        } catch (Exception e) {
-            log.warn("Failed to fetch job details", e);
-            showErrorMessage("Failed to fetch job details");
-        }
-        log.debug("init.end");
-
+        grid.setItems(Collections.emptyList());
     }
 
     private void createMainView(SchedulingView schedulingView) {
@@ -278,6 +272,7 @@ public class MainView extends AppLayout implements JobEventListener {
         jobView.add(grid);
         return jobView;
     }
+
     private void doStartJob(JobInstanceInfo item, Map<String, String> params) {
         try {
             bautaManager.startJob(item.getName(), params);
@@ -291,12 +286,9 @@ public class MainView extends AppLayout implements JobEventListener {
         }
     }
     private Component createButtons(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
-        VerticalLayout vl = new VerticalLayout();
-        vl.setPadding(false);
-        vl.setSpacing(false);
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.setSpacing(false);
-        hl.setPadding(false);
+        FlexLayout vl = new FlexLayout();
+        vl.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
+        FlexLayout hl = new FlexLayout();
         Button startButton = new Button("", clickEvent -> {
             if (item.hasJobParameters()) {
                 Dialog d = createJobParamsDialog(item);
@@ -320,7 +312,7 @@ public class MainView extends AppLayout implements JobEventListener {
             }
         });
         stopButton.setIcon(VaadinIcon.STOP.create());
-        stopButton.getStyle().set("margin-left", "4px");
+        stopButton.addClassName("margin-left");
         stopButton.getElement().setProperty("title", "Stop a running job");
 
         hl.add(stopButton);
@@ -334,7 +326,7 @@ public class MainView extends AppLayout implements JobEventListener {
             }
         });
         restartButton.setIcon(VaadinIcon.ROTATE_LEFT.create());
-        restartButton.getStyle().set("margin-left", "4px");
+        restartButton.addClassName("margin-left");
         restartButton.getElement().setProperty("title", "Restart a failed or interrupted job. Will pick up where it left off.");
 
         hl.add(restartButton);
@@ -350,7 +342,7 @@ public class MainView extends AppLayout implements JobEventListener {
         abandonButton.getElement().setProperty("title", "Abandons a job. Useful when the process was killed while a job was running and is now stuck in running state.");
         abandonButton.setIcon(VaadinIcon.TRASH.create());
 
-        abandonButton.getStyle().set("margin-left", "4px");
+        abandonButton.addClassName("margin-left");
         hl.add(abandonButton);
 
         Button infoButton = new Button("", clickEvent -> {
@@ -362,7 +354,7 @@ public class MainView extends AppLayout implements JobEventListener {
             infoDialog.open();
         });
         infoButton.setIcon(VaadinIcon.BULLETS.create());
-        infoButton.getStyle().set("margin-left", "4px");
+        infoButton.addClassName("margin-left");
         hl.add(infoButton);
 
         
@@ -509,12 +501,9 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     private Component createStepComponent(Grid<JobInstanceInfo> grid, JobInstanceInfo jobInstanceInfo) {
-
-
-        VerticalLayout vl = new VerticalLayout();
+        FlexLayout vl = new FlexLayout();
+        vl.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         vl.setAlignItems(FlexComponent.Alignment.START);
-        vl.setSpacing(false);
-        vl.setPadding(false);
 
         String currentFlowId = null;
         int flowColor = 0;
@@ -560,33 +549,12 @@ public class MainView extends AppLayout implements JobEventListener {
                 div.addClassName("split");
             }
 
-
             div.getElement().setProperty("title", "ExecutionId: "+step.getJobExecutionId()
                     +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
                     +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
                     + ", next: " + step.getNextId());
 
-            if (step.isRunning()) {
-                //ProgressBar pb = new ProgressBar();
-                //pb.setIndeterminate(true);
-                //pb.setClassName("step-progress");
-                //Div spinner = new Div();
-                //spinner.addClassName("ring-spinner");
-                //div.add(spinner);
-                /*
-                Icon spinner = VaadinIcon.COG.create();
-                spinner.addClassName("rotate");
-                spinner.getStyle()
-                        .set("margin-bottom", "0")
-                        .set("margin-top", "0")
-                        .set("padding", "0").set("color","var(--lumo-primary-color)");
-                spinner.setSize("0.8em");
-                Div spinnerDiv = new Div(spinner);
-                spinnerDiv.getStyle().set("margin-left", "5px").set("margin-top", "0").set("margin-bottom", "0").set("padding", "0").set("max-height","20");
-                div.add(spinnerDiv);
 
-                 */
-            }
             if (step.getReportUrls() != null) {
                 for (String url : step.getReportUrls()) {
                     Icon icon = null;
@@ -636,46 +604,55 @@ public class MainView extends AppLayout implements JobEventListener {
 
             }
             vl.add(div);
+            vl.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         }
         Div progressBar = new Div();
-        progressBar.getStyle().set("display", "flex").set("flex-wrap","nowrap").set("border-radius","4px").set("overflow","hidden").set("font-size","0.75em");
+
+        progressBar.addClassName("step-progress-bar");
+        //progressBar.getStyle().set("display", "flex").set("flex-wrap","nowrap").set("border-radius","4px").set("overflow","hidden").set("font-size","0.75em");
 
         if (stepCompletedCount > 0) {
             Div stepsCompleted = new Div();
-            stepsCompleted.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-success-color)");
+            //stepsCompleted.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-success-color)");
+            stepsCompleted.addClassNames("step-progress-section", "step-progress-completed");
             stepsCompleted.setText("" + stepCompletedCount);
             stepsCompleted.getStyle().set("flex-grow", ""+stepCompletedCount);
             progressBar.add(stepsCompleted);
         }
         if (stepRunningCount > 0) {
             Div stepsRunning = new Div();
+            stepsRunning.addClassNames("step-progress-section", "step-progress-running");
+            /*
             stepsRunning.getStyle().set("text-align", "center").set("color", "#eeeeee").set("padding-top", "2px").set("padding-bottom", "2px").set("background-color", "var(--lumo-primary-color)").set("text-decoration", "blink")
                     .set("-webkit-animation-name", "blinker")
                     .set("-webkit-animation-duration", "1.5s")
                     .set("-webkit-animation-iteration-count", "infinite")
                     .set("-webkit-animation-timing-function", "ease-in-out")
-                    .set("-webkit-animation-direction", "alternate");
-            stepsRunning.setText("" + stepRunningCount);
+                    .set("-webkit-animation-direction", "alternate");*/
+            stepsRunning.setText(Integer.toString(stepRunningCount));
             stepsRunning.getStyle().set("flex-grow", ""+stepRunningCount);
             progressBar.add(stepsRunning);
         }
         if (stepFailedCount > 0) {
             Div stepsFailed = new Div();
-            stepsFailed.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-error-color)");
-            stepsFailed.setText("" + stepFailedCount);
+            stepsFailed.addClassNames("step-progress-section", "step-progress-failed");
+            //stepsFailed.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-error-color)");
+            stepsFailed.setText(Integer.toString(stepFailedCount));
             stepsFailed.getStyle().set("flex-grow", ""+stepFailedCount);
             progressBar.add(stepsFailed);
         }
         if (stepStoppedCount > 0) {
             Div stepsStopped = new Div();
-            stepsStopped.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-primary-color-50pct)");
+            //stepsStopped.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-primary-color-50pct)");
+            stepsStopped.addClassNames("step-progress-section", "step-progress-stopped");
             stepsStopped.setText("" + stepStoppedCount);
             stepsStopped.getStyle().set("flex-grow", ""+stepStoppedCount);
             progressBar.add(stepsStopped);
         }
         if (stepUnknownCount > 0) {
             Div stepsUnknown = new Div();
-            stepsUnknown.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-contrast-10pct)");
+            stepsUnknown.addClassNames("step-progress-section", "step-progress-unknown");
+            //stepsUnknown.getStyle().set("text-align","center").set("color","#eeeeee").set("padding-top","2px").set("padding-bottom","2px").set("background-color","var(--lumo-contrast-10pct)");
             stepsUnknown.setText("" + stepUnknownCount);
             stepsUnknown.getStyle().set("flex-grow", ""+stepUnknownCount);
             progressBar.add(stepsUnknown);
@@ -683,19 +660,8 @@ public class MainView extends AppLayout implements JobEventListener {
 
         progressBar.setWidthFull();
 
-        /*
-        ProgressBar progressBar = new ProgressBar();
-        progressBar.setWidthFull();
-        progressBar.setValue((stepCompletedCount + stepFailedCount)*1.0 / stepCount);
-        if (stepFailedCount > 0) {
-            progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
-        }
-        else if (stepRunningCount == 0 && stepCompletedCount > 0) {
-            progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
-        }
-        */
-
         Button bExpand = new Button(new Icon(VaadinIcon.ANGLE_DOWN));
+        bExpand.addClassName("margin-left");
         if (expandedJobs.contains(jobInstanceInfo.getName())) {
             vl.setVisible(true);
             bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
@@ -704,15 +670,13 @@ public class MainView extends AppLayout implements JobEventListener {
             vl.setVisible(false);
             bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
         }
-        HorizontalLayout hl = new HorizontalLayout(progressBar, bExpand);
-        hl.setMargin(false);
-        hl.setPadding(false);
+        FlexLayout hl = new FlexLayout(progressBar, bExpand);
         hl.setWidthFull();
-        hl.setFlexGrow(1, progressBar);
+        //hl.setFlexGrow(1, progressBar);
+        hl.setFlexDirection(FlexLayout.FlexDirection.ROW);
         hl.setAlignItems(FlexComponent.Alignment.CENTER);
-        VerticalLayout masterLayout = new VerticalLayout(hl, vl);
-        masterLayout.setPadding(false);
-        masterLayout.setMargin(false);
+        FlexLayout masterLayout = new FlexLayout(hl, vl);
+        masterLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         bExpand.addClickListener(e -> {
                 bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
                 if (expandedJobs.remove(jobInstanceInfo.getName())) {
@@ -873,7 +837,6 @@ public class MainView extends AppLayout implements JobEventListener {
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
         log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
-
         UI ui = this.getUI().get();
         if (ui != null) {
             this.getUI().get().access(() -> {

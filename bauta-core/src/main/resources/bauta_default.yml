@@ -1,6 +1,7 @@
 # Default properties
 vaadin.urlMapping: /ui/*
-vaadin.heartbeatInverval: 30
+vaadin.heartbeatInterval: 20
+vaadin.closeIdleConnections: true
 
 server.servlet.session.timeout: 300
 
