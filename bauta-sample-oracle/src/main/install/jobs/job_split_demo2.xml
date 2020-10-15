@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:b="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+
+http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
+    <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
+    <b:job id="Job.06.SplitDemoLong" parent="job_base">
+        <b:description>Demonstrates how to use splits to run steps in parallel</b:description>
+        <b:step id="sd2_one" next="sd2_twothreefour" parent="step_base">
+            <b:description>Step one description</b:description>
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
+                    <property name="sleepTimeMs" value="1000" />
+                    <property name="repeats" value="10" />
+                </bean>
+            </b:tasklet>
+        </b:step>
+        <b:split id="sd2_twothreefour" next="sd2_sixteen" task-executor="multiTaskExecutor">
+            <b:flow >
+                <b:step parent="step_base" id="sd2_two" next="sd2_twoandahalf">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="100" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd2_twoandahalf" >
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="100" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_three_one" next="sd2_three_two">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="300" />
+
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd2_three_two" next="sd2_three_three">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="300" />
+
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd2_three_three" >
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet">
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="300" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_four_one" next="sd2_four_two">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd2_four_two"  next="sd2_four_three">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd2_four_three" next="sd2_four_four"  >
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+                <b:step parent="step_base" id="sd2_four_four" >
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_six">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_seven">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_eight">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_nine">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_ten">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_eleven">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_twelve">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_thirteen">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_fourteen">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+            <b:flow >
+                <b:step parent="step_base" id="sd2_fifteen">
+                    <b:tasklet>
+                        <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                            <property name="sleepTimeMs" value="1000" />
+                            <property name="repeats" value="200" />
+                        </bean>
+                    </b:tasklet>
+                </b:step>
+            </b:flow>
+
+        </b:split>
+        <b:step id="sd2_sixteen" parent="step_base">
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                    <property name="sleepTimeMs" value="1000" />
+                    <property name="repeats" value="100" />
+                </bean>
+            </b:tasklet>
+        </b:step>
+
+    </b:job>
+</beans>

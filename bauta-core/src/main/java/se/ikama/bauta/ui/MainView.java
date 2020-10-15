@@ -245,12 +245,12 @@ public class MainView extends AppLayout implements JobEventListener {
                         "Instance ID: [[item.instanceId]]<br>" +
                         "ExecutionID: [[item.executionId]]<br>" +
                         "Executions: [[item.executionCount]]<br>" +
-                        "Status: <div class='batch_status' data-status$={{item.status}}>[[item.status]]</div><br>" +
+                        "Status: <div class='batch_status batch_status_label' data-status$={{item.status}}>[[item.status]]</div><br>" +
                         "Started: [[item.startTime]]<br>" +
                         "Ended: [[item.endTime]]<br>" +
                         "Latest Duration: [[item.latestDuration]]<br>" +
                         "Total Duration: [[item.duration]]<br>" +
-                        "Exit status: <div class='batch_status' data-status$={{item.exitStatus}}>[[item.exitStatus]]</div><br>" +
+                        "Exit status: <div class='batch_status batch_status_label' data-status$={{item.exitStatus}}>[[item.exitStatus]]</div><br>" +
                         "Params: [[item.params]]<br>" +
                         "</div>"
                 )
@@ -265,12 +265,78 @@ public class MainView extends AppLayout implements JobEventListener {
                         .withProperty("latestDuration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getLatestDuration(), "HH:mm:ss") : "")
                         .withProperty("params", ji -> ji.getJobParameters() != null ? ji.getJobParameters().toString() : "")
         );
+        /*
+        grid.addColumn(TemplateRenderer.<JobInstanceInfo>of(
+                "<div class='step-progress-bar' style='width: 100%'>"+
+                        "<dom-if if=\"[[item.showCompleted]]\"><template><div class='step-progress-section step-progress-completed' style='flex-grow: [[item.completedCount]]'>[[item.completedCount]]</div></template></dom-if>"+
+                        "<dom-if if=\"[[item.showFailed]]\"><template><div class='step-progress-section step-progress-failed' style='flex-grow: [[item.failedCount]]'>[[item.failedCount]]</div></template></dom-if>"+
+                        "<dom-if if=\"[[item.showRunning]]\"><template><div class='step-progress-section step-progress-running' style='flex-grow: [[item.runningCount]]'>[[item.runningCount]]</div></template></dom-if>"+
+                        "<dom-if if=\"[[item.showStopped]]\"><template><div class='step-progress-section step-progress-stopped' style='flex-grow: [[item.stoppedCount]]'>[[item.stoppedCount]]</div></template></dom-if>"+
+                        "<dom-if if=\"[[item.showUnknown]]\"><template><div class='step-progress-section step-progress-unknown' style='flex-grow: [[item.unknownCount]]'>[[item.unknownCount]]</div></template></dom-if>"+
+                        "</div><vaadin-button>hej</vaadin-button>"
+                )
+                .withProperty("completedCount", JobInstanceInfo::getCompletedCount)
+                .withProperty("failedCount", JobInstanceInfo::getFailedCount)
+                .withProperty("runningCount", JobInstanceInfo::getRunningCount)
+                .withProperty("stoppedCount", JobInstanceInfo::getStoppedCount)
+                .withProperty("unknownCount", JobInstanceInfo::getUnknownCount)
+                .withProperty("showRunning", item ->item.getRunningCount()> 0)
+                .withProperty("showFailed", item ->item.getFailedCount()> 0)
+                .withProperty("showCompleted", item ->item.getCompletedCount()> 0)
+                .withProperty("showStopped", item ->item.getStoppedCount()> 0)
+                .withProperty("showUnknown", item ->item.getUnknownCount()> 0)
 
-        grid.addComponentColumn(item -> createStepComponent(grid, item));
+        );
+        */
+        grid.addComponentColumn(item -> createStepComponent2(grid, item));
+        //grid.addComponentColumn(item -> createStepComponent(grid, item));
         grid.addComponentColumn(item -> createButtons(grid, item));
 
         jobView.add(grid);
         return jobView;
+    }
+
+    private Component createStepComponent2(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
+        StepProgressBar progressBar = new StepProgressBar();
+        progressBar.update(item);
+        Button bExpand = new Button(new Icon(VaadinIcon.ANGLE_DOWN));
+        bExpand.addClassName("margin-left");
+        StepFlow stepFlow = new StepFlow();
+        stepFlow.init(item);
+        if (expandedJobs.contains(item.getName())) {
+            stepFlow.setVisible(true);
+            bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
+        }
+        else {
+            stepFlow.setVisible(false);
+            bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
+        }
+        bExpand.addClickListener(e -> {
+                    bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
+                    if (expandedJobs.remove(item.getName())) {
+                        stepFlow.setVisible(false);
+                        bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
+                    }
+                    else {
+                        expandedJobs.add(item.getName());
+                        stepFlow.setVisible(true);
+                        bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
+                    }
+                    // A trick to force the grid to resize
+                    grid.getElement().executeJs("this.notifyResize()");
+                }
+        );
+        FlexLayout barAndButtonLayout = new FlexLayout(progressBar, bExpand);
+        barAndButtonLayout.setWidthFull();
+        barAndButtonLayout.setFlexDirection(FlexLayout.FlexDirection.ROW);
+        barAndButtonLayout.setFlexGrow(1, progressBar);
+        barAndButtonLayout.setFlexWrap(FlexLayout.FlexWrap.NOWRAP);
+        barAndButtonLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        FlexLayout mainLayout = new FlexLayout(barAndButtonLayout, stepFlow);
+        mainLayout.setFlexGrow(1, stepFlow);
+        mainLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
+        mainLayout.setWidthFull();
+        return mainLayout;
     }
 
     private void doStartJob(JobInstanceInfo item, Map<String, String> params) {
@@ -699,7 +765,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private Component createStatusLabel(String executionStatus, boolean oldExecution) {
         Div statusLabel = new Div();
-        statusLabel.addClassName("batch_status");
+        statusLabel.addClassNames("batch_status", "batch_status_label");
         if (oldExecution) statusLabel.addClassName("old_execution");
         statusLabel.getElement().setAttribute("data-status",executionStatus);
         statusLabel.setText(executionStatus);

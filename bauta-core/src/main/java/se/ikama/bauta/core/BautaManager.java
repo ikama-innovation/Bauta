@@ -60,7 +60,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private ReentrantLock jobEventListenerLock = new ReentrantLock();
 
 
-    private BlockingQueue<Long> updatedJobExecutions = new LinkedBlockingQueue<>();
+    private BlockingQueue<JobUpdateSignal> updatedJobExecutions = new LinkedBlockingQueue<>();
 
     // Single thread that updates jobExecutionListeners
     private Thread jobExecutionListenerUpdateThread;
@@ -127,6 +127,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @PreDestroy
     private void shutdown() {
         log.info("Shutting down..");
+        jobExecutionListenerUpdateThread.interrupt();
         threadPoolTaskScheduler.shutdown();
         log.info("Done!");
     }
@@ -383,8 +384,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         if (jii != null) {
             StepInfo si = jii.getStep(se.getStepName());
             extractStepInfo(si, se);
-            if (!updatedJobExecutions.contains(se.getJobExecutionId())) {
-                updatedJobExecutions.add(se.getJobExecutionId());
+            jii.updateCount();
+            JobUpdateSignal signal = new JobUpdateSignal(se.getJobExecutionId(), true);
+            if (!updatedJobExecutions.contains(signal)) {
+                updatedJobExecutions.add(signal);
             }
         }
         else {
@@ -393,10 +396,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     private void fireJobEvent(JobExecution je, int delayMs) {
+        // Invalidate cache
         // TODO: Improve. Could potentially ad a job execution multiple times
         // TODO: Handle delayed
-        if (!updatedJobExecutions.contains(je.getId())) {
-            updatedJobExecutions.add(je.getId());
+        JobUpdateSignal signal = new JobUpdateSignal(je.getId(), false);
+        if (!updatedJobExecutions.contains(signal)) {
+            updatedJobExecutions.add(signal);
         }
 
     }
@@ -407,13 +412,22 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             while(true) {
                 try {
                     log.debug("Waiting for updated jobs..");
-                    Long jobExecutionId = updatedJobExecutions.take();
-                    log.debug("Updated job execution: {}, updatedJobExecutions: {}", jobExecutionId, updatedJobExecutions);
+                    JobUpdateSignal signal = updatedJobExecutions.take();
+                    log.debug("Updated job signal: {}, updatedJobExecutions: {}", signal, updatedJobExecutions);
                     // Sleep some time to let the state be properly persisted by spring batch
                     Thread.sleep(updateThreadSleepBeforeUpdate);
-                    JobExecution je = jobExplorer.getJobExecution(jobExecutionId);
-                    JobInstanceInfo jobInstanceInfo = extractJobInstanceInfo(je, true);
-                    jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
+                    // Remove any duplicates
+                    updatedJobExecutions.remove(signal);
+                    JobExecution je = jobExplorer.getJobExecution(signal.getJobExecutionId());
+                    JobInstanceInfo jobInstanceInfo = null;
+                    if (signal.isUseCache() && jobInstanceInfoCache.containsKey(je.getJobInstance().getJobName())) {
+                        log.debug("Getting updated job from cache");
+                        jobInstanceInfo = jobInstanceInfoCache.get(je.getJobInstance().getJobName());
+                    }
+                    else {
+                        jobInstanceInfo = extractJobInstanceInfo(je, true);
+                        jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
+                    }
                     // Lock access to the listener set to prevent concurrent modification issues
                     jobEventListenerLock.lock();
                     try {
@@ -447,6 +461,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             }
         };
         jobExecutionListenerUpdateThread = new Thread(jobEventUpdate, "JobExListenerUpdater" );
+        jobExecutionListenerUpdateThread.setDaemon(true);
         jobExecutionListenerUpdateThread.start();
     }
 
@@ -466,6 +481,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setNextId(stepMetadata.getNextId());
                 jobInstanceInfo.appendStep(stepInfo);
             }
+            jobInstanceInfo.updateCount();
         }
 
         JobParametersValidator jobParametersValidator = job.getJobParametersValidator();
@@ -528,7 +544,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 jobInstanceInfo.appendStep(si);
             }
             extractStepInfo(si, se);
+
         }
+
 
         if (mergeOlderExecutions) {
             log.debug("merging with older executions");
@@ -557,6 +575,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             jobInstanceInfo.setDuration(totalDuration);
         }
         jobInstanceInfo.setExecutionCount(executionCount);
+        jobInstanceInfo.updateCount();
         log.debug("Done");
         return jobInstanceInfo;
     }

@@ -24,21 +24,48 @@ public class JobInstanceInfo {
     private List<String> requiredJobParamKeys;
     private List<String> optionalJobParamKeys;
     private int executionCount = 0;
+    private int completedCount = 0;
+    private int runningCount = 0;
+    private int unknownCount = 0;
+    private int stoppedCount = 0;
+    private int failedCount = 0;
 
+    public void updateCount() {
+        completedCount = 0;
+        runningCount = 0;
+        unknownCount = 0;
+        stoppedCount = 0;
+        failedCount = 0;
+        for (StepInfo s : steps) {
+            updateCount(s);
+        }
+    }
+    private void updateCount(StepInfo s) {
+
+        if (s.isCompleted()) completedCount++;
+        else if (s.isFailed()) failedCount++;
+        else if (s.isStopped()) stoppedCount++;
+        else if (s.isRunning()) runningCount++;
+        else if (s.isUnknown()) unknownCount++;
+    }
     public JobInstanceInfo(String name) {
         this.name = name;
     }
 
     public void appendStep(StepInfo step) {
         steps.add(step);
+
     }
 
     public void prependStep(StepInfo step) {
         steps.add(0, step);
+
+
     }
 
     public void insertStepAt(StepInfo step, int index) {
         steps.add(index, step);
+
     }
 
 
