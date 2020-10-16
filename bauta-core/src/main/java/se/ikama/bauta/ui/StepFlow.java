@@ -19,10 +19,7 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Tag("div")
@@ -124,6 +121,11 @@ public class StepFlow extends Component {
     public void update(StepInfo step) {
         Element  stepElement = stepToElement.get(step.getName());
         update(step, stepElement);
+    }
+    public void update(Collection<StepInfo> steps) {
+        for(StepInfo step: steps) {
+            update(step);
+        }
     }
     private void update(StepInfo step, Element stepElement) {
         stepElement.setAttribute("data-status", step.getExecutionStatus());

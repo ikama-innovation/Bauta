@@ -3,6 +3,7 @@ package se.ikama.bauta.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.dom.Element;
+import se.ikama.bauta.core.BasicJobInstanceInfo;
 import se.ikama.bauta.core.JobInstanceInfo;
 
 
@@ -28,12 +29,13 @@ public class StepProgressBar extends Component {
         if (progress > 0) {
             section.getStyle().set("flex-grow", Integer.toString(progress));
             section.setText(Integer.toString(progress));
+            section.setVisible(true);
         }
         else {
             section.setVisible(false);
         }
     }
-    public void update(JobInstanceInfo jii) {
+    public void update(BasicJobInstanceInfo jii) {
         updateSection(unknownSection, jii.getUnknownCount());
         updateSection(completedSection, jii.getCompletedCount());
         updateSection(failedSection, jii.getFailedCount());

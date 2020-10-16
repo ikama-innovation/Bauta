@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class JobUpdateSignal {
+    static enum UpdateType {StepUpdate, JobUpdate};
+    private UpdateType updateType;
     private Long jobExecutionId;
-    private boolean useCache = false;
+    private String stepName;
 }

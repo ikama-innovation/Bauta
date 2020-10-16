@@ -385,7 +385,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             StepInfo si = jii.getStep(se.getStepName());
             extractStepInfo(si, se);
             jii.updateCount();
-            JobUpdateSignal signal = new JobUpdateSignal(se.getJobExecutionId(), true);
+            JobUpdateSignal signal = new JobUpdateSignal(JobUpdateSignal.UpdateType.StepUpdate, se.getJobExecutionId(), se.getStepName());
             if (!updatedJobExecutions.contains(signal)) {
                 updatedJobExecutions.add(signal);
             }
@@ -399,11 +399,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         // Invalidate cache
         // TODO: Improve. Could potentially ad a job execution multiple times
         // TODO: Handle delayed
-        JobUpdateSignal signal = new JobUpdateSignal(je.getId(), false);
+        JobUpdateSignal signal = new JobUpdateSignal(JobUpdateSignal.UpdateType.JobUpdate, je.getId(), null);
         if (!updatedJobExecutions.contains(signal)) {
             updatedJobExecutions.add(signal);
         }
-
     }
 
     private void initListenerPushThread() {
@@ -415,18 +414,17 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                     JobUpdateSignal signal = updatedJobExecutions.take();
                     log.debug("Updated job signal: {}, updatedJobExecutions: {}", signal, updatedJobExecutions);
                     // Sleep some time to let the state be properly persisted by spring batch
-                    Thread.sleep(updateThreadSleepBeforeUpdate);
-                    // Remove any duplicates
-                    updatedJobExecutions.remove(signal);
-                    JobExecution je = jobExplorer.getJobExecution(signal.getJobExecutionId());
                     JobInstanceInfo jobInstanceInfo = null;
-                    if (signal.isUseCache() && jobInstanceInfoCache.containsKey(je.getJobInstance().getJobName())) {
-                        log.debug("Getting updated job from cache");
-                        jobInstanceInfo = jobInstanceInfoCache.get(je.getJobInstance().getJobName());
-                    }
-                    else {
-                        jobInstanceInfo = extractJobInstanceInfo(je, true);
-                        jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
+                    StepInfo stepInfo = null;
+                    Thread.sleep(updateThreadSleepBeforeUpdate);
+                    JobExecution je = jobExplorer.getJobExecution(signal.getJobExecutionId());
+                    updatedJobExecutions.remove(signal);
+                    jobInstanceInfo = extractJobInstanceInfo(je, true);
+                    jobInstanceInfoCache.put(jobInstanceInfo.getName(), jobInstanceInfo);
+
+                    if (signal.getUpdateType() == JobUpdateSignal.UpdateType.StepUpdate) {
+                        stepInfo = jobInstanceInfo.getStep(signal.getStepName());
+
                     }
                     // Lock access to the listener set to prevent concurrent modification issues
                     jobEventListenerLock.lock();
@@ -435,7 +433,12 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                         for (JobEventListener jel : jobEventListeners) {
                             try {
                                 long t = System.nanoTime();
-                                jel.onJobChange(jobInstanceInfo);
+                                if (signal.getUpdateType() == JobUpdateSignal.UpdateType.StepUpdate) {
+                                    jel.onStepChange(jobInstanceInfo, stepInfo);
+                                }
+                                else {
+                                    jel.onJobChange(jobInstanceInfo);
+                                }
                                 t = System.nanoTime() - t;
                                 double tMs = Math.round(t / 1000000.0);
                                 if (tMs > 1000) {
@@ -544,9 +547,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 jobInstanceInfo.appendStep(si);
             }
             extractStepInfo(si, se);
-
         }
-
 
         if (mergeOlderExecutions) {
             log.debug("merging with older executions");
@@ -576,7 +577,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         }
         jobInstanceInfo.setExecutionCount(executionCount);
         jobInstanceInfo.updateCount();
-        log.debug("Done");
+        log.debug("extractJobInstanceInfo Done");
         return jobInstanceInfo;
     }
 

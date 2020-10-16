@@ -64,8 +64,8 @@
     from {opacity: 1.0;}
     to {opacity: 0.3;}
 }
-.job-cell-info {
-    font-size: 0.8em;
+.job-info {
+    font-size: var(--lumo-font-size-xs);
 }
 .step-row {
     display: flex;
@@ -145,7 +145,6 @@
     display: flex;
     flex-flow: column;
     flex-wrap: nowrap;
-
 }
 .step-flow-split {
     display: flex;
@@ -169,6 +168,7 @@
     overflow-y: visible;
     text-overflow: clip;
     flex-grow: 1;
+    margin-top: 2px;
     margin-bottom: 2px;
     border-radius: var(--lumo-border-radius-m);
     margin-left: 2px;
@@ -180,7 +180,23 @@
     padding-bottom: 2px;
     min-width: 0;
 }
-
+.job-grid {
+    display: table;
+    margin: 10px;
+}
+.job-grid-row {
+    display: table-row;
+    border-top: 1px solid var(--lumo-body-text-color);
+}
+.job-grid-cell {
+    display: table-cell;
+    border-bottom: 1px solid var(--lumo-tint-10pct);
+    padding: 10px;
+}
+.job-grid-steps-cell {
+    min-width: 500px;
+    max-width: 900px;
+}
 
 .margin-left {
     margin-left: 6px;

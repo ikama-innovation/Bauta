@@ -15,6 +15,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import javax.servlet.annotation.WebInitParam;
+
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
 
@@ -41,7 +43,7 @@ public class WebConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE)
+    @Order(Ordered.LOWEST_PRECEDENCE-1)
     public ServletRegistrationBean<SpringServlet> vaadinServletBean() {
 
 
@@ -50,6 +52,10 @@ public class WebConfiguration implements WebMvcConfigurer {
                 springServlet, "/vaadin/*");
         bean.setAsyncSupported(true);
         bean.setName("springServlet");
+        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads","10");
+        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads","10");
+
+
         return bean;
     }
 

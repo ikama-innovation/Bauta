@@ -10,7 +10,7 @@ bauta.buildTime: '@bautabuildtimestamp@'
 bauta.build: 0
 # Efter an beforeJob, beforeStep, afterJob, afterStep event has been fired, let spring batch save the state before
 # fetching the state and send it to jobExecutionListeners
-bauta.updateThreadSleepBeforeUpdate: 600
+bauta.updateThreadSleepBeforeUpdate: 300
 
 hsqldb.tx: mvcc
 bauta.jobRepository.isolationLevelForCreate: ISOLATION_READ_COMMITTED

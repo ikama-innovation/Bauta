@@ -2,33 +2,15 @@ package se.ikama.bauta.core;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
 @Getter
 @Setter
-public class JobInstanceInfo {
+public class JobInstanceInfo extends BasicJobInstanceInfo {
 
-    private String name;
-    private String executionStatus = "UNKNOWN";
-    private String exitStatus = "UNKNOWN";
-    private Long latestExecutionId;
-    private Long instanceId;
-    private Date startTime;
-    private Date endTime;
-    private long duration;
-    private long latestDuration;
-    private Properties jobParameters;
-    private List<StepInfo> steps = new ArrayList<>();
-    private List<String> requiredJobParamKeys;
-    private List<String> optionalJobParamKeys;
-    private int executionCount = 0;
-    private int completedCount = 0;
-    private int runningCount = 0;
-    private int unknownCount = 0;
-    private int stoppedCount = 0;
-    private int failedCount = 0;
+    //private List<StepInfo> steps = new ArrayList<>();
+    private LinkedHashMap<String, StepInfo> steps = new LinkedHashMap<>();
 
     public void updateCount() {
         completedCount = 0;
@@ -36,7 +18,7 @@ public class JobInstanceInfo {
         unknownCount = 0;
         stoppedCount = 0;
         failedCount = 0;
-        for (StepInfo s : steps) {
+        for (StepInfo s : steps.values()) {
             updateCount(s);
         }
     }
@@ -49,28 +31,11 @@ public class JobInstanceInfo {
         else if (s.isUnknown()) unknownCount++;
     }
     public JobInstanceInfo(String name) {
-        this.name = name;
+        super(name);
     }
 
     public void appendStep(StepInfo step) {
-        steps.add(step);
-
-    }
-
-    public void prependStep(StepInfo step) {
-        steps.add(0, step);
-
-
-    }
-
-    public void insertStepAt(StepInfo step, int index) {
-        steps.add(index, step);
-
-    }
-
-
-    public boolean isRestartable() {
-        return latestExecutionId != null && exitStatus != null && (exitStatus.equals("STOPPED") || exitStatus.equals("FAILED"));
+        steps.put(step.getName(), step);
     }
 
     @Override
@@ -90,28 +55,18 @@ public class JobInstanceInfo {
     public String toString() {
         return "JobInstanceInfo{" +
                 "name='" + name + '\'' +
-                ", executionStatus='" + executionStatus + '\'' +
-                ", executionId=" + latestExecutionId +
-                ", instanceId=" + instanceId +
+                ", executionStatus='" + getExecutionStatus() + '\'' +
+                ", executionId=" + getLatestExecutionId() +
+                ", instanceId=" + getInstanceId() +
                 '}';
     }
 
-
-    /**
-     * Does this job take any job parameters?
-     */
-    public boolean hasJobParameters() {
-        return (optionalJobParamKeys != null && optionalJobParamKeys.size() > 0) || (requiredJobParamKeys != null && requiredJobParamKeys.size() > 0);
+    public Collection<StepInfo> getSteps() {
+        return steps.values();
     }
-
 
     //TODO: More efficient?
     public StepInfo getStep(String stepName) {
-        for (StepInfo si : steps) {
-            if (StringUtils.equals(stepName, si.getName())) {
-                return si;
-            }
-        }
-        return null;
+        return steps.get(stepName);
     }
 }

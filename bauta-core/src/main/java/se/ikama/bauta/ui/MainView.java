@@ -1,14 +1,15 @@
 package se.ikama.bauta.ui;
 
 
-import com.vaadin.flow.component.*;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -23,23 +24,18 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.page.Viewport;
-import com.vaadin.flow.component.progressbar.ProgressBar;
-import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.renderer.TemplateRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.shared.communication.PushMode;
-import com.vaadin.flow.shared.ui.Transport;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.atmosphere.config.AtmosphereAnnotation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobParametersInvalidException;
@@ -47,12 +43,8 @@ import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
-import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.core.JobEventListener;
-import se.ikama.bauta.core.JobInstanceInfo;
-import se.ikama.bauta.core.StepInfo;
+import se.ikama.bauta.core.*;
 
-import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -88,6 +80,11 @@ public class MainView extends AppLayout implements JobEventListener {
 
     // Set of all expanded job views. If the job name is present in this set, the corresponding job view should be expanded
     HashSet<String> expandedJobs = new HashSet<>();
+    private Div jobGrid;
+    private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
+    private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
+    private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
+    private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -103,7 +100,8 @@ public class MainView extends AppLayout implements JobEventListener {
         try {
             serverInfoGrid.setItems(bautaManager.getServerInfo());
             buildInfo.setText(bautaManager.getShortServerInfo());
-            grid.setItems(bautaManager.jobDetails());
+            //grid.setItems(bautaManager.jobDetails());
+            updateJobGrid(bautaManager.jobDetails());
         } catch (Exception e) {
             log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
@@ -111,12 +109,41 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
+    private void updateJobGrid(List<JobInstanceInfo> jobs) {
+        jobGrid.removeAll();
+        jobNameToJobButtons.clear();
+        jobNameToStepFLow.clear();
+        for (JobInstanceInfo job : jobs) {
+            String jobName = job.getName();
+            Div jobRow = new Div();
+            jobRow.addClassNames("job-grid-row");
+
+            Div cell2 = new Div(createStepComponent(job));
+            cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
+            JobButtons jb = new JobButtons(job, this, bautaManager);
+            jobNameToJobButtons.put(jobName, jb);
+            Div cell3 = new Div(jb);
+            cell3.addClassNames("job-grid-cell");
+
+            Div cell0 = new Div();
+            cell0.addClassNames("job-grid-cell");
+            cell0.setText(job.getName());
+            JobInfo jobInfo = new JobInfo(job);
+            jobNameToJobInfo.put(jobName, jobInfo);
+            Div cell1 = new Div(jobInfo);
+            cell1.addClassNames("job-grid-cell");
+
+            jobRow.add(cell0, cell1, cell2, cell3);
+            jobGrid.add(jobRow);
+        }
+    }
+
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         log.debug("Detach {}", hashCode());
         bautaManager.unregisterJobChangeListener(this);
-        grid.setItems(Collections.emptyList());
+        //grid.setItems(Collections.emptyList());
     }
 
     private void createMainView(SchedulingView schedulingView) {
@@ -224,6 +251,14 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     private Component createJobView() {
+        jobGrid = new Div();
+        jobGrid.addClassNames("job-grid");
+        jobGrid.setWidthFull();
+        return jobGrid;
+
+    }
+    /*
+    private Component createJobView() {
         VerticalLayout jobView = new VerticalLayout();
         jobView.setPadding(true);
         jobView.setWidthFull();
@@ -265,7 +300,6 @@ public class MainView extends AppLayout implements JobEventListener {
                         .withProperty("latestDuration", ji -> ji != null ? DurationFormatUtils.formatDuration(ji.getLatestDuration(), "HH:mm:ss") : "")
                         .withProperty("params", ji -> ji.getJobParameters() != null ? ji.getJobParameters().toString() : "")
         );
-        /*
         grid.addColumn(TemplateRenderer.<JobInstanceInfo>of(
                 "<div class='step-progress-bar' style='width: 100%'>"+
                         "<dom-if if=\"[[item.showCompleted]]\"><template><div class='step-progress-section step-progress-completed' style='flex-grow: [[item.completedCount]]'>[[item.completedCount]]</div></template></dom-if>"+
@@ -287,7 +321,6 @@ public class MainView extends AppLayout implements JobEventListener {
                 .withProperty("showUnknown", item ->item.getUnknownCount()> 0)
 
         );
-        */
         grid.addComponentColumn(item -> createStepComponent2(grid, item));
         //grid.addComponentColumn(item -> createStepComponent(grid, item));
         grid.addComponentColumn(item -> createButtons(grid, item));
@@ -295,13 +328,16 @@ public class MainView extends AppLayout implements JobEventListener {
         jobView.add(grid);
         return jobView;
     }
+    */
 
-    private Component createStepComponent2(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
+    private Component createStepComponent(JobInstanceInfo item) {
         StepProgressBar progressBar = new StepProgressBar();
+        jobNameToProgressBar.put(item.getName(), progressBar);
         progressBar.update(item);
         Button bExpand = new Button(new Icon(VaadinIcon.ANGLE_DOWN));
         bExpand.addClassName("margin-left");
         StepFlow stepFlow = new StepFlow();
+        jobNameToStepFLow.put(item.getName(), stepFlow);
         stepFlow.init(item);
         if (expandedJobs.contains(item.getName())) {
             stepFlow.setVisible(true);
@@ -323,7 +359,7 @@ public class MainView extends AppLayout implements JobEventListener {
                         bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
                     }
                     // A trick to force the grid to resize
-                    grid.getElement().executeJs("this.notifyResize()");
+                    // grid.getElement().executeJs("this.notifyResize()");
                 }
         );
         FlexLayout barAndButtonLayout = new FlexLayout(progressBar, bExpand);
@@ -332,6 +368,7 @@ public class MainView extends AppLayout implements JobEventListener {
         barAndButtonLayout.setFlexGrow(1, progressBar);
         barAndButtonLayout.setFlexWrap(FlexLayout.FlexWrap.NOWRAP);
         barAndButtonLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        barAndButtonLayout.getStyle().set("margin-bottom", "8px");
         FlexLayout mainLayout = new FlexLayout(barAndButtonLayout, stepFlow);
         mainLayout.setFlexGrow(1, stepFlow);
         mainLayout.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
@@ -351,6 +388,7 @@ public class MainView extends AppLayout implements JobEventListener {
             showErrorMessage(e.getMessage());
         }
     }
+    /*
     private Component createButtons(Grid<JobInstanceInfo> grid, JobInstanceInfo item) {
         FlexLayout vl = new FlexLayout();
         vl.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
@@ -454,6 +492,8 @@ public class MainView extends AppLayout implements JobEventListener {
         return vl;
 
     }
+
+     */
 
     private InputStream createJobReport() throws Exception {
         StringBuilder sb = new StringBuilder();
@@ -565,7 +605,7 @@ public class MainView extends AppLayout implements JobEventListener {
         return null;
 
     }
-
+    /*
     private Component createStepComponent(Grid<JobInstanceInfo> grid, JobInstanceInfo jobInstanceInfo) {
         FlexLayout vl = new FlexLayout();
         vl.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
@@ -688,13 +728,7 @@ public class MainView extends AppLayout implements JobEventListener {
         if (stepRunningCount > 0) {
             Div stepsRunning = new Div();
             stepsRunning.addClassNames("step-progress-section", "step-progress-running");
-            /*
-            stepsRunning.getStyle().set("text-align", "center").set("color", "#eeeeee").set("padding-top", "2px").set("padding-bottom", "2px").set("background-color", "var(--lumo-primary-color)").set("text-decoration", "blink")
-                    .set("-webkit-animation-name", "blinker")
-                    .set("-webkit-animation-duration", "1.5s")
-                    .set("-webkit-animation-iteration-count", "infinite")
-                    .set("-webkit-animation-timing-function", "ease-in-out")
-                    .set("-webkit-animation-direction", "alternate");*/
+
             stepsRunning.setText(Integer.toString(stepRunningCount));
             stepsRunning.getStyle().set("flex-grow", ""+stepRunningCount);
             progressBar.add(stepsRunning);
@@ -762,6 +796,8 @@ public class MainView extends AppLayout implements JobEventListener {
 
         return masterLayout;
     }
+    */
+
 
     private Component createStatusLabel(String executionStatus, boolean oldExecution) {
         Div statusLabel = new Div();
@@ -773,7 +809,7 @@ public class MainView extends AppLayout implements JobEventListener {
         return statusLabel;
     }
 
-    private Component createJobHistory(String jobName) {
+    protected Component createJobHistory(String jobName) {
         log.debug("createJobHistory: {}", jobName);
         VerticalLayout vl = new VerticalLayout();
         List<JobInstanceInfo> jobs = null;
@@ -903,13 +939,37 @@ public class MainView extends AppLayout implements JobEventListener {
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
         log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
+
         UI ui = this.getUI().get();
         if (ui != null) {
-            this.getUI().get().access(() -> {
-                grid.getDataProvider().refreshItem(jobInstanceInfo);
+            ui.access(() -> {
+                // grid.getDataProvider().refreshItem();
+                JobButtons jobButtons = jobNameToJobButtons.get(jobInstanceInfo.getName());
+                jobButtons.setJobInstanceInfo(jobInstanceInfo);
+                StepFlow stepFlow = jobNameToStepFLow.get(jobInstanceInfo.getName());
+                // TODO: Only needed for job start?
+                stepFlow.update(jobInstanceInfo.getSteps());
+                JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
+                jobInfo.update(jobInstanceInfo);
                 ui.push();
             });
         }
+    }
+
+    @Override
+    public void onStepChange(BasicJobInstanceInfo basicJobInstanceInfo, StepInfo stepInfo) {
+        log.debug("{}, onstepChange {} ", hashCode(), stepInfo);
+        UI ui = this.getUI().get();
+        if (ui != null) {
+            ui.access(() -> {
+                StepFlow stepFlow = jobNameToStepFLow.get(basicJobInstanceInfo.getName());
+                stepFlow.update(stepInfo);
+                StepProgressBar stepProgressBar = jobNameToProgressBar.get(basicJobInstanceInfo.getName());
+                stepProgressBar.update(basicJobInstanceInfo);
+                ui.push();
+            });
+        }
+
     }
 
     private void showErrorMessage(String message) {
