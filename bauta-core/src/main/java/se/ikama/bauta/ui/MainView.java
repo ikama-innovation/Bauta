@@ -27,6 +27,7 @@ import com.vaadin.flow.component.page.Viewport;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.shared.communication.PushMode;
@@ -57,6 +58,7 @@ import java.util.stream.Stream;
 
 @Push(value = PushMode.MANUAL)
 @Route("")
+@PreserveOnRefresh()
 //@Theme(value = Material.class, variant = Material.LIGHT)
 @Theme(value = Lumo.class, variant = Lumo.DARK)
 // @PWA(name = "Project Base for Vaadin Flow with Spring", shortName = "Project Base")

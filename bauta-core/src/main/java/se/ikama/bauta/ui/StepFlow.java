@@ -131,8 +131,7 @@ public class StepFlow extends Component {
         stepElement.setAttribute("data-status", step.getExecutionStatus());
         stepElement.setProperty("title", step.getName()
                 +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
-                +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
-                + ", next: " + step.getNextId());
+                +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
 
         if (step.getReportUrls() != null || StringUtils.isNotEmpty(step.getExitDescription())) {
             stepElement.removeAllChildren();
