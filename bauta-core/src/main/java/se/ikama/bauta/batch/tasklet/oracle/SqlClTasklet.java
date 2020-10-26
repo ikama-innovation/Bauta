@@ -69,6 +69,12 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
      */
     private boolean killProcessesOnStop = true;
 
+    /**
+     * If you use UTF-8-encoded script files in a windows environment, we need to call "chcp 65001" before calling sqlcl.
+     * If you want to disable this call, set this to false
+     */
+    private boolean setExplicitCodepage = true;
+
     private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
@@ -152,6 +158,9 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
                         commands.add("/c");
+                        if (setExplicitCodepage) {
+                            cmd = "chcp 65001|" + cmd;
+                        }
                         commands.add(cmd);
                     }
                     else {
@@ -411,5 +420,9 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
     public void setKillProcessesOnStop(boolean killProcessesOnStop) {
         this.killProcessesOnStop = killProcessesOnStop;
+    }
+
+    public void setSetExplicitCodepage(boolean setExplicitCodepage) {
+        this.setExplicitCodepage = setExplicitCodepage;
     }
 }
