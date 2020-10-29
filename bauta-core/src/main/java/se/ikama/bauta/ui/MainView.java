@@ -951,6 +951,8 @@ public class MainView extends AppLayout implements JobEventListener {
                 StepFlow stepFlow = jobNameToStepFLow.get(jobInstanceInfo.getName());
                 // TODO: Only needed for job start?
                 stepFlow.update(jobInstanceInfo.getSteps());
+                StepProgressBar progressBar  = jobNameToProgressBar.get(jobInstanceInfo.getName());
+                progressBar.update(jobInstanceInfo);
                 JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
                 jobInfo.update(jobInstanceInfo);
                 ui.push();
