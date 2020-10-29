@@ -25,7 +25,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="sendExitCommand" value="true"/>
-        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier}"/>
+        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier:empty}"/>
         <property name="environmentParams">
             <map>
                 <!-- Here you can set general environment params that will be applied in all child beans -->
@@ -40,7 +40,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
         <property name="sendExitCommand" value="true"/>
-        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier}"/>
+        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier:empty}"/>
         <property name="environmentParams">
             <map>
                 <!-- Here you can set general environment params that will be applied in all child beans -->
@@ -54,7 +54,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
     <bean id="sqlcl-base" class="se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet" abstract="true">
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
-        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier}"/>
+        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.connectionIdentifier:empty}"/>
         <property name="environmentParams">
             <map>
                 <!-- Here you can set general environment params that will be applied in all child beans -->
@@ -67,7 +67,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
     <bean id="sqlcl-admin-base" class="se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet" abstract="true">
         <property name="scriptDir" value="${bauta.scriptDir}"/>
         <property name="timeout" value="7200000"/>
-        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier}"/>
+        <property name="easyConnectionIdentifier" value="${bauta.stagingDB.sqlplus.adminConnectionIdentifier:empty}"/>
         <property name="environmentParams">
             <map>
                 <!-- Here you can set general environment params that will be applied in all child beans -->

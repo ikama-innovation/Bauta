@@ -1,0 +1,41 @@
+
+# A fancy name for your implementation of Bauta
+bauta.application.name: Php Sample
+bauta.application.description: Demo of Php-based batch automation
+bauta.application.version: '@project.version@'
+bauta.application.buildTime: '@bautainstancetimestamp@'
+
+# Optionally eplace this with build number from build tool
+bauta.application.build: 1
+
+# The base home directory. Typically where reports, logs, etc go
+bauta.homeDir:
+bauta.jobBeansDir: ${bauta.homeDir}/jobs
+bauta.scriptDir: ${bauta.homeDir}/scripts
+bauta.reportDir: ${bauta.homeDir}/reports
+bauta.logDir: ${bauta.homeDir}/logs
+
+# Enables the interactive shell. If you use the web UI, keep this disabled
+spring.shell.interactive.enabled: false
+vaadin.productionMode: true
+
+# Http session timeout
+server.servlet.session.timeout: 60m
+
+# Rebuild command. Typically stops bauta process, fetches latest code, scripts, beans from VCS
+# and then starts a fresh process
+bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_server.sh
+
+
+
+---
+spring:
+  profiles: mattias
+bauta.homeDir: /home/arbinmat/Projects/php_sample_home
+bauta.jobBeansDir: /home/arbinmat/Projects/bauta/bauta-sample-php/src/main/install/jobs
+bauta.scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-php/src/main/install/scripts
+bauta.application.description: Mattias Demo of Php-based batch automation
+bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+
+
+

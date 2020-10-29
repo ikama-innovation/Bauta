@@ -45,16 +45,16 @@ public class BatchConfiguration {
     @Value("${bauta.homeDir}")
     String homeDir;
 
-    @Value("${bauta.stagingDB.url}")
+    @Value("${bauta.stagingDB.url:}")
     String stagingDbUrl;
 
-    @Value("${bauta.stagingDB.driverClassName}")
+    @Value("${bauta.stagingDB.driverClassName:}")
     String stagingDbDriverClassName;
 
-    @Value("${bauta.stagingDB.username}")
+    @Value("${bauta.stagingDB.username:}")
     String stagingDbUsername;
 
-    @Value("${bauta.stagingDB.password}")
+    @Value("${bauta.stagingDB.password:}")
     String stagingDbPassword;
 
     @Value(value = "${bauta.jobRepository.isolationLevelForCreate:ISOLATION_READ_COMMITTED}")
