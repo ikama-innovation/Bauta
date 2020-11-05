@@ -17,6 +17,10 @@ You can run your jobs locally on your personal computer or on a server to suppor
 - Provides "starter" and example projects for different usage scenarios
 - Supports "DevOps" way of developing your Jobs/Steps in a collaborative, automated fashion
 
+## Use cases
+- Data migration/ETL
+- Batch processing
+
 ### Scheduling
 Bauta lets you schedule jobs to start at times specified by a CRON expression. This is useful for starting import jobs, running your daily integration dry-runs during development etc.
 
