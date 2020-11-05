@@ -250,6 +250,10 @@ public class JobMetadataReader {
                         if (StringUtils.containsIgnoreCase(parent, "sql", Locale.US)) {
                             step.setStepType(StepMetadata.StepType.SQL);
                             return;
+                        }
+                        else if (StringUtils.containsIgnoreCase(parent, "php", Locale.US)) {
+                            step.setStepType(StepMetadata.StepType.PHP);
+                            return;
                         } else {
                             log.info("parent: {}", parent);
                         }

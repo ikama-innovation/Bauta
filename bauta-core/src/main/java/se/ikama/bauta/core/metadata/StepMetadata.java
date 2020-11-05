@@ -8,6 +8,7 @@ public class StepMetadata extends SubFlow {
     public static enum StepType {
         /* SQL script(s) */
         SQL,
+        PHP,
         /* Scheduled stored procedure */
         SP,
         REPORT,

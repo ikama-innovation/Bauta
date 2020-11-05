@@ -22,7 +22,6 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
-import se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -63,10 +62,9 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private boolean killProcessesOnStop = true;
 
     /**
-     * If you use UTF-8-encoded script files in a windows environment, we need to call "chcp 65001" before calling sqlcl.
-     * If you want to disable this call, set this to false
+     *
      */
-    private boolean setExplicitCodepage = true;
+    private boolean setExplicitCodepage = false;
 
     private JobExplorer jobExplorer;
 
@@ -85,7 +83,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     protected String reportDir;
 
     /**
-     * Execute system executable (sql ..) and map its exit code to {@link ExitStatus}
+     * Execute system executable (php ..) and map its exit code to {@link ExitStatus}
      * using {@link SystemProcessExitCodeMapper}.
      */
     @Override
@@ -188,7 +186,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                         return process.waitFor();
                     }
                     catch(InterruptedException ie) {
-                        log.debug("Interrupted. Trying to close sqlcl process..");
+                        log.debug("Interrupted. Trying to close php process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
@@ -215,8 +213,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                     int exitCode = systemCommandTask.get();
 
                     log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
-                    // Not all errors in SQLcl leads to an error code being returned.
-                    // The log file must be checked for errors.
 
                     checkForErrorsInLog(logFile);
 
@@ -230,7 +226,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                 } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
                     kill (systemCommandTask, "terminateOnly");
                 } else if (stopping) {
-                    // We are in the middle of executing a SQL script.
+                    // We are in the middle of executing a PHP script.
                     // Only thing we can do is to terminate the processes that have been started.
                     stopping = false;
                     kill(systemCommandTask, "stop");
@@ -245,7 +241,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     }
 
     /**
-     * Checks the log file for SQL errors.
+     * Checks the log file for errors that should result in a step failure.
      *
      * @param logFile
      * @throws JobExecutionException If errors are found in the log file.
@@ -254,16 +250,9 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
         try (LineNumberReader reader = new LineNumberReader(new InputStreamReader(new FileInputStream(logFile)))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
-                if (line.startsWith("SP2-") || line.startsWith("CPY0") || line.startsWith("Warning:")) {
-                    throw new JobExecutionException("There were SQL*Plus errors: " + line);
-                } else if (line.contains(" PL/SQL:") || line.contains(" PLS-")) {
-                    throw new JobExecutionException("There were errors: " + line);
-                } else if (line.startsWith("Errors: check compiler log")) {
-                    throw new JobExecutionException("There were compilation errors: " + line);
-                }
-                else if (line.startsWith("Error starting at line") || line.startsWith("Error report") || line.startsWith("ERROR at line")) {
-                    throw new JobExecutionException("There were errors: " + line);
-                }
+                //if (line.startsWith("Error")) {
+                //    throw new JobExecutionException("There were PHP errors: " + line);
+                //}
 
             }
         } catch (IOException ioe) {

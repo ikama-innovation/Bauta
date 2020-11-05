@@ -201,6 +201,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         Button upgradeInstanceButton = new Button("", clickEvent -> {
             try {
+                clickEvent.getSource().setEnabled(false);
                 bautaManager.rebuildServer();
                 showInfoMessage("Restarting server. Hold on until it is up and running again..");
 

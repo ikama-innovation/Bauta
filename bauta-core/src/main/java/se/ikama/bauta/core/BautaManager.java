@@ -85,6 +85,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Autowired
     JobMetadataReader jobMetadataReader;
 
+    // Set to true after rebuild has been issued. To avoid multiple calls to the rebuild command
+    private boolean rebuilding = false;
 
 
     public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
@@ -695,6 +697,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
      * @throws Exception
      */
     public int rebuildServer() throws Exception {
+        if (rebuilding) {
+            // Already rebuilding
+            return -1;
+        }
+        rebuilding = true;
         if (hasRunningExecutions()) {
             throw new RuntimeException("There are running executions! Will not rebuild");
         }

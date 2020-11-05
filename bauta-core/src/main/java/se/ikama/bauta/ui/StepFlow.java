@@ -99,7 +99,7 @@ public class StepFlow extends Component {
             stepElement.setAttribute("class", "step-flow-step batch_status");
             stepElement.setAttribute("title", step.getName());
             stepToElement.put(step.getName(), stepElement);
-            stepElement.appendChild(Element.createText(step.getName()));
+            stepElement.appendChild(Element.createText(step.getName() + " ("+step.getType()+")"));
             update(step, stepElement);
             // Add the splits at correct position in the flow
             if (step.getSplitId() != null) {
@@ -129,13 +129,14 @@ public class StepFlow extends Component {
     }
     private void update(StepInfo step, Element stepElement) {
         stepElement.setAttribute("data-status", step.getExecutionStatus());
+
         stepElement.setProperty("title", step.getName()
                 +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
                 +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
 
         if (step.getReportUrls() != null || StringUtils.isNotEmpty(step.getExitDescription())) {
             stepElement.removeAllChildren();
-            stepElement.setText(step.getName());
+            stepElement.setText(step.getName() + " (" + step.getType() + ")");
         }
         if (step.getReportUrls() != null) {
             for (String url : step.getReportUrls()) {
