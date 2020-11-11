@@ -1,3 +1,3 @@
 <?php
-printfx("Hello %s" , $argv[1]);
+printf("Hello %s" , $argv[1]);
 ?>

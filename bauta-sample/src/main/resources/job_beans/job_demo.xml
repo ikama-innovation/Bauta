@@ -10,7 +10,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
     
 
     <bean id="demoReader" class="org.springframework.batch.item.file.FlatFileItemReader" >
-        <property name="directory" value="file:/${bauta.dataDir}/demo/input.csv" />
+        <property name="resource" value="file://${bauta.dataDir}/demo/input.csv" />
         <property name="linesToSkip" value="1" />
         <property name="recordSeparatorPolicy">
             <bean class="org.springframework.batch.item.file.separator.DefaultRecordSeparatorPolicy"/>
@@ -43,7 +43,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
     </bean>
     <bean id="demoWriter" class="org.springframework.batch.item.file.FlatFileItemWriter">
         <!-- write to this csv file -->
-        <property name="directory" value="file:/${bauta.dataDir}/demo/output.csv" />
+        <property name="resource" value="file://${bauta.dataDir}/demo/output.csv" />
         <property name="shouldDeleteIfExists" value="true" />
 
         <property name="lineAggregator">
@@ -60,11 +60,19 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </property>
     </bean>
     <bean id="demoProcessor" class="se.ikama.bauta.demo.DemoProcessor"></bean>
-    <b:job id="Job.01.ReadWriteDemo" restartable="false">
-        <b:step  id="demo-import" >
-            <b:description>Reads demo data frmo csv files and writes to elastic</b:description>
+    <b:job id="Job.01.ReadWriteDemo" parent="job_base">
+        <b:step parent="step_base" id="demo_import" next="demo_dummy">
+            <b:description>Reads demo data from csv files and writes to elastic</b:description>
             <b:tasklet >
                 <b:chunk reader="demoReader" writer="demoWriter" processor="demoProcessor" commit-interval="10" />
+            </b:tasklet>
+        </b:step>
+        <b:step parent="step_base" id="demo_dummy">
+            <b:tasklet>
+                <bean class="se.ikama.bauta.batch.tasklet.DummyTasklet" >
+                    <property name="sleepTimeMs" value="100" />
+                    <property name="repeats" value="10" />
+                </bean>
             </b:tasklet>
         </b:step>
     </b:job>

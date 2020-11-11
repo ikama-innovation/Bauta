@@ -3,6 +3,8 @@ package se.ikama.bauta.core.metadata;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Data
@@ -10,12 +12,12 @@ public class JobMetadata {
     
     private String name;
     private String description;
-    private final List<StepMetadata> allSteps = new ArrayList<>();
+    private final LinkedHashMap<String, StepMetadata> allSteps = new LinkedHashMap<>();
     private final List<SubFlow> flow = new ArrayList<>();
 
 
-    public List<StepMetadata> getAllSteps() {
-        return allSteps;
+    public Collection<StepMetadata> getAllSteps() {
+        return allSteps.values();
     }
     public void addToFlow(SubFlow f) {
         flow.add(f);
@@ -61,7 +63,11 @@ public class JobMetadata {
     }
 
     void addToAllSteps(StepMetadata step) {
-        allSteps.add(step);
+        allSteps.put(step.getId(), step);
+    }
+
+    public StepMetadata getStepMetadata(String stepId) {
+        return allSteps.get(stepId);
     }
     
 }

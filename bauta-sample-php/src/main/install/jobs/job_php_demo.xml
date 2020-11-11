@@ -16,6 +16,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             </map>
         </property>
     </bean>
+
     <b:job id="Job.01.Php" parent="job_base">
 
         <b:step parent="step_base" id="hello" next="hello2">
@@ -35,7 +36,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </bean>
             </b:tasklet>
         </b:step>
-        <b:step parent="step_base" id="hello2" >
+        <b:step parent="step_base" id="hello2" next="hello_html">
             <b:tasklet>
                 <bean parent="php-base">
                     <property name="scriptFiles">
@@ -52,6 +53,41 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                 </bean>
             </b:tasklet>
         </b:step>
-
+        <b:step parent="step_base" id="hello_html" next="hello_html_bootstrap">
+            <b:tasklet>
+                <bean parent="php-base">
+                    <property name="logSuffix" value="html" />
+                    <property name="scriptFiles">
+                        <list>
+                            <value>demo_html.php</value>
+                        </list>
+                    </property>
+                    <property name="scriptParameters">
+                        <list>
+                            <value>again</value>
+                        </list>
+                    </property>
+                    <property name="killProcessesOnStop" value="false" />
+                </bean>
+            </b:tasklet>
+        </b:step>
+        <b:step parent="step_base" id="hello_html_bootstrap" >
+            <b:tasklet>
+                <bean parent="php-base">
+                    <property name="logSuffix" value="html" />
+                    <property name="scriptFiles">
+                        <list>
+                            <value>demo_html_bootstrap.php</value>
+                        </list>
+                    </property>
+                    <property name="scriptParameters">
+                        <list>
+                            <value>again</value>
+                        </list>
+                    </property>
+                    <property name="killProcessesOnStop" value="false" />
+                </bean>
+            </b:tasklet>
+        </b:step>
     </b:job>
 </beans>

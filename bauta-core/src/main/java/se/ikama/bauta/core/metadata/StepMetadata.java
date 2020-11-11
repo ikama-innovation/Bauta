@@ -10,8 +10,8 @@ public class StepMetadata extends SubFlow {
         SQL,
         PHP,
         /* Scheduled stored procedure */
-        SP,
-        REPORT,
+        SCH,
+        REP,
         OTHER,
         /* Reader/writer (standard spring batch step) */
         RW,

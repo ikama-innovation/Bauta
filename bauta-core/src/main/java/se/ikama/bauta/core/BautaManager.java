@@ -548,7 +548,15 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 si = new StepInfo(se.getStepName());
                 jobInstanceInfo.appendStep(si);
             }
+            if (!mergeOlderExecutions) {
+                // In this case, we have not added metadata to steps. Get step type from metadata
+                StepMetadata.StepType stepType = jobMetadataReader.getMetadata(jobName).getStepMetadata(si.getName()).getStepType();
+                if (stepType != null) {
+                    si.setType(stepType.name());
+                }
+            }
             extractStepInfo(si, se);
+
         }
 
         if (mergeOlderExecutions) {
@@ -596,6 +604,18 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         si.setExitDescription(se.getExitStatus().getExitDescription());
         si.setStartTime(se.getStartTime());
         si.setEndTime(se.getEndTime());
+        if ("RW".equals(si.getType())) {
+            ReadWriteInfo rwi = new ReadWriteInfo();
+            rwi.setCommitCount(se.getCommitCount());
+            rwi.setFilterCount(se.getFilterCount());
+            rwi.setProcessSkipCount(se.getProcessSkipCount());
+            rwi.setReadCount(se.getReadCount());
+            rwi.setReadSkipCount(se.getReadSkipCount());
+            rwi.setRollbackCount(se.getRollbackCount());
+            rwi.setWriteCount(se.getWriteCount());
+            rwi.setWriteSkipCount(se.getWriteSkipCount());
+            si.setReadWriteInfo(rwi);
+        }
 
     }
 
@@ -620,10 +640,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     public List<JobInstanceInfo> jobHistory(String jobName) throws Exception {
         ArrayList<JobInstanceInfo> out = new ArrayList<>();
         List<JobInstance> jobInstances = jobExplorer.getJobInstances(jobName, 0, 3);
-        for (JobInstance ji : jobInstances) {
-            List<JobExecution> jobExecutions = jobExplorer.getJobExecutions(ji);
-            for(JobExecution je: jobExecutions) {
-                out.add(extractJobInstanceInfo(je, false));
+        if (jobInstances != null) {
+            for (JobInstance ji : jobInstances) {
+                List<JobExecution> jobExecutions = jobExplorer.getJobExecutions(ji);
+                if (jobExecutions != null) {
+                    for (JobExecution je : jobExecutions) {
+                        out.add(extractJobInstanceInfo(je, false));
+                    }
+                }
             }
         }
         return out;

@@ -32,6 +32,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
+
 public class PhpTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
 
 
@@ -71,6 +72,11 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private volatile boolean stopping = true;
 
     /**
+     *
+     */
+    private String logSuffix = "log";
+
+    /**
      * A unique id for the group of processes that are started for each script. The uid is added to the command line
      * to make it possible to find and kill all processes with a command line containing this uid.
      */
@@ -90,7 +96,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
         log.debug("execute..");
         stopping = false;
-        String logFileName = "php.log";
+        String logFileName = "php." + logSuffix;
 
         StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
         File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, logFileName);
@@ -130,13 +136,14 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
 
         for (String scriptFile : scriptFiles) {
             log.debug("Handling {}", scriptFile);
-            try (PrintWriter pw = new PrintWriter(new FileWriter(logFile, true))) {
-                String line = StringUtils.repeat("-", scriptFile.length());
-                pw.println(line);
-                pw.println(scriptFile + ":");
-                pw.println(line);
-                pw.flush();
-
+            if (StringUtils.equals(logSuffix, "log")) {
+                try (PrintWriter pw = new PrintWriter(new FileWriter(logFile, true))) {
+                    String line = StringUtils.repeat("-", scriptFile.length());
+                    pw.println(line);
+                    pw.println(scriptFile + ":");
+                    pw.println(line);
+                    pw.flush();
+                }
             }
             FutureTask<Integer> systemCommandTask = new FutureTask<Integer>(new Callable<Integer>() {
 
@@ -399,5 +406,9 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
 
     public void setSetExplicitCodepage(boolean setExplicitCodepage) {
         this.setExplicitCodepage = setExplicitCodepage;
+    }
+
+    public void setLogSuffix(String logSuffix) {
+        this.logSuffix = logSuffix;
     }
 }

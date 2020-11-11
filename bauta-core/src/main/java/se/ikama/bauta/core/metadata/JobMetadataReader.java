@@ -233,13 +233,13 @@ public class JobMetadataReader {
                     String parent = ce.getAttribute("parent");
                     if (class_ != null && class_.length() > 0) {
                         if ("se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet".equals(class_)) {
-                            step.setStepType(StepMetadata.StepType.SP);
+                            step.setStepType(StepMetadata.StepType.SCH);
                             return;
                         } else if ("se.ikama.bauta.batch.tasklet.ResourceAssertTasklet".equals(class_)) {
                             step.setStepType(StepMetadata.StepType.ASSERT);
                             return;
                         } else if (class_.contains("Report")) {
-                            step.setStepType(StepMetadata.StepType.REPORT);
+                            step.setStepType(StepMetadata.StepType.REP);
                             return;
                         } else {
                             log.info("class: {}", class_);

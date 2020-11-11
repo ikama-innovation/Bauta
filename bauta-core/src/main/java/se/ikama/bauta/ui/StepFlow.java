@@ -8,6 +8,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Pre;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -17,6 +18,7 @@ import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import se.ikama.bauta.core.JobInstanceInfo;
+import se.ikama.bauta.core.ReadWriteInfo;
 import se.ikama.bauta.core.StepInfo;
 
 import java.util.*;
@@ -99,7 +101,6 @@ public class StepFlow extends Component {
             stepElement.setAttribute("class", "step-flow-step batch_status");
             stepElement.setAttribute("title", step.getName());
             stepToElement.put(step.getName(), stepElement);
-            stepElement.appendChild(Element.createText(step.getName() + " ("+step.getType()+")"));
             update(step, stepElement);
             // Add the splits at correct position in the flow
             if (step.getSplitId() != null) {
@@ -133,10 +134,15 @@ public class StepFlow extends Component {
         stepElement.setProperty("title", step.getName()
                 +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
                 +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
+        stepElement.removeAllChildren();
+        String stepName = step.getName();
+        if (step.getType() != null && !"OTHER".equals(step.getType())) {
+            stepName += " ("+step.getType()+")";
+        }
+        stepElement.appendChild(Element.createText(stepName));
 
         if (step.getReportUrls() != null || StringUtils.isNotEmpty(step.getExitDescription())) {
-            stepElement.removeAllChildren();
-            stepElement.setText(step.getName() + " (" + step.getType() + ")");
+            stepElement.setText(stepName);
         }
         if (step.getReportUrls() != null) {
             for (String url : step.getReportUrls()) {
@@ -181,10 +187,16 @@ public class StepFlow extends Component {
             //icon.setSize("1.2em");
 
             descriptionButton.setIcon(icon);
-            descriptionButton.getStyle().set("font-size", "0.8em").set("color","#eeeeee");
+            descriptionButton.getStyle().set("font-size", "0.8em").set("color","#eeeeee").set("margin-left","5px");
             descriptionButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
             stepElement.appendChild(descriptionButton.getElement());
 
+        }
+        if (step.getReadWriteInfo() != null) {
+            ReadWriteInfo rw = step.getReadWriteInfo();
+            Span span  = new Span("  R/W/S: " + rw.toRWSString());
+            span.getStyle().set("margin-left","5px");
+            stepElement.appendChild(span.getElement());
         }
     }
 

@@ -53,7 +53,7 @@
     <div th:each="result : ${queryResults}">
         <h3><span th:text="${result.title}"></span> <a class="btn btn-default btn-xs"
                                                        th:attr="data-content=${result.query}" data-toggle="popover"
-                                                       title="Query SQL">SQL</a></h3>
+                                                       title="Query">Query</a></h3>
         <!--<pre><small th:text="${result.query}"></small></pre>-->
         <div th:if="${result.error}" class="alert alert-danger" th:text="${result.error}">
 

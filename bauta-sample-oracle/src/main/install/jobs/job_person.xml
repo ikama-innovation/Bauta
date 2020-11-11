@@ -31,14 +31,14 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                     </property>
                     <property name="scriptParameters">
                         <list>
-                            <value>120</value>
+                            <value>1</value>
                         </list>
                     </property>
                     <property name="killProcessesOnStop" value="false" />
                 </bean>
             </b:tasklet>
         </b:step>
-        <b:step parent="step_base" id="create_person_1" next="convert_person_1">
+        <b:step parent="step_base" id="create_person_1" next="convert_person_1" >
             <b:description>Create some person1 data</b:description>
             <b:tasklet>
                 <bean parent="sqlcl-base">
@@ -76,19 +76,19 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
         </b:step>
         <b:step parent="step_base" id="create_person2" next="convert_person2">
             <b:description>Executes the demo_create_person2 procedure in a scheduled DBMS_SCHEDULER job</b:description>
-            <b:tasklet>
-                <bean class="se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet">
+            <b:tasklet >
+                <bean class="se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet" >
                     <property name="action" value="begin demo_create_person2(100000);end;"/>
-                    <property name="statusCheckInterval" value="10000" />
+                    <property name="statusCheckInterval" value="30000" />
                 </bean>
             </b:tasklet>
         </b:step>
         <b:step parent="step_base" id="convert_person2" next="demo_close_connections">
             <b:description>Executes the demo_convert_person2 procedure in a scheduled DBMS_SCHEDULER job</b:description>
-            <b:tasklet>
+            <b:tasklet >
                 <bean class="se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet">
                     <property name="action" value="begin demo_convert_person2();end;"/>
-                    <property name="statusCheckInterval" value="10000" />
+                    <property name="statusCheckInterval" value="30000" />
                 </bean>
             </b:tasklet>
         </b:step>
@@ -108,12 +108,14 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                         <list>
                             <value>SELECT count(*) from person1</value>
                             <value>SELECT count(*) from person2</value>
-                            </list>
+                            <value>SELECT count(*) from person2_converted</value>
+                        </list>
                     </property>
                     <property name="titles">
                         <list>
                             <value>Count, person1</value>
                             <value>Count, person2</value>
+                            <value>Count, person2_converted</value>
                         </list>
                     </property>
                 </bean>

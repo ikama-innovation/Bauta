@@ -9,7 +9,12 @@ create table person2 (
 );
 
 create or replace PROCEDURE demo_create_person2(p_size NUMBER) AS
+l_stmt VARCHAR2(4000);
 BEGIN
+l_stmt := 'begin drop_table_if_exists(''person2''); end;';
+EXECUTE IMMEDIATE l_stmt;
+l_stmt := 'create table person2 (person_id int,last_name varchar2(255),first_name varchar2(255),address varchar2(255),city varchar2(255))';
+EXECUTE IMMEDIATE l_stmt;
 For IDS in 1..p_size
 Loop
 INSERT INTO person2 (person_id, last_name, first_name, address, city) VALUES (IDS, dbms_random.string('L', 15), dbms_random.string('L', 15),dbms_random.string('L', 15),dbms_random.string('L', 15));

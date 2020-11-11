@@ -91,7 +91,6 @@ public class MainView extends AppLayout implements JobEventListener {
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
         createMainView(schedulingView);
-
     }
 
     @Override
@@ -842,6 +841,7 @@ public class MainView extends AppLayout implements JobEventListener {
             grid.setWidthFull();
             grid.addColumn(StepInfo::getName).setHeader("Name").setAutoWidth(true);
             //grid.addColumn(StepInfo::getExecutionStatus).setHeader("Status");
+            grid.addColumn(item-> item.getType()).setHeader("Type");
 
             grid.addComponentColumn(item -> createStatusLabel(item.getExecutionStatus(), false)).setHeader("Status");
             grid.addComponentColumn(item -> new Label(DurationFormatUtils.formatDuration(item.getDuration(), "HH:mm:ss"))).setHeader("Duration");
@@ -870,6 +870,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 }
                 return reportDiv;
             });
+            grid.addColumn(item -> (item.getReadWriteInfo() != null ? item.getReadWriteInfo().toRWSString() : null)).setHeader("R/W/S");
             grid.setItems(ji.getSteps());
             div.add(grid);
             vl.add(div);

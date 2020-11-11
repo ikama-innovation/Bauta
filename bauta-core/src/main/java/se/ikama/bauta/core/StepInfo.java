@@ -23,6 +23,7 @@ public class StepInfo {
     private String nextId;
     private Date startTime;
     private Date endTime;
+    private ReadWriteInfo readWriteInfo;
 
     public StepInfo(String name) {
         this.name = name;
