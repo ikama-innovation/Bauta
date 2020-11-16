@@ -63,6 +63,9 @@ public class BatchConfiguration {
     @Value(value = "${bauta.batchDataSource.url:jdbc:hsqldb:file:${bauta.homeDir}/db/data;hsqldb.tx=mvcc}")
     String batchDataSourceUrl;
 
+    @Value(value = "${bauta.batch.executor.maxThreads:20")
+    int multiThreadExecutorMaxPoolSize;
+
     /**
      * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
      * Typically not needed. One use-case is when using Oracle Wallet for authentication. Then you
@@ -237,7 +240,7 @@ public class BatchConfiguration {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setThreadNamePrefix("bautam-");
         executor.setCorePoolSize(10);
-        executor.setMaxPoolSize(20);
+        executor.setMaxPoolSize(multiThreadExecutorMaxPoolSize);
         executor.setQueueCapacity(25);
         executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;

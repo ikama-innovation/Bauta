@@ -5,6 +5,8 @@ bauta.application.description: Demo of Oracle-based batch automation
 bauta.application.version: '@project.version@'
 bauta.application.buildTime: '@bautainstancetimestamp@'
 
+bauta.batch.executor.maxThreads: 20
+
 # Optionally eplace this with build number from build tool
 bauta.application.build: 1
 
