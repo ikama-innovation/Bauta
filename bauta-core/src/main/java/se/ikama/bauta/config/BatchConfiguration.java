@@ -75,12 +75,16 @@ public class BatchConfiguration {
     @Value(value = "${bauta.stagingDB.connectionProperties:}")
     String stagingDbConnectionProperties;
 
+    @Value(value = "${bauta.stagingDB.connectionPool.maxTotal:20}")
+    int stagingDbMaxTotal;
+
+
     @Bean()
     @Primary
     DataSource dataSource() {
 
         BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setMaxTotal(20);
+        dataSource.setMaxTotal(100);
         dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
         dataSource.setUrl(batchDataSourceUrl);
         dataSource.setUsername("sa");
@@ -194,12 +198,13 @@ public class BatchConfiguration {
     //@ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
+        log.info("Connection pool max size: {}", stagingDbMaxTotal);
         log.info("Username is {}", stagingDbUsername);
         log.info("Password is {}", stagingDbPassword != null ? "********" : null);
 
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setMaxWaitMillis(10000);
-        dataSource.setMaxTotal(20);
+        dataSource.setMaxTotal(stagingDbMaxTotal);
         dataSource.setMaxConnLifetimeMillis(1000*60*10);
         dataSource.setLogExpiredConnections(false);
 

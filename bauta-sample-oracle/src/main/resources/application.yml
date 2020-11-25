@@ -54,6 +54,9 @@ bauta:
   scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/scripts
   application.description: Mattias Demo of Oracle-based batch automation
   rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+  stagingDB:
+    connectionPool:
+      maxTotal: 100
   security:
     enabled: true
     configFilePath: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/bauta_security.json
