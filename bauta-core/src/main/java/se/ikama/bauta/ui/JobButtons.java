@@ -34,6 +34,8 @@ public class JobButtons extends FlexLayout {
 
     private Button startButton, stopButton, restartButton, infoButton, abandonButton;
 
+    boolean enabled;
+
     public JobButtons(BasicJobInstanceInfo jobInstanceInfo, MainView mainView, BautaManager bautaManager) {
         this.mainView = mainView;
         this.bautaManager = bautaManager;
@@ -136,15 +138,30 @@ public class JobButtons extends FlexLayout {
         this.jobInstanceInfo = jobInstanceInfo;
         updateButtonState();
     }
+
+    public void setRunEnabled(boolean enabled) {
+        this.enabled = enabled;
+        updateButtonState();
+
+    }
+
     private void updateButtonState() {
-        if ("STARTED".equals(this.jobInstanceInfo.getExecutionStatus())) {
+        if (enabled) {
+            if ("STARTED".equals(this.jobInstanceInfo.getExecutionStatus())) {
+                startButton.setEnabled(false);
+                restartButton.setEnabled(false);
+                stopButton.setEnabled(true);
+            } else {
+                stopButton.setEnabled(false);
+                startButton.setEnabled(true);
+                restartButton.setEnabled(jobInstanceInfo.isRestartable());
+            }
+        }
+        else {
+            stopButton.setEnabled(false);
             startButton.setEnabled(false);
             restartButton.setEnabled(false);
-            stopButton.setEnabled(true);
-        } else {
-            stopButton.setEnabled(false);
-            startButton.setEnabled(true);
-            restartButton.setEnabled(jobInstanceInfo.isRestartable());
+            abandonButton.setEnabled(false);
         }
     }
     private void doStartJob(BasicJobInstanceInfo item, Map<String, String> params) {

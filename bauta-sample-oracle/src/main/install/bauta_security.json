@@ -1,0 +1,19 @@
+{
+  "users": [
+    {
+      "username": "joe_runner",
+      "password" : "{bcrypt}$2y$12$ILHjHlk1EzsOVYDeKRK68unNKbrvkhhCJ2EkYtTo3K3TxijmUuhJ6",
+      "roles" : ["BATCH_VIEW", "BATCH_EXECUTE"]
+    },
+    {
+      "username": "sue_viewer",
+      "password" : "{bcrypt}$2y$12$PZmIhV5cStXJRv8jqFhIA.cbaU.2rMFGCdEK7cis4K0p4xzFF197S",
+      "roles" : ["BATCH_VIEW"]
+    },
+    {
+      "username": "don_admin",
+      "password" : "{bcrypt}$2y$12$2nIuR1LRiqrP.ujJLBJcbuB5F4lpAh/zY.s.5gy7ozLs8uJ5p3O0m",
+      "roles" : ["BATCH_VIEW", "BATCH_EXECUTE","ADMIN"]
+    }
+  ]
+}

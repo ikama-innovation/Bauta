@@ -1,14 +1,12 @@
 package se.ikama.bauta.ui;
 
 
-import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -16,6 +14,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -44,7 +43,9 @@ import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.security.access.annotation.Secured;
 import se.ikama.bauta.core.*;
+import se.ikama.bauta.security.SecurityUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -66,6 +67,7 @@ import java.util.stream.Stream;
 @CssImport(value = "./styles/bauta-styles.css")
 @Viewport("width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes, viewport-fit=cover")
 @DependsOn("bautaManager")
+@Secured({"ROLE_BATCH_VIEW", "ROLE_BATCH_EXECUTE", "ROLE_ADMIN"})
 public class MainView extends AppLayout implements JobEventListener {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
@@ -76,9 +78,10 @@ public class MainView extends AppLayout implements JobEventListener {
     //private UI ui;
     Grid<JobInstanceInfo> grid = null;
     Grid<String> serverInfoGrid = null;
-    Label buildInfo = null;
+    Span buildInfo = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
+    private MenuItem miUser;
 
     // Set of all expanded job views. If the job name is present in this set, the corresponding job view should be expanded
     HashSet<String> expandedJobs = new HashSet<>();
@@ -97,6 +100,10 @@ public class MainView extends AppLayout implements JobEventListener {
     protected void onAttach(AttachEvent attachEvent) {
         String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
         String address = attachEvent.getSession().getBrowser().getAddress();
+        if (SecurityUtils.isSecurityEnabled()) {
+            miUser.setText("" + SecurityUtils.currentUser());
+            miUser.addComponentAsFirst(VaadinIcon.USER.create());
+        }
         log.debug("Attach {}, {}, {}", this.hashCode(), browser, address);
         try {
             serverInfoGrid.setItems(bautaManager.getServerInfo());
@@ -114,6 +121,8 @@ public class MainView extends AppLayout implements JobEventListener {
         jobGrid.removeAll();
         jobNameToJobButtons.clear();
         jobNameToStepFLow.clear();
+        boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
+        log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
             Div jobRow = new Div();
@@ -122,6 +131,8 @@ public class MainView extends AppLayout implements JobEventListener {
             Div cell2 = new Div(createStepComponent(job));
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
             JobButtons jb = new JobButtons(job, this, bautaManager);
+            jb.setRunEnabled(enabled);
+
             jobNameToJobButtons.put(jobName, jb);
             Div cell3 = new Div(jb);
             cell3.addClassNames("job-grid-cell");
@@ -193,10 +204,13 @@ public class MainView extends AppLayout implements JobEventListener {
         } catch (Exception e) {
             this.setContent(new Label("Failed to create job view: " + e.getMessage()));
         }
-        Div rightPanel = new Div();
-
-
-        rightPanel.getStyle().set("margin-right", "20px");
+        HorizontalLayout  rightPanel = new HorizontalLayout();
+        rightPanel.setPadding(false);
+        rightPanel.setMargin(false);
+        rightPanel.setSpacing(false);
+        rightPanel.setAlignItems(FlexComponent.Alignment.CENTER);
+        //rightPanel.setAlignSelf(FlexComponent.Alignment.END);
+        rightPanel.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
         Button upgradeInstanceButton = new Button("", clickEvent -> {
             try {
@@ -210,9 +224,9 @@ public class MainView extends AppLayout implements JobEventListener {
         });
         upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
         upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
-        upgradeInstanceButton.getStyle().set("margin-right", "5px");
+        //upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
-        buildInfo = new Label();
+        buildInfo = new Span();
         buildInfo.setClassName("build-info");
         // Job report
         Anchor download = new Anchor(new StreamResource("job_report.csv", () -> {
@@ -225,19 +239,39 @@ public class MainView extends AppLayout implements JobEventListener {
             }
 
         }),"");
+        buildInfo.getStyle().set("margin-right", "10px");
         download.getElement().setAttribute("download", true);
         download.add(new Button(new Icon(VaadinIcon.DOWNLOAD_ALT)));
         download.getElement().setProperty("title", "Job report with execution durations");
+        //download.getStyle().set("margin-right", "5px");
 
         rightPanel.add(buildInfo);
         rightPanel.add(download);
         rightPanel.add(upgradeInstanceButton);
+        if (SecurityUtils.isSecurityEnabled()) {
+            rightPanel.add(createUserMenu());
+        }
 
-        rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right");
+        rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right").set("flex-grow","1").set("margin-top", "4px").set("margin-bottom","4px").set("padding-right","20px");
 
         this.addToNavbar(rightPanel);
         log.debug("createMainView.end");
 
+    }
+    private Component createUserMenu() {
+        Label lSignout = new Label("Logout");
+        lSignout.addComponentAsFirst(VaadinIcon.SIGN_OUT.create());
+        Anchor logout = new Anchor("../logout", lSignout);
+        logout.getStyle().set("padding", "2px");
+
+        MenuBar mbUser = new MenuBar();
+        miUser = mbUser.addItem("replace_me_with_username");
+        //miUser.getElement().getStyle().set("color", "#0099ff");
+        miUser.addComponentAsFirst(VaadinIcon.USER.create());
+        miUser.getSubMenu().add(logout);
+        //mbUser.setMinWidth("300px");
+        //mbUser.getStyle().set("margin-right", "20px");
+        return mbUser;
     }
 
     private Component createAboutView() {

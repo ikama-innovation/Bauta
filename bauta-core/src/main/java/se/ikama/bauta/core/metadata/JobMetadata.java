@@ -32,7 +32,7 @@ public class JobMetadata {
         String lf = System.getProperty("line.separator");
         sb.append("Job ").append(name).append("(").append(description).append(")").append(lf);
         for (SubFlow f : flow) {
-            sb.append("   "+f.toString()).append(lf);
+            sb.append("   ").append(f.toString()).append(lf);
         }
         return sb.toString();
     }

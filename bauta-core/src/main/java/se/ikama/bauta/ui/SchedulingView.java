@@ -22,11 +22,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.scheduling.JobTriggerLog;
+import se.ikama.bauta.security.SecurityUtils;
 
 import javax.annotation.PostConstruct;
 import java.text.DateFormat;
@@ -53,8 +55,8 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
     private Set<JobTrigger> selectedJobTriggers;
 
-    Button removeButton;
-    Button editButton;
+    Button removeButton, editButton, addCronButton, addJobCompletionButton;
+    Label lAdminInfo;
 
 
     public SchedulingView() {
@@ -92,19 +94,24 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
         editButton.setEnabled(false);
         buttons.add(editButton);
 
-        Button addCronButton = new Button("Add CRON trigger ..", clickEvent -> {
+        addCronButton = new Button("Add CRON trigger ..", clickEvent -> {
             addCron(null);
         });
         addCronButton.setIcon(VaadinIcon.CALENDAR_CLOCK.create());
         //addCronButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         buttons.add(addCronButton);
-        Button addJobCompletionButton = new Button("Add Job complete trigger ..", clickEvent -> {
+        addJobCompletionButton = new Button("Add Job complete trigger ..", clickEvent -> {
             addJobCompletion(null);
         });
         addJobCompletionButton.setIcon(VaadinIcon.FLAG_CHECKERED.create());
         //addJobCompletionButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         buttons.add(addJobCompletionButton);
+
         add(buttons);
+        lAdminInfo = new Label("You need to be ADMIN in order to edit triggers");
+        lAdminInfo.getStyle().set("color","var(--lumo-primary-text-color)");
+        lAdminInfo.addComponentAsFirst(VaadinIcon.EXCLAMATION_CIRCLE.create());
+        add(lAdminInfo);
 
         logGrid = new Grid<>();
         logGrid.addClassName("loggrid");
@@ -204,9 +211,25 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
     @Override
     public void selectionChange(SelectionEvent<Grid<JobTrigger>, JobTrigger> selectionEvent) {
-        selectedJobTriggers = selectionEvent.getAllSelectedItems();
-        removeButton.setEnabled(selectedJobTriggers.size() > 0);
-        editButton.setEnabled(selectedJobTriggers.size() == 1);
+        updateButtonState();
+    }
+
+    private void updateButtonState() {
+        if (SecurityUtils.isUserInRole("ADMIN")) {
+            selectedJobTriggers = triggerGrid.getSelectionModel().getSelectedItems();
+            removeButton.setEnabled(selectedJobTriggers.size() > 0);
+            editButton.setEnabled(selectedJobTriggers.size() == 1);
+            addCronButton.setEnabled(true);
+            addJobCompletionButton.setEnabled(true);
+            lAdminInfo.setVisible(false);
+        }
+        else {
+            lAdminInfo.setVisible(true);
+            removeButton.setEnabled(false);
+            editButton.setEnabled(false);
+            addCronButton.setEnabled(false);
+            addJobCompletionButton.setEnabled(false);
+        }
     }
 
     private void remove() {
@@ -455,5 +478,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
         triggerGrid.setItems(triggers);
         logs = jobTriggerDao.loadLog(100);
         logGrid.setItems(logs);
+        updateButtonState();
     }
 }

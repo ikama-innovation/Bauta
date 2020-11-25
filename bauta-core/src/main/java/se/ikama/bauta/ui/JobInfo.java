@@ -3,8 +3,6 @@ package se.ikama.bauta.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.component.orderedlayout.FlexLayout;
-import com.vaadin.flow.dom.ElementFactory;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import se.ikama.bauta.core.BasicJobInstanceInfo;

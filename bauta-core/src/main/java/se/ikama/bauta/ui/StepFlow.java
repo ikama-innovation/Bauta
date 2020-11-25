@@ -32,13 +32,13 @@ public class StepFlow extends Component {
         getElement().setAttribute("class", "step-flow");
         String currentSplit = null;
         String currentFlow = null;
-        HashMap<String, MutableLong> flowDurations = new HashMap<>();
+        LinkedHashMap<String, MutableLong> flowDurations = new LinkedHashMap<>();
         // Which flows runs within which splits?
-        HashMap<String, Set<String>> splitToFlows = new HashMap<>();
-        HashMap<String, Long> splitDurations = new HashMap<>();
-        HashMap<String, String> flowAlias = new HashMap<>();
-        HashMap<String, Element> splitToElement = new HashMap<>();
-        HashMap<String, Element> flowToElement = new HashMap<>();
+        LinkedHashMap<String, Set<String>> splitToFlows = new LinkedHashMap<>();
+        LinkedHashMap<String, Long> splitDurations = new LinkedHashMap<>();
+        LinkedHashMap<String, String> flowAlias = new LinkedHashMap<>();
+        LinkedHashMap<String, Element> splitToElement = new LinkedHashMap<>();
+        LinkedHashMap<String, Element> flowToElement = new LinkedHashMap<>();
         int flowCount = 0;
         // First round, calculate flow durations
         for (StepInfo step : job.getSteps()) {

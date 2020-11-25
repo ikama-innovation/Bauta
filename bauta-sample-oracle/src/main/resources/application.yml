@@ -48,11 +48,15 @@ bauta.stagingDB.sqlplus.adminConnectionIdentifier: ${bauta.stagingDB.adminuserna
 ---
 spring:
   profiles: mattias
-bauta.homeDir: /home/arbinmat/Projects/oracle_sample_home
-bauta.jobBeansDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/jobs
-bauta.scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/scripts
-bauta.application.description: Mattias Demo of Oracle-based batch automation
-bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+bauta:
+  homeDir: /home/arbinmat/Projects/oracle_sample_home
+  jobBeansDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/jobs
+  scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/scripts
+  application.description: Mattias Demo of Oracle-based batch automation
+  rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+  security:
+    enabled: true
+    configFilePath: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/bauta_security.json
 
 bauta.stagingDB.username: ARBINMAT
 bauta.stagingDB.password: ARBINMAT

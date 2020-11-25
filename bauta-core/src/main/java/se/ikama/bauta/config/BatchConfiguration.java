@@ -63,7 +63,7 @@ public class BatchConfiguration {
     @Value(value = "${bauta.batchDataSource.url:jdbc:hsqldb:file:${bauta.homeDir}/db/data;hsqldb.tx=mvcc}")
     String batchDataSourceUrl;
 
-    @Value(value = "${bauta.batch.executor.maxThreads:20")
+    @Value(value = "${bauta.batch.executor.maxThreads:20}")
     int multiThreadExecutorMaxPoolSize;
 
     /**
