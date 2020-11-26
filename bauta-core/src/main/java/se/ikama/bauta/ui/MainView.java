@@ -82,6 +82,7 @@ public class MainView extends AppLayout implements JobEventListener {
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
     private MenuItem miUser;
+    private Button bUpgradeInstance;
 
     // Set of all expanded job views. If the job name is present in this set, the corresponding job view should be expanded
     HashSet<String> expandedJobs = new HashSet<>();
@@ -103,6 +104,8 @@ public class MainView extends AppLayout implements JobEventListener {
         if (SecurityUtils.isSecurityEnabled()) {
             miUser.setText("" + SecurityUtils.currentUser());
             miUser.addComponentAsFirst(VaadinIcon.USER.create());
+            // Must be ADMIN to rebuild/upgrade
+            bUpgradeInstance.setEnabled(SecurityUtils.isUserInRole("ADMIN"));
         }
         log.debug("Attach {}, {}, {}", this.hashCode(), browser, address);
         try {
@@ -212,7 +215,7 @@ public class MainView extends AppLayout implements JobEventListener {
         //rightPanel.setAlignSelf(FlexComponent.Alignment.END);
         rightPanel.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
-        Button upgradeInstanceButton = new Button("", clickEvent -> {
+        bUpgradeInstance = new Button("", clickEvent -> {
             try {
                 clickEvent.getSource().setEnabled(false);
                 bautaManager.rebuildServer();
@@ -222,8 +225,8 @@ public class MainView extends AppLayout implements JobEventListener {
                 showErrorMessage("Failed to rebuild server: " + e.getMessage());
             }
         });
-        upgradeInstanceButton.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
-        upgradeInstanceButton.setIcon(VaadinIcon.REFRESH.create());
+        bUpgradeInstance.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
+        bUpgradeInstance.setIcon(VaadinIcon.REFRESH.create());
         //upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
         buildInfo = new Span();
@@ -247,7 +250,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         rightPanel.add(buildInfo);
         rightPanel.add(download);
-        rightPanel.add(upgradeInstanceButton);
+        rightPanel.add(bUpgradeInstance);
         if (SecurityUtils.isSecurityEnabled()) {
             rightPanel.add(createUserMenu());
         }
