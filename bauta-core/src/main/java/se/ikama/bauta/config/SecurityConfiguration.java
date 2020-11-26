@@ -2,6 +2,7 @@ package se.ikama.bauta.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -82,7 +83,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Bean
     @Override
     public UserDetailsService userDetailsService() {
-        if (securityConfigFilePath != null) {
+        if (securityEnabled && StringUtils.isNotEmpty(securityConfigFilePath)) {
             File file = new File(securityConfigFilePath);
             if (!file.exists()) {
                 throw new RuntimeException("bauta.security.configFilePath points to a file that does not exist: " + securityConfigFilePath);
