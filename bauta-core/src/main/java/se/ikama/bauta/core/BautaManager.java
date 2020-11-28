@@ -72,8 +72,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
 
-    @Value("${bauta.rebuildServerCommand}")
+    @Value("${bauta.rebuildServerCommand:}")
     private String rebuildServerCommand;
+
+    @Value("${bauta.refreshServerCommand:}")
+    private String refreshServerCommand;
 
     @Autowired
     Environment env;
@@ -87,6 +90,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     // Set to true after rebuild has been issued. To avoid multiple calls to the rebuild command
     private boolean rebuilding = false;
+
 
 
     public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
@@ -709,6 +713,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     }
 
+    public boolean isRebuildSupported() {
+        return StringUtils.isNotEmpty(this.rebuildServerCommand);
+    }
     /**
      * Executes an external command that typically
      * <ul>
@@ -721,6 +728,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
      * @throws Exception
      */
     public int rebuildServer() throws Exception {
+        if (!isRebuildSupported()) throw new RuntimeException("Refresh is not supported. Set bauta.refreshServerCommand");
         if (rebuilding) {
             // Already rebuilding
             return -1;
@@ -741,6 +749,20 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         log.info("Done!");
         return result;
 
+    }
+    public boolean isRefreshSupported() {
+        return StringUtils.isNotEmpty(this.refreshServerCommand);
+    }
+
+    public int refreshServer() throws Exception  {
+        if (!isRefreshSupported()) throw new RuntimeException("Refresh is not supported. Set bauta.refreshServerCommand");
+        String refreshServerCommands[] =  StringUtils.split(refreshServerCommand, " ");
+        log.info("Executing refreshServerCommand: '{}'", (Object)refreshServerCommands);
+        ProcessBuilder pb = new ProcessBuilder(refreshServerCommands);
+        Process process = pb.start();
+        int result =  process.waitFor();
+        log.info("Done!");
+        return result;
     }
 
     public List<String> getServerInfo() {

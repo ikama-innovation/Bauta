@@ -24,9 +24,12 @@ vaadin.productionMode: true
 # Http session timeout
 server.servlet.session.timeout: 60m
 
-# Rebuild command. Typically stops bauta process, fetches latest code, scripts, beans from VCS
-# and then starts a fresh process
+# Rebuild command. Typically kills bauta process, fetches latest code, scripts, beans from VCS
+# and then starts a fresh process. Can only be executed once
 bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_server.sh
+# Refresh command. Typically calls a script that refreshes scripts, input data etc
+bauta.refreshServerCommand: ${bauta.homeDir}/bin/refresh_server.sh
+
 
 bauta.stagingDB.host: mydbhost
 bauta.stagingDB.port: 1521
@@ -54,6 +57,8 @@ bauta:
   scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-oracle/src/main/install/scripts
   application.description: Mattias Demo of Oracle-based batch automation
   rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+  refreshServerCommand: ${bauta.homeDir}/bin/refresh_command 1 master
+
   stagingDB:
     connectionPool:
       maxTotal: 100

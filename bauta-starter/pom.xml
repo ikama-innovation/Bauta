@@ -4,12 +4,12 @@
     <groupId>se.ikama</groupId>
     <artifactId>bauta-starter</artifactId>
     <name>Bauta Starter</name>
-    <version>0.0.44</version>
+    <version>0.0.45</version>
     <packaging>jar</packaging>
     <parent>
         <artifactId>bauta</artifactId>
         <groupId>se.ikama</groupId>
-        <version>0.0.44</version>
+        <version>0.0.45</version>
     </parent>
     <dependencyManagement>
         <dependencies>

@@ -82,7 +82,7 @@ public class MainView extends AppLayout implements JobEventListener {
     ArrayList<Button> actionButtons = new ArrayList<>();
     Tabs menuTabs = null;
     private MenuItem miUser;
-    private Button bUpgradeInstance;
+    private Button bUpgradeInstance, bRefreshInstance;
 
     // Set of all expanded job views. If the job name is present in this set, the corresponding job view should be expanded
     HashSet<String> expandedJobs = new HashSet<>();
@@ -105,7 +105,18 @@ public class MainView extends AppLayout implements JobEventListener {
             miUser.setText("" + SecurityUtils.currentUser());
             miUser.addComponentAsFirst(VaadinIcon.USER.create());
             // Must be ADMIN to rebuild/upgrade
-            bUpgradeInstance.setEnabled(SecurityUtils.isUserInRole("ADMIN"));
+            if (bautaManager.isRebuildSupported()) {
+                bUpgradeInstance.setEnabled(SecurityUtils.isUserInRole("ADMIN"));
+            }
+            else {
+                bUpgradeInstance.setVisible(false);
+            }
+            if (bautaManager.isRefreshSupported()) {
+                bRefreshInstance.setEnabled(SecurityUtils.isUserInRole("ADMIN"));
+            }
+            else {
+                bRefreshInstance.setVisible(false);
+            }
         }
         log.debug("Attach {}, {}, {}", this.hashCode(), browser, address);
         try {
@@ -225,8 +236,23 @@ public class MainView extends AppLayout implements JobEventListener {
                 showErrorMessage("Failed to rebuild server: " + e.getMessage());
             }
         });
-        bUpgradeInstance.getElement().setProperty("title", "Upgrades this instance by fetching latest scripts and job definitions from VCS");
-        bUpgradeInstance.setIcon(VaadinIcon.REFRESH.create());
+        bUpgradeInstance.getElement().setProperty("title", "Upgrades this instance.");
+        bUpgradeInstance.setIcon(VaadinIcon.POWER_OFF.create());
+        bUpgradeInstance.getStyle().set("margin-right","5px");
+
+        bRefreshInstance = new Button("", clickEvent -> {
+            try {
+                bautaManager.refreshServer();
+                showInfoMessage("Refreshed server!");
+
+            } catch (Exception e) {
+                showErrorMessage("Failed to refresh server: " + e.getMessage());
+            }
+        });
+        bRefreshInstance.getElement().setProperty("title", "Refreshes this instance.");
+        bRefreshInstance.setIcon(VaadinIcon.REFRESH.create());
+        bRefreshInstance.getStyle().set("margin-right","5px");
+
         //upgradeInstanceButton.getStyle().set("margin-right", "5px");
 
         buildInfo = new Span();
@@ -246,10 +272,11 @@ public class MainView extends AppLayout implements JobEventListener {
         download.getElement().setAttribute("download", true);
         download.add(new Button(new Icon(VaadinIcon.DOWNLOAD_ALT)));
         download.getElement().setProperty("title", "Job report with execution durations");
-        //download.getStyle().set("margin-right", "5px");
+        download.getStyle().set("margin-right", "5px");
 
         rightPanel.add(buildInfo);
         rightPanel.add(download);
+        rightPanel.add(bRefreshInstance);
         rightPanel.add(bUpgradeInstance);
         if (SecurityUtils.isSecurityEnabled()) {
             rightPanel.add(createUserMenu());
