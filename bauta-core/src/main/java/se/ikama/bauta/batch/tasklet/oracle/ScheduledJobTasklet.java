@@ -135,9 +135,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
                 }
             }
             log.debug("Done sleeping");
-            if (checkInterval < this.statusCheckInterval) {
-                checkInterval = Math.max(checkInterval*2, statusCheckInterval);
-            }
+            checkInterval = Math.min(checkInterval*2, statusCheckInterval);
             log.debug("Time to check status");
             String status = checkStatus(dbmsJobName, contribution);
             if ("SUCCEEDED".equals(status)) {

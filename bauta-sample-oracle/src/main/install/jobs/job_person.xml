@@ -78,7 +78,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
             <b:description>Executes the demo_create_person2 procedure in a scheduled DBMS_SCHEDULER job</b:description>
             <b:tasklet >
                 <bean class="se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet" >
-                    <property name="action" value="begin demo_create_person2(100000);end;"/>
+                    <property name="action" value="begin demo_create_person2(100);end;"/>
                     <property name="statusCheckInterval" value="30000" />
                 </bean>
             </b:tasklet>
