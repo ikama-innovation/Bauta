@@ -63,8 +63,12 @@ public class BatchConfiguration {
     @Value(value = "${bauta.batchDataSource.url:jdbc:hsqldb:file:${bauta.homeDir}/db/data;hsqldb.tx=mvcc}")
     String batchDataSourceUrl;
 
-    @Value(value = "${bauta.batch.executor.maxThreads:20}")
+    @Value(value = "${bauta.batch.executor.maxThreads:50}")
     int multiThreadExecutorMaxPoolSize;
+    @Value(value = "${bauta.batch.executor.coreThreads:10}")
+    int multiThreadExecutorCorePoolSize;
+    @Value(value = "${bauta.batch.executor.queueCapacity:9999999}")
+    int multiThreadExecutorQueueCapacity;
 
     /**
      * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
@@ -242,11 +246,12 @@ public class BatchConfiguration {
     }
     @Bean (name = "multiTaskExecutor")
     TaskExecutor multiTaskExecutor() {
+        log.info("Setting up multi-task-executor. core/max/queue: {}/{}/{}", multiThreadExecutorCorePoolSize, multiThreadExecutorMaxPoolSize, multiThreadExecutorQueueCapacity);
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setThreadNamePrefix("bautam-");
-        executor.setCorePoolSize(10);
+        executor.setCorePoolSize(multiThreadExecutorCorePoolSize);
         executor.setMaxPoolSize(multiThreadExecutorMaxPoolSize);
-        executor.setQueueCapacity(25);
+        executor.setQueueCapacity(multiThreadExecutorQueueCapacity);
         executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;
     }
