@@ -79,6 +79,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
     private volatile boolean stopping = true;
 
+    private long currentExecutionId = -1;
+
     /**
      * A unique id for the group of processes that are started for each script. The uid is added to the command line
      * to make it possible to find and kill all processes with a command line containing this uid.
@@ -103,12 +105,19 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
         StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
         File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, logFileName);
-        FileUtils.forceMkdirParent(logFile);
-        // Delete file if it exists. Could happen if this is a re-run.
-        FileUtils.deleteQuietly(logFile);
-        List<String> urls = new ArrayList<>();
-        urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
-        chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
+        if (stepExecution.getJobExecutionId() != currentExecutionId) {
+            this.currentExecutionId = stepExecution.getJobExecutionId();
+            log.debug("Setting up log urls");
+            FileUtils.forceMkdirParent(logFile);
+            // Delete file if it exists. Could happen if this is a re-run.
+            FileUtils.deleteQuietly(logFile);
+            List<String> urls = new ArrayList<>();
+            urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
+            chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
+            log.debug("Setting log urls in execution context {}", urls);
+            return RepeatStatus.CONTINUABLE;
+        }
+
         log.debug("scriptParameters: {}", scriptParameters);
         ArrayList<String> scriptParameterValues = new ArrayList<>();
         if (scriptParameters != null && scriptParameters.size() > 0) {

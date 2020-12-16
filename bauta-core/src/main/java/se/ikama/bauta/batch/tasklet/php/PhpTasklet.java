@@ -63,6 +63,12 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private boolean killProcessesOnStop = true;
 
     /**
+     * Kill signal to use when the PHP process is killed.
+     * Defaults to 15 (SIGTERM)
+     */
+    private String killSignal = "15";
+
+    /**
      *
      */
     private boolean setExplicitCodepage = false;
@@ -70,6 +76,8 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
+
+    private long currentExecutionId = -1;
 
     /**
      *
@@ -94,18 +102,24 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      */
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        log.debug("execute..");
-        stopping = false;
         String logFileName = "php." + logSuffix;
-
         StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
         File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, logFileName);
-        FileUtils.forceMkdirParent(logFile);
-        // Delete file if it exists. Could happen if this is a re-run.
-        FileUtils.deleteQuietly(logFile);
-        List<String> urls = new ArrayList<>();
-        urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
-        chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
+        if (stepExecution.getJobExecutionId() != currentExecutionId) {
+            currentExecutionId = stepExecution.getJobExecutionId();
+            log.debug("Setting up log urls");
+            FileUtils.forceMkdirParent(logFile);
+            // Delete file if it exists. Could happen if this is a re-run.
+            FileUtils.deleteQuietly(logFile);
+            List<String> urls = new ArrayList<>();
+            urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
+            chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
+            log.debug("Setting log urls in execution context {}", urls);
+            return RepeatStatus.CONTINUABLE;
+        }
+
+        stopping = false;
+
         log.debug("scriptParameters: {}", scriptParameters);
         ArrayList<String> scriptParameterValues = new ArrayList<>();
         if (scriptParameters != null && scriptParameters.size() > 0) {
@@ -348,7 +362,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                 // On linux, there will be several sub-processes and there is no way to get access to the PIDs of these.
                 // Instead, we have added the processUid to the end of the command and we can now use the pkill command to
                 // kill all process with that UID.
-                ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", "2", "-f", processUid);
+                ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", this.killSignal, "-f", processUid);
                 try {
                     log.debug("Trying to kill all processes with UID {}", processUid);
                     boolean finished = pb.start().waitFor(5, TimeUnit.SECONDS);
@@ -402,6 +416,10 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
 
     public void setKillProcessesOnStop(boolean killProcessesOnStop) {
         this.killProcessesOnStop = killProcessesOnStop;
+    }
+
+    public void setKillSignal(String killSignal) {
+        this.killSignal = killSignal;
     }
 
     public void setSetExplicitCodepage(boolean setExplicitCodepage) {

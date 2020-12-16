@@ -19,7 +19,7 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
 
     <b:job id="Job.01.Php" parent="job_base">
 
-        <b:step parent="step_base" id="hello" next="hello2">
+        <b:step parent="step_base" id="hello" next="sleep">
             <b:tasklet>
                 <bean parent="php-base">
                     <property name="scriptFiles">
@@ -33,6 +33,23 @@ http://www.springframework.org/schema/batch http://www.springframework.org/schem
                         </list>
                     </property>
                     <property name="killProcessesOnStop" value="false" />
+                </bean>
+            </b:tasklet>
+        </b:step>
+        <b:step parent="step_base" id="sleep" next="hello2">
+            <b:tasklet>
+                <bean parent="php-base">
+                    <property name="scriptFiles">
+                        <list>
+                            <value>sleep.php</value>
+                        </list>
+                    </property>
+                    <property name="scriptParameters">
+                        <list>
+                            <value>30</value>
+                        </list>
+                    </property>
+                    <property name="killProcessesOnStop" value="true" />
                 </bean>
             </b:tasklet>
         </b:step>
