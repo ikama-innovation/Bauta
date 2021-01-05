@@ -87,6 +87,7 @@ public class MainView extends AppLayout implements JobEventListener {
     // Set of all expanded job views. If the job name is present in this set, the corresponding job view should be expanded
     HashSet<String> expandedJobs = new HashSet<>();
     private Div jobGrid;
+    private TextField tfJobFilter;
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
@@ -124,6 +125,7 @@ public class MainView extends AppLayout implements JobEventListener {
             buildInfo.setText(bautaManager.getShortServerInfo());
             //grid.setItems(bautaManager.jobDetails());
             updateJobGrid(bautaManager.jobDetails());
+            filterJobGrid();
         } catch (Exception e) {
             log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
@@ -131,6 +133,23 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
+
+    private void filterJobGrid() {
+        jobGrid.getChildren().forEach(component ->{
+            String jobName = component.getElement().getAttribute("data-job-name");
+            if (!tfJobFilter.isEmpty()) {
+                if (!StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue()))  {
+                    component.setVisible(false);
+                }
+                else {
+                    component.setVisible(true);
+                }
+            }
+            else {
+                component.setVisible(true);
+            }
+        });
+    }
     private void updateJobGrid(List<JobInstanceInfo> jobs) {
         jobGrid.removeAll();
         jobNameToJobButtons.clear();
@@ -139,8 +158,10 @@ public class MainView extends AppLayout implements JobEventListener {
         log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
+            if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue())) continue;
             Div jobRow = new Div();
             jobRow.addClassNames("job-grid-row");
+            jobRow.getElement().setAttribute("data-job-name", jobName);
 
             Div cell2 = new Div(createStepComponent(job));
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
@@ -319,9 +340,16 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     private Component createJobView() {
+        VerticalLayout vl = new VerticalLayout();
+        tfJobFilter = new TextField(event -> {
+            filterJobGrid();
+        });
+        tfJobFilter.setPlaceholder("Job filter");
+        vl.add(tfJobFilter);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
-        return jobGrid;
+        vl.add(jobGrid);
+        return vl;
 
     }
 
