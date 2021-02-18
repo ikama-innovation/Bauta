@@ -31,9 +31,20 @@ bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_server.sh
 ---
 spring:
   profiles: mattias
+vaadin.productionMode: false
 bauta.homeDir: /home/arbinmat/Projects/php_sample_home
 bauta.jobBeansDir: /home/arbinmat/Projects/bauta/bauta-sample-php/src/main/install/jobs
 bauta.scriptDir: /home/arbinmat/Projects/bauta/bauta-sample-php/src/main/install/scripts
+bauta.application.description: Mattias Demo of Php-based batch automation
+bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+
+---
+spring:
+  profiles: mattias-win
+vaadin.productionMode: false
+bauta.homeDir: c:/projects/php_sample_home
+bauta.jobBeansDir: c:/projects/Bauta/bauta-sample-php/src/main/install/jobs
+bauta.scriptDir: c:/projects/Bauta/bauta-sample-php/src/main/install/scripts
 bauta.application.description: Mattias Demo of Php-based batch automation
 bauta.rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
 
