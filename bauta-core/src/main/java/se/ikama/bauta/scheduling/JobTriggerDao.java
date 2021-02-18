@@ -18,6 +18,13 @@ public class JobTriggerDao implements RowMapper<JobTrigger> {
     DataSource dataSource;
 
     @Transactional
+    public void saveOrUpdate(JobTrigger [] triggers) {
+    	for (JobTrigger trigger : triggers) {
+    		saveOrUpdate(trigger);
+    	}
+    }
+    
+    @Transactional
     public void saveOrUpdate(JobTrigger trigger) {
         JdbcTemplate template = new JdbcTemplate(dataSource);
         if (trigger.getId() == null) {
@@ -31,6 +38,11 @@ public class JobTriggerDao implements RowMapper<JobTrigger> {
         JdbcTemplate template = new JdbcTemplate(dataSource);
         template.update("delete from SCHEDULING_TRIGGER where ID=?", jobTrigger.getId());
     }
+    public void deleteAll() {
+        JdbcTemplate template = new JdbcTemplate(dataSource);
+        template.update("delete from SCHEDULING_TRIGGER");
+    }
+    
 
     public List<JobTrigger> loadTriggers() {
         JdbcTemplate template = new JdbcTemplate(dataSource);
