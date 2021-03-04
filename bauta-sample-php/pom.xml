@@ -43,7 +43,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>se.ikama.bauta.sample.BautaSampleOracleApplication</mainClass>
+                    <mainClass>se.ikama.bauta.sample.BautaSamplePhpApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -94,9 +94,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
             </plugin>
-
         </plugins>
-
     </build>
 
 </project>

@@ -552,7 +552,6 @@ public class MainView extends AppLayout implements JobEventListener {
             div.setWidthFull();
             UnorderedList ul = new UnorderedList();
 
-            ListItem li = new ListItem("test");
             ul.add(new ListItem("InstanceId: " + ji.getInstanceId().toString()));
             ul.add(new ListItem("ExecutionId: " + ji.getLatestExecutionId().toString()));
             ul.add(new ListItem("Start/end time: " + DateFormatUtils.format(ji.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) + "/" + (ji.getEndTime() != null ? DateFormatUtils.format(ji.getEndTime(), "yyMMdd HH:mm:ss", Locale.US) : "-")));
