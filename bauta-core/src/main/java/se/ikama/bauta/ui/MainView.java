@@ -284,6 +284,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 return createJobReport();
             }
             catch(Exception e) {
+                log.error("Failed to generate report", e);
                 showErrorMessage("Failed to generate report: " + e.getMessage());
                 return null;
             }
@@ -422,7 +423,7 @@ public class MainView extends AppLayout implements JobEventListener {
         final String SEP4 = ";;;;";
         final String charset = "utf-8";
         // Job;Split;Flow;Status;Duration
-        sb.append("Job").append(SEP).append("Split").append(SEP).append("Flow").append(SEP).append("Status").append(SEP).append("Duration").append(EOL);
+        sb.append("Job").append(SEP).append("Split").append(SEP).append("Flow").append(SEP).append("Step").append(SEP).append("Status").append(SEP).append("Duration").append(SEP).append("Start").append(SEP).append("End").append(EOL);
         NumberFormat format = new DecimalFormat("####0.#", DecimalFormatSymbols.getInstance(new Locale("sv","SE")));
         List<JobInstanceInfo> jobDetails = bautaManager.jobDetails();
         for (JobInstanceInfo job : jobDetails) {
@@ -481,7 +482,9 @@ public class MainView extends AppLayout implements JobEventListener {
             sb.append(SEP4).append(EOL);
             sb.append(job.getName()).append(SEP4)
                     .append(job.getExecutionStatus()).append(SEP)
-                    .append(DurationFormatUtils.formatDuration(totalDuration, "HH:mm:ss"))
+                    .append(DurationFormatUtils.formatDuration(totalDuration, "HH:mm:ss")).append(SEP)
+                    .append(job.getStartTime() != null ? DateFormatUtils.format(job.getStartTime(), "yyyy-MM-dd HH:mm:ss") : "").append(SEP)
+                    .append(job.getEndTime() != null ? DateFormatUtils.format(job.getEndTime(), "yyyy-MM-dd HH:mm:ss") : "").append(SEP)
                     .append(EOL);
 
             for (StepInfo step : job.getSteps()) {
@@ -508,7 +511,9 @@ public class MainView extends AppLayout implements JobEventListener {
                         .append(step.getFlowId() != null ? flowAlias.get(step.getFlowId()) : "").append(SEP)
                         .append(step.getName()).append(SEP)
                         .append(step.getExecutionStatus()).append(SEP)
-                        .append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"))
+                        .append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")).append(SEP)
+                        .append(step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyyy-MM-dd HH:mm:ss") : "").append(SEP)
+                        .append(step.getEndTime() != null ? DateFormatUtils.format(step.getEndTime(), "yyyy-MM-dd HH:mm:ss") : "").append(SEP)
                         .append(EOL);
             }
         }
