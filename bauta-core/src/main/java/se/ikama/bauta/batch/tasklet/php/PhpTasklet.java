@@ -85,6 +85,11 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private String logSuffix = "log";
 
     /**
+     * The name of the generated report/log file. Without file suffix.
+     */
+    private String reportName = null;
+
+    /**
      * A unique id for the group of processes that are started for each script. The uid is added to the command line
      * to make it possible to find and kill all processes with a command line containing this uid.
      */
@@ -102,9 +107,17 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      */
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        String logFileName = "php." + logSuffix;
+        StringBuilder reportFileName = new StringBuilder();
+        if (reportName != null) {
+            reportFileName.append(reportName);
+        }
+        else {
+            reportFileName.append(contribution.getStepExecution().getStepName());
+        }
+        reportFileName.append(".").append(logSuffix);
+
         StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
-        File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, logFileName);
+        File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, reportFileName.toString());
         if (stepExecution.getJobExecutionId() != currentExecutionId) {
             currentExecutionId = stepExecution.getJobExecutionId();
             log.debug("Setting up log urls");
@@ -112,7 +125,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
             // Delete file if it exists. Could happen if this is a re-run.
             FileUtils.deleteQuietly(logFile);
             List<String> urls = new ArrayList<>();
-            urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
+            urls.add(ReportUtils.generateReportUrl(stepExecution, reportFileName.toString()));
             chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
             log.debug("Setting log urls in execution context {}", urls);
             return RepeatStatus.CONTINUABLE;
@@ -428,5 +441,9 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
 
     public void setLogSuffix(String logSuffix) {
         this.logSuffix = logSuffix;
+    }
+
+    public void setReportName(String reportName) {
+        this.reportName = reportName;
     }
 }

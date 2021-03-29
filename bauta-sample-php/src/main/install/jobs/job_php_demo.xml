@@ -9,6 +9,8 @@
 		<b:step parent="step_base" id="hello" next="sleep">
 			<b:tasklet>
 				<bean parent="php-base">
+					<property name="reportName" value="excplicit_demo_name" />
+					<property name="logSuffix" value="log" />
 					<property name="scriptFiles">
 						<list>
 							<value>hello.php</value>
