@@ -479,6 +479,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         FlowJob job = (FlowJob) jobRegistry.getJob(jobName);
         JobMetadata jobMetadata = jobMetadataReader.getMetadata(jobName);
         if (jobMetadata != null) {
+        	jobInstanceInfo.setDescription(jobMetadata.getDescription());
             for (StepMetadata stepMetadata : jobMetadata.getAllSteps()) {
                 StepInfo stepInfo = new StepInfo(stepMetadata.getId());
                 stepInfo.setExecutionStatus("UNKNOWN");
@@ -511,6 +512,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         HashMap<String, StepInfo> idToStepInfo = new HashMap<>();
         if (mergeOlderExecutions) {
             JobMetadata jobMetadata = jobMetadataReader.getMetadata(jobName);
+            jobInstanceInfo.setDescription(jobMetadata.getDescription());
             for (StepMetadata stepMetadata : jobMetadata.getAllSteps()) {
                 StepInfo stepInfo = new StepInfo(stepMetadata.getId());
                 stepInfo.setExecutionStatus("UNKNOWN");

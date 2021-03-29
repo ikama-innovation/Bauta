@@ -33,8 +33,7 @@ import javax.sql.DataSource;
 @PropertySource("bauta_default.yml")
 @Configuration()
 @ImportResource({
-        "classpath:spring_beans/job_common.xml",
-        "file://${bauta.jobBeansDir}/*.xml"
+        "classpath:spring_beans/job_common.xml","file://${bauta.jobBeansDir}/*.xml","file://${bauta.jobBeansDir2}/*.xml","file://${bauta.jobBeansDir3}/*.xml"
 })
 //@EnableBatchProcessing()
 @EnableVaadin("se.ikama.bauta.ui")

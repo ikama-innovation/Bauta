@@ -9,6 +9,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.thymeleaf.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -35,8 +36,14 @@ import java.util.logging.Logger;
 @Slf4j
 public class JobMetadataReader {
 
-    @Value("${bauta.jobBeansDir}")
+	@Value("${bauta.jobBeansDir}")
     private String jobBeansDir;
+	
+	@Value("${bauta.jobBeansDir2}")
+    private String jobBeansDir2;
+	
+	@Value("${bauta.jobBeansDir3}")
+    private String jobBeansDir3;
 
     private final String jobBeanFilenamePattern = "job_(.*)\\.xml";
 
@@ -65,10 +72,20 @@ public class JobMetadataReader {
 
     private Map<String, JobMetadata> parseAll() throws URISyntaxException, IOException {
         TreeMap<String, JobMetadata> out = new TreeMap();
-        Resource[] resources = ResourcePatternUtils
+        Resource[] resources1 = ResourcePatternUtils
                 .getResourcePatternResolver(resourceLoader)
                 .getResources("file://"+jobBeansDir + "/*.xml");
-
+        Resource[] resources2 = ResourcePatternUtils
+                .getResourcePatternResolver(resourceLoader)
+                .getResources("file://"+jobBeansDir2 + "/*.xml");
+        Resource[] resources3 = ResourcePatternUtils
+                .getResourcePatternResolver(resourceLoader)
+                .getResources("file://"+jobBeansDir3 + "/*.xml");
+        ArrayList<Resource> resources = new ArrayList<>();
+        CollectionUtils.mergeArrayIntoCollection(resources1, resources);
+        CollectionUtils.mergeArrayIntoCollection(resources2, resources);
+        CollectionUtils.mergeArrayIntoCollection(resources3, resources);
+        
         for (Resource r : resources) {
             try (InputStream is = r.getInputStream()) {
                 Collection<JobMetadata> jobs = parse(is);

@@ -9,7 +9,6 @@ import java.util.*;
 @Setter
 public class JobInstanceInfo extends BasicJobInstanceInfo {
 
-    //private List<StepInfo> steps = new ArrayList<>();
     private LinkedHashMap<String, StepInfo> steps = new LinkedHashMap<>();
 
     public void updateCount() {
@@ -65,7 +64,6 @@ public class JobInstanceInfo extends BasicJobInstanceInfo {
         return steps.values();
     }
 
-    //TODO: More efficient?
     public StepInfo getStep(String stepName) {
         return steps.get(stepName);
     }

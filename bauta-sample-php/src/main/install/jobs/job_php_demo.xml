@@ -1,110 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:b="http://www.springframework.org/schema/batch"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:b="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
 
-http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
-    <!--<bean id="passThroughItemProcessor2" class="org.springframework.batch.item.support.PassThroughItemProcessor" ></bean>-->
-
-    <bean id="php-base" class="se.ikama.bauta.batch.tasklet.php.PhpTasklet" abstract="true">
-        <property name="scriptDir" value="${bauta.scriptDir}"/>
-        <property name="timeout" value="7200000"/>
-        <property name="environmentParams">
-            <map>
-                <!-- Here you can set general environment params that will be applied in all child beans -->
-            </map>
-        </property>
-    </bean>
-
-    <b:job id="Job.01.Php" parent="job_base">
-
-        <b:step parent="step_base" id="hello" next="sleep">
-            <b:tasklet>
-                <bean parent="php-base">
-                    <property name="scriptFiles">
-                        <list>
-                            <value>hello.php</value>
-                        </list>
-                    </property>
-                    <property name="scriptParameters">
-                        <list>
-                            <value>world</value>
-                        </list>
-                    </property>
-                    <property name="killProcessesOnStop" value="false" />
-                </bean>
-            </b:tasklet>
-        </b:step>
-        <b:step parent="step_base" id="sleep" next="hello2">
-            <b:tasklet>
-                <bean parent="php-base">
-                    <property name="scriptFiles">
-                        <list>
-                            <value>sleep.php</value>
-                        </list>
-                    </property>
-                    <property name="scriptParameters">
-                        <list>
-                            <value>30</value>
-                        </list>
-                    </property>
-                    <property name="killProcessesOnStop" value="true" />
-                </bean>
-            </b:tasklet>
-        </b:step>
-        <b:step parent="step_base" id="hello2" next="hello_html">
-            <b:tasklet>
-                <bean parent="php-base">
-                    <property name="scriptFiles">
-                        <list>
-                            <value>demo.php</value>
-                        </list>
-                    </property>
-                    <property name="scriptParameters">
-                        <list>
-                            <value>again</value>
-                        </list>
-                    </property>
-                    <property name="killProcessesOnStop" value="false" />
-                </bean>
-            </b:tasklet>
-        </b:step>
-        <b:step parent="step_base" id="hello_html" next="hello_html_bootstrap">
-            <b:tasklet>
-                <bean parent="php-base">
-                    <property name="logSuffix" value="html" />
-                    <property name="scriptFiles">
-                        <list>
-                            <value>demo_html.php</value>
-                        </list>
-                    </property>
-                    <property name="scriptParameters">
-                        <list>
-                            <value>again</value>
-                        </list>
-                    </property>
-                    <property name="killProcessesOnStop" value="false" />
-                </bean>
-            </b:tasklet>
-        </b:step>
-        <b:step parent="step_base" id="hello_html_bootstrap" >
-            <b:tasklet>
-                <bean parent="php-base">
-                    <property name="logSuffix" value="html" />
-                    <property name="scriptFiles">
-                        <list>
-                            <value>demo_html_bootstrap.php</value>
-                        </list>
-                    </property>
-                    <property name="scriptParameters">
-                        <list>
-                            <value>again</value>
-                        </list>
-                    </property>
-                    <property name="killProcessesOnStop" value="false" />
-                </bean>
-            </b:tasklet>
-        </b:step>
-    </b:job>
+	<b:job id="Job.01.Php" parent="job_base">
+		<b:description>A Demo Job with some PHP script steps</b:description>
+		<b:step parent="step_base" id="hello" next="sleep">
+			<b:tasklet>
+				<bean parent="php-base">
+					<property name="scriptFiles">
+						<list>
+							<value>hello.php</value>
+						</list>
+					</property>
+					<property name="scriptParameters">
+						<list>
+							<value>world</value>
+						</list>
+					</property>
+					<property name="killProcessesOnStop" value="false" />
+				</bean>
+			</b:tasklet>
+		</b:step>
+		<b:step parent="step_base" id="sleep" next="hello2">
+			<b:tasklet>
+				<bean parent="php-base">
+					<property name="scriptFiles">
+						<list>
+							<value>sleep.php</value>
+						</list>
+					</property>
+					<property name="scriptParameters">
+						<list>
+							<value>30</value>
+						</list>
+					</property>
+					<property name="killProcessesOnStop" value="true" />
+				</bean>
+			</b:tasklet>
+		</b:step>
+		<b:step parent="step_base" id="hello2" next="hello_html">
+			<b:tasklet>
+				<bean parent="php-base">
+					<property name="scriptFiles">
+						<list>
+							<value>demo.php</value>
+						</list>
+					</property>
+					<property name="scriptParameters">
+						<list>
+							<value>again</value>
+						</list>
+					</property>
+					<property name="killProcessesOnStop" value="false" />
+				</bean>
+			</b:tasklet>
+		</b:step>
+		<b:step parent="step_base" id="hello_html"
+			next="hello_html_bootstrap">
+			<b:tasklet>
+				<bean parent="php-base">
+					<property name="logSuffix" value="html" />
+					<property name="scriptFiles">
+						<list>
+							<value>demo_html.php</value>
+						</list>
+					</property>
+					<property name="scriptParameters">
+						<list>
+							<value>again</value>
+						</list>
+					</property>
+					<property name="killProcessesOnStop" value="false" />
+				</bean>
+			</b:tasklet>
+		</b:step>
+		<b:step parent="step_base" id="hello_html_bootstrap">
+			<b:tasklet>
+				<bean parent="php-base">
+					<property name="logSuffix" value="html" />
+					<property name="scriptFiles">
+						<list>
+							<value>demo_html_bootstrap.php</value>
+						</list>
+					</property>
+					<property name="scriptParameters">
+						<list>
+							<value>again</value>
+						</list>
+					</property>
+					<property name="killProcessesOnStop" value="false" />
+				</bean>
+			</b:tasklet>
+		</b:step>
+	</b:job>
 </beans>

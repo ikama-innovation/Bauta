@@ -1,7 +1,40 @@
 package se.ikama.bauta.ui;
 
 
-import com.vaadin.flow.component.*;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
+import org.springframework.batch.core.launch.NoSuchJobException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.security.access.annotation.Secured;
+
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -11,7 +44,14 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.ListItem;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -32,30 +72,13 @@ import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.shared.communication.PushMode;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
-import org.springframework.batch.core.launch.NoSuchJobException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.security.access.annotation.Secured;
-import se.ikama.bauta.core.*;
-import se.ikama.bauta.security.SecurityUtils;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import se.ikama.bauta.core.BasicJobInstanceInfo;
+import se.ikama.bauta.core.BautaManager;
+import se.ikama.bauta.core.JobEventListener;
+import se.ikama.bauta.core.JobInstanceInfo;
+import se.ikama.bauta.core.StepInfo;
+import se.ikama.bauta.security.SecurityUtils;
 
 @Push(value = PushMode.MANUAL)
 @Route("")
@@ -76,7 +99,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
 
     //private UI ui;
-    Grid<JobInstanceInfo> grid = null;
     Grid<String> serverInfoGrid = null;
     Span buildInfo = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
@@ -174,9 +196,18 @@ public class MainView extends AppLayout implements JobEventListener {
 
             Div cell0 = new Div();
             cell0.addClassNames("job-grid-cell");
-            cell0.setText(job.getName());
             JobInfo jobInfo = new JobInfo(job);
             jobNameToJobInfo.put(jobName, jobInfo);
+            Div jobNameDiv = new Div();
+            jobNameDiv.setText(jobName);
+            cell0.add(jobNameDiv);
+            if (job.getDescription() != null) {
+	            Div jobDescriptionDiv = new Div();
+	            jobDescriptionDiv.getStyle().set("font-size", "0.7em");
+	            jobDescriptionDiv.setText(job.getDescription());
+	            cell0.add(jobDescriptionDiv);
+            }
+	        
             Div cell1 = new Div(jobInfo);
             cell1.addClassNames("job-grid-cell");
 
@@ -547,7 +578,8 @@ public class MainView extends AppLayout implements JobEventListener {
         try {
             jobs = bautaManager.jobHistory(jobName);
         } catch (Exception e) {
-            showErrorMessage("Failed to fetch job history: " + e.getMessage());
+        	log.error("Failed to generate job history", e);
+            return new Label("Failed to fetch job history: " + e.getMessage());
         }
         for (JobInstanceInfo ji : jobs) {
             log.debug("jobInstanceInfo: {}", ji);

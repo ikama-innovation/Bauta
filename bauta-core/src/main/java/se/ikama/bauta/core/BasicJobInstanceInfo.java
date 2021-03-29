@@ -1,16 +1,19 @@
 package se.ikama.bauta.core;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Properties;
+
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.*;
 
 @Getter
 @Setter
 public class BasicJobInstanceInfo {
 
     protected String name;
+    protected String description;
     private String executionStatus = "UNKNOWN";
     private String exitStatus = "UNKNOWN";
     private Long latestExecutionId;
