@@ -204,8 +204,17 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                     log.debug("Command is: " + StringUtils.join(commands, ","));
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
+                    String jobInstanceId = Long.toString(contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
+                    String jobExecutionId = Long.toString(contribution.getStepExecution().getJobExecution().getId());
+                    String jobName = contribution.getStepExecution().getJobExecution().getJobInstance().getJobName();
+                    String stepName = contribution.getStepExecution().getStepName();
                     Map<String, String> env = pb.environment();
+                    env.put("BAUTA_JOB_INSTANCE_ID", jobInstanceId);
+                    env.put("BAUTA_JOB_EXECUTION_ID", jobExecutionId);
+                    env.put("BAUTA_STEP_NAME", stepName);
+                    env.put("BAUTA_JOB_NAME", jobName);
                     env.putAll(environmentParams);
+                    
                     log.debug("environmentParams: {}", environmentParams);
                     log.debug("Environment: {}", pb.environment());
 

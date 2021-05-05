@@ -1,6 +1,9 @@
 package se.ikama.bauta.config;
 
 import com.vaadin.flow.spring.annotation.EnableVaadin;
+
+import se.ikama.bauta.batch.listeners.MailNotificationJobListener;
+
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -16,8 +19,12 @@ import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.*;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
@@ -25,8 +32,12 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.Properties;
 
 import javax.sql.DataSource;
 
@@ -41,6 +52,10 @@ public class BatchConfiguration {
 
     private Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
+    @Autowired
+    Environment env;
+
+    
     @Value("${bauta.homeDir}")
     String homeDir;
 
@@ -198,7 +213,7 @@ public class BatchConfiguration {
 
     // Staging database
     @Bean(name = "stagingDataSource")
-    //@ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
+    @ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     DataSource stagingDataSource() {
         log.info("Setting up staging DB. Url is {}", stagingDbUrl);
         log.info("Connection pool max size: {}", stagingDbMaxTotal);
@@ -230,6 +245,7 @@ public class BatchConfiguration {
     }
 
     @Bean(name = "stagingTransactionManager")
+    @ConditionalOnProperty(prefix = "bauta", name = "stagingDB.url")
     PlatformTransactionManager stagingTransactionManager() {
         return new DataSourceTransactionManager(stagingDataSource());
     }
@@ -254,5 +270,38 @@ public class BatchConfiguration {
         executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;
     }
+    
+    @Bean
+    @ConditionalOnProperty("bauta.mail.host")
+    public JavaMailSender javaMailSender() {
+        JavaMailSenderImpl javaMailSender = new JavaMailSenderImpl();
+
+        javaMailSender.setHost(env.getProperty("bauta.mail.host"));
+        log.info("mail host is {}", javaMailSender.getHost());
+        javaMailSender.setPort(Integer.parseInt(env.getProperty("bauta.mail.port")));
+        javaMailSender.setUsername(env.getProperty("bauta.mail.username"));
+        javaMailSender.setPassword(env.getProperty("bauta.mail.password"));
+        javaMailSender.setDefaultEncoding("UTF-8");
+        javaMailSender.setJavaMailProperties(getMailProperties());
+
+        return javaMailSender;
+    }
+
+    private Properties getMailProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("mail.transport.protocol", env.getProperty("bauta.mail.transport.protocol"));
+        properties.setProperty("mail.smtp.auth", env.getProperty("bauta.mail.smtp.auth"));
+        properties.setProperty("mail.smtp.starttls.enable", env.getProperty("bauta.mail.smtp.starttls.enable"));
+        properties.setProperty("mail.debug", env.getProperty("bauta.mail.debug"));
+        properties.setProperty("mail.smtp.from", env.getProperty("bauta.mail.from"));
+        return properties;
+    }
+    
+    @Bean
+    public MailNotificationJobListener mailNotificationJobListener() {
+    	MailNotificationJobListener listener = new MailNotificationJobListener();			
+    	return listener;
+    }
+    
 
 }

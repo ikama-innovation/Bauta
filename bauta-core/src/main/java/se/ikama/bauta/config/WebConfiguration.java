@@ -1,7 +1,5 @@
 package se.ikama.bauta.config;
 
-import com.vaadin.flow.server.VaadinServlet;
-import com.vaadin.flow.spring.SpringServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +13,15 @@ import org.springframework.core.annotation.Order;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import javax.servlet.annotation.WebInitParam;
+import com.vaadin.flow.server.VaadinServlet;
+import com.vaadin.flow.spring.SpringServlet;
 
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
 
     @Autowired
     ApplicationContext applicationContext;
-
+    
     @Value("${bauta.reportDir}")
     String reportDir;
 
@@ -87,5 +86,6 @@ public class WebConfiguration implements WebMvcConfigurer {
     }
     */
 
+   
 
 }

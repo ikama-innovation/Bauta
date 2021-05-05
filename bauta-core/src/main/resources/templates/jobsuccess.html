@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <meta charset="UTF-8" />
+        <title th:remove="all">Job Success</title>
+    </head>
+    <body>
+        <h3>Job <span th:text="${jobExecution.jobInstance.jobName}"></span> succeeded.</h3>
+        <table>
+            <tr><td>Started</td><td th:text="${jobExecution.startTime}"></td></tr>
+            <tr><td>Ended</td><td th:text="${jobExecution.endTime}"></td></tr>
+            <tr><td>Exit status</td><td th:text="${jobExecution.exitStatus.exitCode}"></td></tr>
+            <tr><td>Version</td><td th:text="${version}"></td></tr>
+            <tr><td>Profile</td><td th:text="${profile}"></td></tr>
+            <tr><td>Job Parameters</td><td th:text="${jobParameters}"></td></tr>
+        </table>
+        <h3>Steps</h3>
+        <table>
+            <tr th:each="stepExecution : ${jobExecution.stepExecutions}" >
+                <td th:text="${stepExecution.stepName}"></td>
+                <td th:text="${stepExecution.exitStatus.exitCode}"></td>
+            </tr>
+        </table>
+        <h4>Details</h4>
+        <code th:if="${jobExecution.exitStatus.exitDescription}" th:text="${jobExecution.exitStatus.exitDescription}"></code>
+        
+    </body>
+</html>

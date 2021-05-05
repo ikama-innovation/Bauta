@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title th:remove="all">Job Failed</title>
+        <meta charset="UTF-8" />
+    </head>
+    <body>
+        <h3>Job <span th:text="${jobExecution.jobInstance.jobName}"></span> failed.</h3>
+        <table>
+            <tr><td>Started</td><td th:text="${jobExecution.startTime}"></td></tr>
+            <tr><td>Ended</td><td th:text="${jobExecution.endTime}"></td></tr>
+            <tr><td>Exit status</td><td th:text="${jobExecution.exitStatus.exitCode}"></td></tr>
+            <tr><td>Version</td><td th:text="${version}"></td></tr>
+            <tr><td>Profile</td><td th:text="${profile}"></td></tr>
+            <tr><td>Job Parameters</td><td th:text="${jobParameters}"></td></tr>
+        </table>
+        <h3>Steps</h3>
+        <table>
+            <tr th:each="stepExecution : ${jobExecution.stepExecutions}" >
+                <td th:text="${stepExecution.stepName}"></td>
+                <td th:text="${stepExecution.exitStatus.exitCode}"></td>
+            </tr>
+        </table>
+        <h3>Details</h3>
+        <code th:if="${jobExecution.exitStatus.exitDescription}" th:text="${jobExecution.exitStatus.exitDescription}"></code>
+        <table>
+            <tr th:each="stepExecution : ${jobExecution.stepExecutions}" th:if="${stepExecution.exitStatus.exitCode}=='FAILED'">
+                <td th:text="${stepExecution.stepName}" style="vertical-align: top"></td>
+                <td style="font-size: small"><code th:text="${stepExecution.exitStatus.exitDescription}"></code></td>
+            </tr>
+        </table>
+        <div th:if="${log}">
+            <h3>Log</h3>
+            <pre th:text="${log}"></pre>
+        </div>
+    </body>
+</html>

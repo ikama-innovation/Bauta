@@ -6,12 +6,13 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
 http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd">
 
+
+	
     <!-- Parent of all jobs. It is important that all jobs have this as its parent.  -->
     <b:job id="job_base" abstract="true">
         <b:listeners>
             <b:listener ref="bautaManager"/>
-            <!--<b:listener ref="mailNotificationJobListener" />-->
-            <!--<b:listener ref="smsNotificationJobListener" />-->
+            <b:listener ref="mailNotificationJobListener"/>
         </b:listeners>
     </b:job>
 
