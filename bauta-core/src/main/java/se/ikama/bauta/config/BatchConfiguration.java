@@ -190,7 +190,6 @@ public class BatchConfiguration {
     @Bean()
     JobOperator jobOperator() throws Exception {
         SimpleJobOperator jobOperator = new SimpleJobOperator();
-
         jobOperator.setJobExplorer(jobExplorer());
         jobOperator.setJobRepository(jobRepository());
         jobOperator.setJobRegistry(jobRegistry());
@@ -204,6 +203,7 @@ public class BatchConfiguration {
     public JobRegistry jobRegistry()  {
         return new MapJobRegistry();
     }
+
     @Bean
     public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor() {
         JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();

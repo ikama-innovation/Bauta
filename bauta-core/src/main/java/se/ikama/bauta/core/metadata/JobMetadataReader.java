@@ -59,7 +59,7 @@ public class JobMetadataReader {
         try {
             log.info("Collecting metadata from Job defined in Spring bean defintion files..");
             jobMetadata = parseAll();
-            log.info("Done!");
+            log.info("Done. Read {} jobs.", this.getJobMetadata().size());
 
         } catch (URISyntaxException | IOException e) {
             throw new BeanInitializationException("Failed to parse metadata", e);

@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class JobTrigger {
-    public enum TriggerType {CRON, JOB_COMPLETION}
+    public enum TriggerType {CRON, JOB_COMPLETION, JOB_COMPLETION_OR_FAILURE}
     Long id;
     
     TriggerType triggerType;

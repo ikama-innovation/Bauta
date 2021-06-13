@@ -3,14 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>bauta-core</artifactId>
     <name>bauta-core</name>
-    <version>0.0.56</version>
+    <version>0.0.57</version>
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>0.0.56</version>
+        <version>0.0.57</version>
     </parent>
     <properties>
-        <vaadin.version>14.5.3</vaadin.version>
+        <vaadin.version>14.6.3</vaadin.version>
     </properties>
     <repositories>
         <repository>

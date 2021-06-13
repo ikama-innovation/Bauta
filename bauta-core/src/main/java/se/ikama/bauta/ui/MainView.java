@@ -18,6 +18,8 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.shared.ui.Transport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -110,10 +112,12 @@ public class MainView extends AppLayout implements JobEventListener {
     HashSet<String> expandedJobs = new HashSet<>();
     private Div jobGrid;
     private TextField tfJobFilter;
+    private Checkbox cbShowOnlyRunningJobs;
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
+    private HashSet<String> runningJobs = new HashSet<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -159,27 +163,27 @@ public class MainView extends AppLayout implements JobEventListener {
     private void filterJobGrid() {
         jobGrid.getChildren().forEach(component ->{
             String jobName = component.getElement().getAttribute("data-job-name");
-            if (!tfJobFilter.isEmpty()) {
-                if (!StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue()))  {
-                    component.setVisible(false);
-                }
-                else {
-                    component.setVisible(true);
-                }
+            boolean show = true;
+            if (cbShowOnlyRunningJobs.getValue() && !runningJobs.contains(jobName)) {
+                show = false;
             }
-            else {
-                component.setVisible(true);
+            if (!tfJobFilter.isEmpty() && !StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue())) {
+                show = false;
             }
+            component.setVisible(show);
+
         });
     }
     private void updateJobGrid(List<JobInstanceInfo> jobs) {
         jobGrid.removeAll();
         jobNameToJobButtons.clear();
         jobNameToStepFLow.clear();
+        runningJobs.clear();
         boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
         log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
+            if (job.isRunning()) runningJobs.add(jobName); else runningJobs.remove(jobName);
             if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue())) continue;
             Div jobRow = new Div();
             jobRow.addClassNames("job-grid-row");
@@ -373,11 +377,21 @@ public class MainView extends AppLayout implements JobEventListener {
 
     private Component createJobView() {
         VerticalLayout vl = new VerticalLayout();
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.setPadding(false);
+        hl.setMargin(false);
+        hl.setSpacing(true);
         tfJobFilter = new TextField(event -> {
             filterJobGrid();
         });
         tfJobFilter.setPlaceholder("Job filter");
-        vl.add(tfJobFilter);
+        hl.add(tfJobFilter);
+        cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
+        cbShowOnlyRunningJobs.setValue(false);
+        hl.add(cbShowOnlyRunningJobs);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+        vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
         vl.add(jobGrid);
@@ -703,7 +717,7 @@ public class MainView extends AppLayout implements JobEventListener {
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
         log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
-
+        if (jobInstanceInfo.isRunning()) runningJobs.add(jobInstanceInfo.getName()); else runningJobs.remove(jobInstanceInfo.getName());
         UI ui = this.getUI().get();
         if (ui != null) {
             ui.access(() -> {
@@ -717,6 +731,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 progressBar.update(jobInstanceInfo);
                 JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
                 jobInfo.update(jobInstanceInfo);
+                filterJobGrid();
                 ui.push();
             });
         }

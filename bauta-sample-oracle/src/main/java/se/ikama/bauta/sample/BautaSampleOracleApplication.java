@@ -11,7 +11,7 @@ import org.springframework.context.annotation.PropertySource;
 
 // TODO: Move this to a better place. But has to be set early on
 //@EnableAutoConfiguration
-@PropertySource("git.properties")
+@PropertySource(value = "classpath:git.properties", ignoreResourceNotFound = true)
 @EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class, DataSourceTransactionManagerAutoConfiguration.class, HibernateJpaAutoConfiguration.class, BatchAutoConfiguration.class, ErrorMvcAutoConfiguration.class})
 public class BautaSampleOracleApplication {
 

@@ -63,7 +63,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     private BlockingQueue<JobUpdateSignal> updatedJobExecutions = new LinkedBlockingQueue<>();
 
     // Single thread that updates jobExecutionListeners
-    private Thread jobExecutionListenerUpdateThread;
+    private ThreadPoolTaskScheduler jobExecutionListenerUpdateThread;
 
     @Value("${bauta.updateThreadSleepBeforeUpdate}")
     private int updateThreadSleepBeforeUpdate = 300;
@@ -110,6 +110,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         threadPoolTaskScheduler.setPoolSize(5);
         threadPoolTaskScheduler.setThreadNamePrefix(
                 "JobTriggerScheduler");
+        threadPoolTaskScheduler.setAwaitTerminationSeconds(5);
         log.info("Home is {}", bautaConfig.getProperty(BautaConfigParams.HOME_DIR));
         log.info("properties: {}", getServerInfo().toArray());
         initializeScheduling(false);
@@ -128,19 +129,25 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
 
         initListenerPushThread();
+        // Make sure job names are initialized
+        listJobNames();
+
 
     }
     @PreDestroy
     private void shutdown() {
         log.info("Shutting down..");
-        jobExecutionListenerUpdateThread.interrupt();
+
+        threadPoolTaskScheduler.setWaitForTasksToCompleteOnShutdown(false);
+        jobExecutionListenerUpdateThread.setWaitForTasksToCompleteOnShutdown(false);
         threadPoolTaskScheduler.shutdown();
+        jobExecutionListenerUpdateThread.shutdown();
         log.info("Done!");
     }
 
     private void cleanUp() {
         log.info("Cleaning up job executions");
-        for (String jobName:listJobNames()) {
+        for (String jobName:jobOperator.getJobNames()) {
             try {
                 for (Long executionId : jobOperator.getRunningExecutions(jobName)) {
                     JobExecution je = jobExplorer.getJobExecution(executionId);
@@ -293,21 +300,15 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     public SortedSet<String> listJobNames() {
-        if (jobOperator.getJobNames().size() == 0) {
-            // Job operator is not initialized yet. Use metadata
-            log.debug("Job names from metadata");
+
+        if (jobNames.size() == 0) {
+            log.info("Initializing jobNames");
             TreeSet<String> metaJobNames = new TreeSet<>();
             metaJobNames.addAll(jobMetadataReader.getJobMetadata().keySet());
-            return metaJobNames;
+            jobNames.addAll(metaJobNames);
+            log.info("jobNames: {}", jobNames);
         }
-        else if (jobNames.size() == 0) {
-            log.debug("Initializing jobNames");
-            jobNames.addAll(jobOperator.getJobNames());
-            log.debug("jobNames: {}", jobNames);
-            return jobNames;
-
-        }
-        else return jobNames;
+        return jobNames;
     }
 
     private boolean hasRunningExecutions() {
@@ -335,36 +336,44 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Override
     public void afterJob(JobExecution jobExecution) {
         log.debug("afterJob: {}", jobExecution);
-        if (jobExecution.getStatus().equals(BatchStatus.COMPLETED)) {
-            handleJobCompletionTriggers(jobExecution.getJobInstance().getJobName());
+        if (jobExecution.getStatus().equals(BatchStatus.COMPLETED) || jobExecution.getStatus().equals(BatchStatus.FAILED)) {
+            handleJobCompletionTriggers(jobExecution.getJobInstance().getJobName(), jobExecution.getStatus());
         }
 
         fireJobEvent(jobExecution, 0);
     }
 
-    private void handleJobCompletionTriggers(String completedJobName) {
-        log.debug("Handling jobCompletionTriggers for {}", completedJobName);
+    private void handleJobCompletionTriggers(String completedJobName, BatchStatus batchStatus) {
+        log.debug("Handling jobCompletionTriggers for {}, {}", completedJobName, batchStatus);
         List<JobTrigger> jobTriggers = jobTriggerDao.getJobCompletionTriggersFor(completedJobName);
         log.debug("Found {} job triggers for {} ", jobTriggers.size(), completedJobName);
         for (JobTrigger jt : jobTriggers) {
-            Runnable jobStarter = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        String jobToStart = jt.getJobName();
-                        log.info("Starting job {} triggered by completion of job '{}'", jobToStart, completedJobName);
-                        startJob(jobToStart, jt.getJobParameters());
-                        jobTriggerDao.logSuccess(jt);
-                        log.debug("Done!");
+            log.debug("Handling job trigger {}", jt);
+            if (isValidTrigger(jt, batchStatus)) {
+                Runnable jobStarter = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            String jobToStart = jt.getJobName();
+                            log.info("Starting job {} triggered by completion of job '{}' with status {}", jobToStart, completedJobName, batchStatus);
+                            startJob(jobToStart, jt.getJobParameters());
+                            jobTriggerDao.logSuccess(jt);
+                            log.debug("Done!");
 
-                    } catch (Exception e) {
-                        jobTriggerDao.logFailure(jt, e.getMessage());
-                        log.error("Failed to start job via CRON trigger", e);
+                        } catch (Exception e) {
+                            jobTriggerDao.logFailure(jt, e.getMessage());
+                            log.error("Failed to start job via trigger", e);
+                        }
                     }
-                }
-            };
-            threadPoolTaskScheduler.schedule(jobStarter, Instant.now());
+                };
+                threadPoolTaskScheduler.schedule(jobStarter, Instant.now());
+            }
         }
+    }
+
+    private boolean isValidTrigger(JobTrigger jt, BatchStatus batchStatus) {
+        return (batchStatus == BatchStatus.COMPLETED && (jt.getTriggerType() == JobTrigger.TriggerType.JOB_COMPLETION || jt.getTriggerType() == JobTrigger.TriggerType.JOB_COMPLETION_OR_FAILURE))
+                || (batchStatus == BatchStatus.FAILED && jt.getTriggerType() == JobTrigger.TriggerType.JOB_COMPLETION_OR_FAILURE);
     }
 
     @Override
@@ -469,9 +478,17 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 }
             }
         };
-        jobExecutionListenerUpdateThread = new Thread(jobEventUpdate, "JobExListenerUpdater" );
-        jobExecutionListenerUpdateThread.setDaemon(true);
-        jobExecutionListenerUpdateThread.start();
+
+        //jobExecutionListenerUpdateThread = new Thread(jobEventUpdate, "JobExListenerUpdater" );
+        //jobExecutionListenerUpdateThread.setDaemon(true);
+        //jobExecutionListenerUpdateThread.start();
+        jobExecutionListenerUpdateThread = new ThreadPoolTaskScheduler();
+        jobExecutionListenerUpdateThread.setThreadNamePrefix("JobExecutionListenerPush");
+        jobExecutionListenerUpdateThread.setAwaitTerminationSeconds(5);
+        jobExecutionListenerUpdateThread.setWaitForTasksToCompleteOnShutdown(false);
+        jobExecutionListenerUpdateThread.initialize();
+        jobExecutionListenerUpdateThread.schedule(jobEventUpdate, Instant.now());
+
     }
 
     private JobInstanceInfo extractBasicJobInfo(String jobName) throws Exception {

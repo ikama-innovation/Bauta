@@ -75,7 +75,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 	private Set<JobTrigger> selectedJobTriggers;
 
-	Button removeButton, editButton, addCronButton, addJobCompletionButton, exportButton, importButton;
+	Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, exportButton, importButton;
 	Label lAdminInfo;
 	Anchor exportLink;
 
@@ -125,6 +125,11 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		addJobCompletionButton.setIcon(VaadinIcon.FLAG_CHECKERED.create());
 		// addJobCompletionButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
 		buttons.add(addJobCompletionButton);
+		addJobCompletionOrFailureButton = new Button("Add Job complete/failure trigger ..", clickEvent -> {
+			addJobCompletionOrFailure(null);
+		});
+		addJobCompletionOrFailureButton.setIcon(VaadinIcon.FLAG_O.create());
+		buttons.add(addJobCompletionOrFailureButton);
 		MemoryBuffer buffer = new MemoryBuffer();
 		Upload upload = new Upload(buffer);
 		Button uploadButton = new Button("Import");
@@ -245,11 +250,17 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 				icon.setSize("0.8em");
 			icon.getElement().setProperty("title", "CRON trigger");
 			return icon;
-		} else {
+		} else if  (triggerType.equals(JobTrigger.TriggerType.JOB_COMPLETION)){
 			Icon icon = VaadinIcon.FLAG_CHECKERED.create();
 			if (log)
 				icon.setSize("0.8em");
 			icon.getElement().setProperty("title", "Job completion trigger");
+			return icon;
+		} else  {
+			Icon icon = VaadinIcon.FLAG_O.create();
+			if (log)
+				icon.setSize("0.8em");
+			icon.getElement().setProperty("title", "Job completion/failure trigger");
 			return icon;
 		}
 	}
@@ -271,6 +282,8 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			editButton.setEnabled(selectedJobTriggers.size() == 1);
 			addCronButton.setEnabled(true);
 			addJobCompletionButton.setEnabled(true);
+			addJobCompletionOrFailureButton.setEnabled(true);
+
 			lAdminInfo.setVisible(false);
 		} else {
 			lAdminInfo.setVisible(true);
@@ -278,6 +291,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			editButton.setEnabled(false);
 			addCronButton.setEnabled(false);
 			addJobCompletionButton.setEnabled(false);
+			addJobCompletionOrFailureButton.setEnabled(false);
 		}
 	}
 
@@ -319,10 +333,15 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
 
 	private void addJobCompletion(JobTrigger jobTrigger) {
-		Dialog jobCompletionDialog = createAddJobCompletionDialog(jobTrigger);
+		Dialog jobCompletionDialog = createAddJobCompletionDialog(JobTrigger.TriggerType.JOB_COMPLETION, jobTrigger);
 		jobCompletionDialog.open();
 	}
-	
+
+	private void addJobCompletionOrFailure(JobTrigger jobTrigger) {
+		Dialog jobCompletionDialog = createAddJobCompletionDialog(JobTrigger.TriggerType.JOB_COMPLETION_OR_FAILURE, jobTrigger);
+		jobCompletionDialog.open();
+	}
+
 	private void save(JobTrigger[] jobTriggers) {
 		jobTriggerDao.deleteAll();
 		for (JobTrigger jt : jobTriggers) {
@@ -466,7 +485,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			return null;
 	}
 
-	private Dialog createAddJobCompletionDialog(JobTrigger existingTrigger) {
+	private Dialog createAddJobCompletionDialog(JobTrigger.TriggerType triggerType, JobTrigger existingTrigger) {
 		Dialog dialog = new Dialog();
 		dialog.setWidth("600px");
 		dialog.setCloseOnOutsideClick(false);
@@ -528,7 +547,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			}
 
 			JobTrigger trigger = existingTrigger != null ? existingTrigger : new JobTrigger();
-			trigger.setTriggerType(JobTrigger.TriggerType.JOB_COMPLETION);
+			trigger.setTriggerType(triggerType);
 			trigger.setJobName(jobComboBox.getValue());
 			trigger.setTriggeringJobName(triggeredByComboBox.getValue());
 			trigger.setJobParameters(jobParameters.getValue());

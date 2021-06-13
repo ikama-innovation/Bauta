@@ -7,6 +7,8 @@ import java.util.Properties;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.batch.core.BatchStatus;
 
 @Getter
 @Setter
@@ -75,4 +77,7 @@ public class BasicJobInstanceInfo {
         return (optionalJobParamKeys != null && optionalJobParamKeys.size() > 0) || (requiredJobParamKeys != null && requiredJobParamKeys.size() > 0);
     }
 
+    public boolean isRunning() {
+        return StringUtils.equalsAny(executionStatus, "STARTED","STARTING");
+    }
 }
