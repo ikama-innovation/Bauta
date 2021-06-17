@@ -2,27 +2,32 @@ package se.ikama.bauta.batch.tasklet.oracle;
 
 import com.sun.org.apache.xalan.internal.xsltc.runtime.InternalRuntimeError;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.JobExecutionException;
-import org.springframework.batch.core.JobInterruptedException;
-import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.web.format.DateTimeFormatters;
+import se.ikama.bauta.batch.tasklet.ReportUtils;
 
 import javax.sql.DataSource;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -55,6 +60,11 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
     /* Interval (in ms) between status checks.  */
     private Long statusCheckInterval = 30000L;
+    private Integer maxFailedStatusChecks = 5;
+    private Integer maxFailedRunningChecks = 5;
+    private boolean checkRunning = false;
+    private boolean forceStop = true;
+
 
     /**
      * The maximum length of the DBMS_SCHEDULER job name. In older versions of Oracle, the max length is 30 characteres, in newer 255.
@@ -63,7 +73,17 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
     private boolean stopped = false;
 
+    private int failedStatusCheckCount = 0;
+
+    private int failedRunningCheckCount = 0;
+
+
     private Object sleepObject = new Object();
+    private File logFile;
+    private long currentExecutionId = -1;
+
+    @Value("${bauta.reportDir}")
+    protected String reportDir;
 
     @Autowired
     @Qualifier("stagingDataSource")
@@ -92,8 +112,34 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         this.statusCheckInterval = statusCheckInterval;
     }
 
+    /**
+     * Maximum number of failed attempts to check the status of the scheduler job, before marking the step as FAILED.
+     * Default to 5.
+     * @param maxFailedStatusChecks
+     */
+    public void setMaxFailedStatusChecks(Integer maxFailedStatusChecks) {
+        this.maxFailedStatusChecks = maxFailedStatusChecks;
+    }
+
     public void setSchedulerNameMaxLength(int schedulerNameMaxLength) {
         this.schedulerNameMaxLength = schedulerNameMaxLength;
+    }
+
+    /**
+     * Should we continuously check that the scheduled job is indeed running.
+     * This is done by checking the USER_SCHEDULER_RUNNING_JOBS
+     * @param checkRunning
+     */
+    public void setCheckRunning(boolean checkRunning) {
+        this.checkRunning = checkRunning;
+    }
+
+    /**
+     * Set the attribute force to TRUE or FALSE in the dbms_schdeduler.stop_job command.
+     * @param forceStop
+     */
+    public void setForceStop(boolean forceStop) {
+        this.forceStop = forceStop;
     }
 
     @Override
@@ -107,11 +153,28 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     }
     private void init() {
         this.stopped = false;
+        this.failedStatusCheckCount = 0;
+        this.failedRunningCheckCount = 0;
     }
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        log.debug("execute");
+        StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
+        String reportFileName = contribution.getStepExecution().getStepName() + ".log";
+        logFile = ReportUtils.generateReportFile(reportDir, stepExecution, reportFileName.toString());
+
+        if (stepExecution.getJobExecutionId() != currentExecutionId) {
+            currentExecutionId = stepExecution.getJobExecutionId();
+            log.debug("Setting up log urls");
+            FileUtils.forceMkdirParent(logFile);
+            // Delete file if it exists. Could happen if this is a re-run.
+            FileUtils.deleteQuietly(logFile);
+            List<String> urls = new ArrayList<>();
+            urls.add(ReportUtils.generateReportUrl(stepExecution, reportFileName.toString()));
+            chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
+            log.debug("Setting log urls in execution context {}", urls);
+            return RepeatStatus.CONTINUABLE;
+        }
         init();
         // Create a unique JOB_NAME.
         // TODO: This could _potentially_ create non-unique names if another step is started very close in time.
@@ -119,6 +182,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
         String dbmsJobName = createSchedulerJobName(stepName);
         log.debug("Creating a new scheduled DBMS job. Job name will be '{}'", dbmsJobName);
+        writeToLogFile("Scheduled job name will be " + dbmsJobName);
         schedule(dbmsJobName, contribution);
         Map<String, Object> outParams = new HashMap<>();
         outParams.put("JOB_NAME", dbmsJobName);
@@ -139,25 +203,55 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             log.debug("Time to check status");
             String status = checkStatus(dbmsJobName, contribution);
             if ("SUCCEEDED".equals(status)) {
+                writeToLogFile("checkStatus returned SUCCEEDED. Done!");
                 return RepeatStatus.FINISHED;
             } else if ("STOPPED".equals(status)) {
+                writeToLogFile("Job is stopped");
                 log.debug("Job is stopped");
                 throw new JobExecutionException("Scheduled job " + dbmsJobName + " was stopped");
             } else if (!StringUtils.isEmpty(status)) {
                 // Not any of the expected values
+                writeToLogFile("Job finished with unexpected status " + status);
                 throw new JobExecutionException("Scheduled job " + dbmsJobName + " finished with (unexpected) status '" + status + "'");
-            } else {
+            } else if (checkRunning) {
                 // We could just assume that the job is running, but this is a more robust way to make sure the job is running
                 boolean running = checkRunning(dbmsJobName, contribution, outParams);
-                //if (!running) throw new JobExecutionException("Job " + dbmsJobName + " does not seem to be running");
+                if (!running) {
+                    log.warn("Scheduled job " + dbmsJobName + " does not seem to be running.");
+                }
             }
         }
         while (!this.stopped);
 
         stopScheduledJob(dbmsJobName);
         log.debug("Stop command sent. End as FAILED");
+        writeToLogFile("Stop command sent. End as FAILED");
         throw new JobExecutionException("Job " + dbmsJobName + " was stopped");
 
+    }
+
+    private void writeToLogFile(String message) {
+        try (PrintWriter logWriter = new PrintWriter(new FileWriter(logFile, true))) {
+            logWriter.println(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()) + "\t" + message);
+        }
+        catch (Exception ex) {
+            log.error("Failed to write to log file", ex);
+        }
+    }
+
+    private void writeToLogFile(Exception e) {
+        writeToLogFile(null, e);
+    }
+
+    private void writeToLogFile(String message, Exception exception) {
+        try (PrintWriter logWriter = new PrintWriter(new FileWriter(logFile, true))) {
+            if (message != null) logWriter.println(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()) + "\t" + message);
+            logWriter.println(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()) + "\t" + exception.getMessage());
+            exception.printStackTrace(logWriter);
+        }
+        catch (Exception ex) {
+            log.error("Failed to write to log file", ex);
+        }
     }
 
     /**
@@ -179,15 +273,15 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     private void schedule(String dbmsJobName, StepContribution contribution) throws SQLException {
         String sql = buildStatement(dbmsJobName);
         log.debug("Executing statement: '{}'", sql);
+        writeToLogFile("Sending statement '" + sql + "' to database ...");
 
         // execute statement
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
             boolean hasResult = stmt.execute(sql);
         }
+        writeToLogFile("Statement executed successfully");
         log.debug("Statement executed successfully");
         contribution.incrementWriteCount(1);
-
-
     }
 
     /**
@@ -199,22 +293,26 @@ public class ScheduledJobTasklet implements StoppableTasklet {
     private void stopScheduledJob(String dbmsJobName) {
         String sql = buildStopStatement(dbmsJobName);
         log.debug("Executing stop statement {}", sql);
+        writeToLogFile("Executing stop statement '" + sql+ "' ...");
         // execute statement
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
             boolean hasResult = stmt.execute(sql);
             log.debug("Stop statement executed successfully");
+            writeToLogFile("Stop statement executed successfully ");
         } catch (Exception e) {
             log.warn("Failed to stop job", e);
+            writeToLogFile("Failed to stop job", e);
         }
     }
 
     /**
-     * Checks if the given job is running.
+     * Checks if the given job is running by checking the table USER_SCHEDULER_RUNNING_JOBS.
+     * This is an extra confirmation that the scheduled job was actually started.
      *
      * @return True if job is still running.
      * @throws SQLException
      */
-    private boolean checkRunning(String dbmsJobName, StepContribution contribution, Map outParams) throws SQLException {
+    private boolean checkRunning(String dbmsJobName, StepContribution contribution, Map outParams) throws JobExecutionException {
         String checkIfRunningSql = "select JOB_NAME, SESSION_ID, SLAVE_PROCESS_ID from USER_SCHEDULER_RUNNING_JOBS where job_name=?";
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(checkIfRunningSql)) {
             int active  = ((BasicDataSource)dataSource).getNumActive();
@@ -223,6 +321,12 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             log.debug("Check if running with query '{}'", checkIfRunningSql);
             stmt.setString(1, dbmsJobName);
             try (ResultSet rs = stmt.executeQuery();) {
+                // We seem to have a working connection. Reset fail counter
+                if (this.failedRunningCheckCount > 0) {
+                    log.debug("Recovering after failed running checks. Resetting counter");
+                    writeToLogFile("Recovering after failed running checks. Resetting counter");
+                }
+                this.failedRunningCheckCount = 0;
                 if (rs.next()) {
                     String jobName = rs.getString(1);
                     long sessionId = rs.getLong(2);
@@ -234,8 +338,16 @@ public class ScheduledJobTasklet implements StoppableTasklet {
                     return true;
                 }
             }
+        } catch (SQLException e) {
+            failedRunningCheckCount++;
+            writeToLogFile("SQL error " + e.getErrorCode() + " when checking running status. Fail count is " + failedRunningCheckCount);
+            log.warn("SQL error when checking running status. Fail count: " + failedRunningCheckCount, e);
+            if (failedRunningCheckCount > maxFailedRunningChecks) {
+                throw new JobExecutionException("Error when checking if running. Giving up after " + failedRunningCheckCount + " times", e);
+            }
         } catch (Exception e) {
-            log.warn("Failed to checkIfRunning", e);
+            log.warn("Unexpected error when checking if running", e);
+            throw new RuntimeException("Unexpected error when checking status", e);
         }
         return false;
     }
@@ -253,7 +365,8 @@ public class ScheduledJobTasklet implements StoppableTasklet {
      * to the table user_scheduler_job_run_details. This method returns the value in
      * column STATUS if it has any of the values "SUCCEEDED", "STOPPED".
      * Returns null if the job has not finished.
-     * Throws JobExecutionException if the status value is "FAILED"
+     * Throws JobExecutionException if the status value is "FAILED" or if there
+     * was a problem to reach the database we tried > maxFailedStatusChecks times.
      */
     private String checkStatus(String dbmsJobName, StepContribution contribution) throws JobExecutionException {
         String status = null;
@@ -290,11 +403,26 @@ public class ScheduledJobTasklet implements StoppableTasklet {
                 } else {
                     log.debug("No result. Job is not finished.");
                 }
+                // Reaching this point means that we have a working connection to the database. Reset fail counter
+                if (this.failedStatusCheckCount > 0) {
+                    writeToLogFile("Recovering after " + this.failedStatusCheckCount + " failed status checks. Resetting counter");
+                    this.failedStatusCheckCount = 0;
+                }
             }
         } catch (JobExecutionException jee) {
             throw jee;
+        } catch (SQLException e) {
+            log.warn("SQL error when checking status. Fail count: " + failedStatusCheckCount, e);
+            writeToLogFile("SQL error (" + e.getErrorCode() + ") when checking status. Fail count: " + failedStatusCheckCount);
+            failedStatusCheckCount++;
+            if (failedStatusCheckCount > maxFailedStatusChecks) {
+                writeToLogFile("Maximum attempts reached: " + failedStatusCheckCount +". Giving up..");
+                throw new JobExecutionException("Error when checking status. Tried " + failedStatusCheckCount + " times", e);
+            }
         } catch (Exception e) {
             log.warn("Unexpected error when checking status", e);
+            writeToLogFile("Unexpected error when checking status", e);
+
             throw new RuntimeException("Unexpected error when checking status", e);
         }
         return status;
@@ -332,11 +460,9 @@ public class ScheduledJobTasklet implements StoppableTasklet {
          */
         String lf = System.lineSeparator();
         StringBuilder plsql = new StringBuilder();
-        plsql.append("begin ").append(lf);
-        plsql.append("SYS.DBMS_SCHEDULER.STOP_JOB(").append(lf);
-        plsql.append("job_name=>'").append(jobName).append("',").append(lf);
-        plsql.append("force=>TRUE);").append(lf);
-        plsql.append("end;").append(lf);
+        plsql.append("begin SYS.DBMS_SCHEDULER.STOP_JOB(job_name=>'").append(jobName);
+        plsql.append("', force=>").append(this.forceStop ? "TRUE" : "FALSE");
+        plsql.append("); end;");
         return plsql.toString();
     }
 

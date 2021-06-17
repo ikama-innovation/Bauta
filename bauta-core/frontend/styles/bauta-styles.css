@@ -49,10 +49,10 @@
     background-color: var(--lumo-error-color);
 }
 .batch_status[data-status="STOPPED"] {
-    background-color: var(--lumo-primary-color);
+    background-color: #b224bf;
 }
 .batch_status[data-status="STOPPING"] {
-    background-color: var(--lumo-primary-color);
+    background-color: #b224bf;
 }
 .batch_status[data-status="UNKNOWN"] {
     background-color: var(--lumo-contrast-30pct);

@@ -313,7 +313,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     private boolean hasRunningExecutions() {
         log.debug("Checking if we have running executions");
-        for (String jobName : listJobNames()) {
+        for (String jobName : jobOperator.getJobNames()) {
             try {
                 Set<Long> runningExecutions = jobOperator.getRunningExecutions(jobName);
                 log.debug("Running executions for job {}: {}", jobName, runningExecutions);
