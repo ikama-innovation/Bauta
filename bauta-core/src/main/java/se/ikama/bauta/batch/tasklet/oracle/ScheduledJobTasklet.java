@@ -60,10 +60,10 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
     /* Interval (in ms) between status checks.  */
     private Long statusCheckInterval = 30000L;
-    private Integer maxFailedStatusChecks = 5;
-    private Integer maxFailedRunningChecks = 5;
+    private Integer maxFailedStatusChecks = 20;
+    private Integer maxFailedRunningChecks = 20;
     private boolean checkRunning = false;
-    private boolean forceStop = true;
+    private boolean forceStop = false;
 
 
     /**
@@ -296,6 +296,8 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         writeToLogFile("Executing stop statement '" + sql+ "' ...");
         // execute statement
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
+            // Experienced problems with this query just hanging indefinitely. Solving this by setting a timeout
+            stmt.setQueryTimeout(10);
             boolean hasResult = stmt.execute(sql);
             log.debug("Stop statement executed successfully");
             writeToLogFile("Stop statement executed successfully ");
@@ -390,9 +392,11 @@ public class ScheduledJobTasklet implements StoppableTasklet {
                     additionalInfo = rs.getString(4);
                     log.debug("checkStatus result: jobName: {}, status: {}, oraError: {}, additionInfo: {}", jobName, status, oraError, additionalInfo);
                     if ("FAILED".equals(status)) {
+                        writeToLogFile("Check status: FAILED. Details: " + oraError + ", " + additionalInfo);
                         throw new JobExecutionException("Job " + jobName + " failed: " + additionalInfo);
                     }
                     else if ("STOPPED".equals(status)) {
+                        writeToLogFile("Check status: STOPPED. Details: " + oraError + ", " + additionalInfo);
                         throw new JobExecutionException("Job " + jobName + " ended with status STOPPED: " + additionalInfo);
                     }
                     // Just assert that we only received one row
