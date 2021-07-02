@@ -7,18 +7,12 @@ import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.shared.ui.Transport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -82,6 +76,8 @@ import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
 import se.ikama.bauta.security.SecurityUtils;
 
+import javax.swing.*;
+
 @Push(value = PushMode.MANUAL)
 @Route("")
 @PreserveOnRefresh()
@@ -113,10 +109,14 @@ public class MainView extends AppLayout implements JobEventListener {
     private Div jobGrid;
     private TextField tfJobFilter;
     private Checkbox cbShowOnlyRunningJobs;
+    private ComboBox<String> cbSortingList;
+    private ComboBox<String> cbShowTimeList;
+    private static String sortingValue = "";
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
+    private TreeMap<String, Div> jobNameToJobRow = new TreeMap<>();
     private HashSet<String> runningJobs = new HashSet<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
@@ -159,9 +159,28 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
+    private void sortJobGrid() {
+        if (!sortingValue.equalsIgnoreCase("")) {
+            List<Component> jobList = new ArrayList<>();
+            jobGrid.getChildren().forEach(jobList::add);
+            jobGrid.removeAll();
+
+            if (sortingValue.equalsIgnoreCase("Job Name")) {
+                jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-name").toLowerCase()));
+            } else if (sortingValue.equalsIgnoreCase("End Time")) {
+                jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-endtime")));
+                Collections.reverse(jobList);
+            } else if (sortingValue.equalsIgnoreCase("Start Time")) {
+                jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-startTime")));
+                Collections.reverse(jobList);
+            }
+            jobList.forEach(job -> System.out.println(job.getElement().getAttribute("data-job-endtime")));
+            jobList.forEach(jobGrid::add);
+        }
+    }
 
     private void filterJobGrid() {
-        jobGrid.getChildren().forEach(component ->{
+        jobGrid.getChildren().forEach(component -> {
             String jobName = component.getElement().getAttribute("data-job-name");
             boolean show = true;
             if (cbShowOnlyRunningJobs.getValue() && !runningJobs.contains(jobName)) {
@@ -171,9 +190,9 @@ public class MainView extends AppLayout implements JobEventListener {
                 show = false;
             }
             component.setVisible(show);
-
         });
     }
+
     private void updateJobGrid(List<JobInstanceInfo> jobs) {
         jobGrid.removeAll();
         jobNameToJobButtons.clear();
@@ -183,11 +202,17 @@ public class MainView extends AppLayout implements JobEventListener {
         log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
-            if (job.isRunning()) runningJobs.add(jobName); else runningJobs.remove(jobName);
-            if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue())) continue;
+            if (job.isRunning())
+                runningJobs.add(jobName);
+            else
+                runningJobs.remove(jobName);
+            if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue()))
+                continue;
             Div jobRow = new Div();
             jobRow.addClassNames("job-grid-row");
             jobRow.getElement().setAttribute("data-job-name", jobName);
+            jobRow.getElement().setAttribute("data-job-endtime", job.getEndTime() != null ? Long.toString(job.getEndTime().getTime()) : "0");
+            jobRow.getElement().setAttribute("data-job-startTime", job.getStartTime() != null ? Long.toString(job.getStartTime().getTime()) : "0");
 
             Div cell2 = new Div(createStepComponent(job));
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
@@ -216,9 +241,12 @@ public class MainView extends AppLayout implements JobEventListener {
             cell1.addClassNames("job-grid-cell");
 
             jobRow.add(cell0, cell1, cell2, cell3);
+            jobNameToJobRow.put(jobName, jobRow);
             jobGrid.add(jobRow);
         }
+        sortJobGrid();
     }
+
 
 
     @Override
@@ -388,7 +416,26 @@ public class MainView extends AppLayout implements JobEventListener {
         hl.add(tfJobFilter);
         cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
         cbShowOnlyRunningJobs.setValue(false);
+        cbSortingList = new ComboBox<>();
+        cbSortingList.setLabel("Sort By:");
+        cbSortingList.setItems("Job Name", "Start Time", "End Time");
+        cbSortingList.setClearButtonVisible(true);
+        cbSortingList.addValueChangeListener(event -> {
+           if (event.getValue() == null) {
+               sortingValue = "";
+           } else {
+               sortingValue = event.getValue();
+               sortJobGrid();
+           }
+        });
+        cbShowTimeList = new ComboBox<>();
+        cbShowTimeList.setLabel("Show:");
+        cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week");
+        cbShowTimeList.setClearButtonVisible(true);
         hl.add(cbShowOnlyRunningJobs);
+        hl.add(cbSortingList);
+        hl.add(cbShowTimeList);
+
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
         vl.add(hl);
@@ -722,16 +769,21 @@ public class MainView extends AppLayout implements JobEventListener {
         if (ui != null) {
             ui.access(() -> {
                 // grid.getDataProvider().refreshItem();
-                JobButtons jobButtons = jobNameToJobButtons.get(jobInstanceInfo.getName());
+                String jobName = jobInstanceInfo.getName();
+                JobButtons jobButtons = jobNameToJobButtons.get(jobName);
                 jobButtons.setJobInstanceInfo(jobInstanceInfo);
-                StepFlow stepFlow = jobNameToStepFLow.get(jobInstanceInfo.getName());
+                StepFlow stepFlow = jobNameToStepFLow.get(jobName);
                 // TODO: Only needed for job start?
                 stepFlow.update(jobInstanceInfo.getSteps());
-                StepProgressBar progressBar  = jobNameToProgressBar.get(jobInstanceInfo.getName());
+                StepProgressBar progressBar  = jobNameToProgressBar.get(jobName);
                 progressBar.update(jobInstanceInfo);
-                JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
+                JobInfo jobInfo = jobNameToJobInfo.get(jobName);
                 jobInfo.update(jobInstanceInfo);
+                Div jobRow = jobNameToJobRow.get(jobName);
+                jobRow.getElement().setAttribute("data-job-endtime", jobInstanceInfo.getEndTime() != null ? Long.toString(jobInstanceInfo.getEndTime().getTime()) : "0");
+                jobRow.getElement().setAttribute("data-job-startTime", jobInstanceInfo.getStartTime() != null ? Long.toString(jobInstanceInfo.getStartTime().getTime()) : "0");
                 filterJobGrid();
+                sortJobGrid();
                 ui.push();
             });
         }
