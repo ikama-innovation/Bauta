@@ -7,16 +7,20 @@ import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.shared.ui.Transport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,10 +112,13 @@ public class MainView extends AppLayout implements JobEventListener {
     HashSet<String> expandedJobs = new HashSet<>();
     private Div jobGrid;
     private TextField tfJobFilter;
-    private Checkbox cbShowOnlyRunningJobs;
+    private String filterValue = "";
+    private ComboBox cbFilterOnStatus;
     private ComboBox<String> cbSortingList;
     private ComboBox<String> cbShowTimeList;
-    private static String sortingValue = "";
+    private String sortingValue = "";
+    private static Date showJobsFrom = new Date(0);
+    private static Date showJobsTo = new Date();
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
@@ -174,7 +181,6 @@ public class MainView extends AppLayout implements JobEventListener {
                 jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-startTime")));
                 Collections.reverse(jobList);
             }
-            jobList.forEach(job -> System.out.println(job.getElement().getAttribute("data-job-endtime")));
             jobList.forEach(jobGrid::add);
         }
     }
@@ -182,13 +188,20 @@ public class MainView extends AppLayout implements JobEventListener {
     private void filterJobGrid() {
         jobGrid.getChildren().forEach(component -> {
             String jobName = component.getElement().getAttribute("data-job-name");
-            boolean show = true;
-            if (cbShowOnlyRunningJobs.getValue() && !runningJobs.contains(jobName)) {
-                show = false;
-            }
-            if (!tfJobFilter.isEmpty() && !StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue())) {
-                show = false;
-            }
+            String jobStatus = component.getElement().getAttribute("data-execution-status");
+            Long startTime = Long.valueOf(component.getElement().getAttribute("data-job-startTime"));
+            Long endTime = Long.valueOf(component.getElement().getAttribute("data-job-endtime"));
+
+            boolean show = (showJobsFrom.getTime() <= startTime && showJobsTo.getTime() >= startTime) ||
+                    showJobsFrom.getTime() <= endTime && showJobsTo.getTime() >= endTime ||
+                    runningJobs.contains(jobName);
+
+            if (!tfJobFilter.isEmpty() && !StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue())) show = false;
+            if (filterValue.equalsIgnoreCase("Running") && !runningJobs.contains(jobName)) show = false;
+            if (filterValue.equalsIgnoreCase("Completed") && !jobStatus.equalsIgnoreCase("Completed")) show = false;
+            if (filterValue.equalsIgnoreCase("Failed") && !jobStatus.equalsIgnoreCase("Failed")) show = false;
+            if (filterValue.equalsIgnoreCase("Unknown") && !jobStatus.equalsIgnoreCase("Unknown")) show = false;
+
             component.setVisible(show);
         });
     }
@@ -213,6 +226,7 @@ public class MainView extends AppLayout implements JobEventListener {
             jobRow.getElement().setAttribute("data-job-name", jobName);
             jobRow.getElement().setAttribute("data-job-endtime", job.getEndTime() != null ? Long.toString(job.getEndTime().getTime()) : "0");
             jobRow.getElement().setAttribute("data-job-startTime", job.getStartTime() != null ? Long.toString(job.getStartTime().getTime()) : "0");
+            jobRow.getElement().setAttribute("data-execution-status", job.getExecutionStatus());
 
             Div cell2 = new Div(createStepComponent(job));
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
@@ -406,16 +420,37 @@ public class MainView extends AppLayout implements JobEventListener {
     private Component createJobView() {
         VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
+        HorizontalLayout hlRight = new HorizontalLayout();
+        HorizontalLayout hlLeft = new HorizontalLayout();
+
         hl.setPadding(false);
         hl.setMargin(false);
         hl.setSpacing(true);
+        hlLeft.setSpacing(true);
+        hlLeft.setMargin(false);
+        hlLeft.setPadding(false);
+        hlRight.setSpacing(true);
+        hlRight.setMargin(false);
+        hlRight.setPadding(false);
         tfJobFilter = new TextField(event -> {
             filterJobGrid();
         });
         tfJobFilter.setPlaceholder("Job filter");
-        hl.add(tfJobFilter);
-        cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
-        cbShowOnlyRunningJobs.setValue(false);
+        tfJobFilter.setLabel("Search by name:");
+
+        cbFilterOnStatus = new ComboBox<>();
+        cbFilterOnStatus.setLabel("Filter:");
+        cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Unknown");
+        cbFilterOnStatus.setClearButtonVisible(true);
+        cbFilterOnStatus.addValueChangeListener(event -> {
+           if (event.getValue() == null) {
+               filterValue = "";
+           } else {
+               filterValue = (String) event.getValue();
+           }
+           filterJobGrid();
+        });
+
         cbSortingList = new ComboBox<>();
         cbSortingList.setLabel("Sort By:");
         cbSortingList.setItems("Job Name", "Start Time", "End Time");
@@ -428,22 +463,49 @@ public class MainView extends AppLayout implements JobEventListener {
                sortJobGrid();
            }
         });
+
         cbShowTimeList = new ComboBox<>();
         cbShowTimeList.setLabel("Show:");
-        cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week");
+        cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week", "Custom");
         cbShowTimeList.setClearButtonVisible(true);
-        hl.add(cbShowOnlyRunningJobs);
-        hl.add(cbSortingList);
-        hl.add(cbShowTimeList);
+        cbShowTimeList.setPreventInvalidInput(true);
+        cbShowTimeList.addValueChangeListener(event -> {
+            cbShowTimeList.setHelperText("");
+            if (event.getValue() == null) {
+                showJobsTo = new Date();
+                showJobsFrom = new Date(0);
+            } else if (event.getValue().equals("Custom")) {
+                openDateTimeDialog(cbShowTimeList);
 
-        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
-        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+            } else if (event.getValue().equals("Today")) {
+                // TODO: figure out how to set today
+            } else if (event.getValue().equals("Last 24h")) {
+                showJobsFrom = DateUtils.addHours(new Date(), -24);
+                showJobsTo = new Date();
+
+            } else if (event.getValue().equals("Last 48h")) {
+                showJobsFrom = DateUtils.addHours(new Date(), -48);
+                showJobsTo = new Date();
+            } else if (event.getValue().equals("Last Week")) {
+                showJobsFrom = DateUtils.addWeeks(new Date(), -1);
+                showJobsTo = new Date();
+            }
+            filterJobGrid();
+        });
+        hlLeft.add(tfJobFilter);
+        hlLeft.add(cbFilterOnStatus);
+        hlRight.add(cbSortingList);
+        hlLeft.add(cbShowTimeList);
+        hlLeft.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbFilterOnStatus);
+        hlLeft.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+        hlRight.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbSortingList);
+        hl.add(hlLeft);
+        hl.add(hlRight);
         vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
         vl.add(jobGrid);
         return vl;
-
     }
 
     private Component createStepComponent(JobInstanceInfo item) {
@@ -504,7 +566,6 @@ public class MainView extends AppLayout implements JobEventListener {
             showErrorMessage(e.getMessage());
         }
     }
-
 
     private InputStream createJobReport() throws Exception {
         StringBuilder sb = new StringBuilder();
@@ -620,7 +681,6 @@ public class MainView extends AppLayout implements JobEventListener {
         return null;
 
     }
-
 
     private Component createStatusLabel(String executionStatus, boolean oldExecution) {
         Div statusLabel = new Div();
@@ -768,6 +828,7 @@ public class MainView extends AppLayout implements JobEventListener {
         UI ui = this.getUI().get();
         if (ui != null) {
             ui.access(() -> {
+                showJobsTo = new Date();
                 // grid.getDataProvider().refreshItem();
                 String jobName = jobInstanceInfo.getName();
                 JobButtons jobButtons = jobNameToJobButtons.get(jobName);
@@ -782,6 +843,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 Div jobRow = jobNameToJobRow.get(jobName);
                 jobRow.getElement().setAttribute("data-job-endtime", jobInstanceInfo.getEndTime() != null ? Long.toString(jobInstanceInfo.getEndTime().getTime()) : "0");
                 jobRow.getElement().setAttribute("data-job-startTime", jobInstanceInfo.getStartTime() != null ? Long.toString(jobInstanceInfo.getStartTime().getTime()) : "0");
+                jobRow.getElement().setAttribute("data-execution-status", jobInstanceInfo.getExecutionStatus());
                 filterJobGrid();
                 sortJobGrid();
                 ui.push();
@@ -803,6 +865,53 @@ public class MainView extends AppLayout implements JobEventListener {
             });
         }
 
+    }
+
+    public void openDateTimeDialog(ComboBox cbShowTimeList) {
+        Dialog dateTimeDialog = createDateTimeDialog(cbShowTimeList);
+        dateTimeDialog.open();
+    }
+
+    private Dialog createDateTimeDialog(ComboBox cbShowTimeList) {
+        Dialog dialog = new Dialog();
+        dialog.setWidth("450px");
+        dialog.setCloseOnOutsideClick(false);
+
+        VerticalLayout layout = new VerticalLayout();
+        layout.setPadding(false);
+        layout.setSpacing(false);
+
+        DateTimePicker dateTimePickerFrom = new DateTimePicker("From");
+        DateTimePicker dateTimePickerTo = new DateTimePicker("To");
+
+        HorizontalLayout buttons = new HorizontalLayout();
+        buttons.setWidthFull();
+        buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        buttons.getStyle().set("margin-top", "20px");
+
+        Button applyButton = new Button("Apply", clickEvent -> {
+            try {
+                showJobsFrom = Date.from(dateTimePickerFrom.getValue().atZone(ZoneId.systemDefault()).toInstant());
+                showJobsTo = Date.from(dateTimePickerTo.getValue().atZone(ZoneId.systemDefault()).toInstant());
+                filterJobGrid();
+                dialog.close();
+                SimpleDateFormat formatter = new SimpleDateFormat("EEE, yyyy-MM-dd HH.mm");
+                cbShowTimeList.setHelperText("From: " + formatter.format(showJobsFrom) + "\n" + "To: " + formatter.format(showJobsTo));
+            } catch (NullPointerException e) {
+                showErrorMessage("Dates must be selected!");
+            }
+        });
+        Button closeButton = new Button("Close", clickEvent -> {
+            dialog.close();
+        });
+
+        buttons.add(applyButton);
+        buttons.add(closeButton);
+        layout.add(dateTimePickerFrom);
+        layout.add(dateTimePickerTo);
+        layout.add(buttons);
+        dialog.add(layout);
+        return dialog;
     }
 
     private void showErrorMessage(String message) {
