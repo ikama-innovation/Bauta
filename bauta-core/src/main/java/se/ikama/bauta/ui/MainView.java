@@ -202,6 +202,7 @@ public class MainView extends AppLayout implements JobEventListener {
             if (filterValue.equalsIgnoreCase("Running") && !runningJobs.contains(jobName)) show = false;
             if (filterValue.equalsIgnoreCase("Completed") && !jobStatus.equalsIgnoreCase("Completed")) show = false;
             if (filterValue.equalsIgnoreCase("Failed") && !jobStatus.equalsIgnoreCase("Failed")) show = false;
+            if (filterValue.equalsIgnoreCase("Stopped") && !jobStatus.equalsIgnoreCase("Stopped")) show = false;
             if (filterValue.equalsIgnoreCase("Unknown") && !jobStatus.equalsIgnoreCase("Unknown")) show = false;
 
             component.setVisible(show);
@@ -442,7 +443,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         cbFilterOnStatus = new ComboBox<>();
         cbFilterOnStatus.setLabel("Filter:");
-        cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Unknown");
+        cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Stopped", "Unknown");
         cbFilterOnStatus.setClearButtonVisible(true);
         cbFilterOnStatus.addValueChangeListener(event -> {
            if (event.getValue() == null) {
