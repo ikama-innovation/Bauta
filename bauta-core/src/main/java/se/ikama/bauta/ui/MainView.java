@@ -8,6 +8,8 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -478,7 +480,13 @@ public class MainView extends AppLayout implements JobEventListener {
                 openDateTimeDialog(cbShowTimeList);
 
             } else if (event.getValue().equals("Today")) {
-                // TODO: figure out how to set today
+                showJobsFrom = Date.from(LocalDateTime
+                                .now()
+                                .with(LocalTime.MIDNIGHT)
+                                .atZone(ZoneId.systemDefault())
+                                .toInstant());
+                showJobsTo = new Date();
+
             } else if (event.getValue().equals("Last 24h")) {
                 showJobsFrom = DateUtils.addHours(new Date(), -24);
                 showJobsTo = new Date();
