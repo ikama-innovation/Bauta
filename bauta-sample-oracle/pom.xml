@@ -7,7 +7,7 @@
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>0.0.60-SNAPSHOT</version>
+        <version>0.0.60</version>
     </parent>
     <properties>
         <bautainstancebuildtime>${maven.build.timestamp}</bautainstancebuildtime>
@@ -17,7 +17,7 @@
         <dependency>
             <groupId>se.ikama</groupId>
             <artifactId>bauta-starter</artifactId>
-            <version>0.0.60-SNAPSHOT</version>
+            <version>0.0.60</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
