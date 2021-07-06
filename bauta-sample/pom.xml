@@ -7,13 +7,13 @@
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>0.0.60</version>
+        <version>0.0.60-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>se.ikama</groupId>
             <artifactId>bauta-starter</artifactId>
-            <version>0.0.60</version>
+            <version>0.0.60-SNAPSHOT</version>
 
         </dependency>
         <dependency>
