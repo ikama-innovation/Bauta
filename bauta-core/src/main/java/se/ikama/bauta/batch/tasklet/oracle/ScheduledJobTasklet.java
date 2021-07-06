@@ -1,6 +1,5 @@
 package se.ikama.bauta.batch.tasklet.oracle;
 
-import com.sun.org.apache.xalan.internal.xsltc.runtime.InternalRuntimeError;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
