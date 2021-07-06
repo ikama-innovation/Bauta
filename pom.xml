@@ -47,7 +47,7 @@
         <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
         <timeZone>Europe/Stockholm</timeZone>
         <bautabuildtimestamp>${maven.build.timestamp}</bautabuildtimestamp>
-        <project.scm.id>github</project.scm.id>
+<!--        <project.scm.id>github</project.scm.id>-->
     </properties>
 
     <modules>
