@@ -31,7 +31,6 @@
         <developerConnection>
             scm:git:ssh://git@github.com:ikama-innovation/Bauta.git
         </developerConnection>
-      <tag>bauta-0.0.60</tag>
   </scm>
     <developers>
         <developer>
