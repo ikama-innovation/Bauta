@@ -1,11 +1,13 @@
 package se.ikama.bauta.ui;
 
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -21,6 +23,7 @@ import se.ikama.bauta.core.BasicJobInstanceInfo;
 import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.core.JobInstanceInfo;
 
+import javax.websocket.RemoteEndpoint;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,6 +34,8 @@ public class JobButtons extends FlexLayout {
     private MainView mainView;
 
     BasicJobInstanceInfo jobInstanceInfo;
+
+    private boolean start = false;
 
     private Button startButton, stopButton, restartButton, infoButton, abandonButton;
 
@@ -43,12 +48,10 @@ public class JobButtons extends FlexLayout {
         this.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         FlexLayout hl = new FlexLayout();
         startButton = new Button("", clickEvent -> {
+            openConfirmDialog("start", this.jobInstanceInfo, this::doStartJob);
             if (this.jobInstanceInfo.hasJobParameters()) {
                 Dialog d = createJobParamsDialog(this.jobInstanceInfo);
                 d.open();
-            }
-            else {
-                doStartJob(this.jobInstanceInfo, null);
             }
         });
         startButton.setIcon(VaadinIcon.PLAY.create());
@@ -57,12 +60,7 @@ public class JobButtons extends FlexLayout {
         hl.add(startButton);
 
         stopButton = new Button("", clickEvent -> {
-            try {
-                bautaManager.stopJob(this.jobInstanceInfo.getName());
-            }
-            catch(Exception e) {
-                UIUtils.showErrorMessage(e.getMessage());
-            }
+            openConfirmDialog("stop",  this.jobInstanceInfo, this::doStopJob);
         });
         stopButton.setIcon(VaadinIcon.STOP.create());
         stopButton.addClassName("margin-left");
@@ -71,12 +69,7 @@ public class JobButtons extends FlexLayout {
         hl.add(stopButton);
 
         restartButton = new Button("", clickEvent -> {
-            try {
-                bautaManager.restartJob(this.jobInstanceInfo.getLatestExecutionId());
-            } catch (Exception e) {
-                UIUtils.showErrorMessage(e.getMessage());
-                log.warn("Failed to restart job", e);
-            }
+            openConfirmDialog("restart", this.jobInstanceInfo, this::doRestartJob);
         });
         restartButton.setIcon(VaadinIcon.ROTATE_LEFT.create());
         restartButton.addClassName("margin-left");
@@ -85,12 +78,7 @@ public class JobButtons extends FlexLayout {
         hl.add(restartButton);
 
         abandonButton = new Button("", clickEvent -> {
-            try {
-                bautaManager.abandonJob(this.jobInstanceInfo.getLatestExecutionId());
-            } catch (Exception e) {
-                UIUtils.showErrorMessage(e.getMessage());
-                log.warn("Failed to abandon job", e);
-            }
+            openConfirmDialog("abandon", this.jobInstanceInfo, this::doAbandonJob);
         });
         abandonButton.getElement().setProperty("title", "Abandons a job. Useful when the process was killed while a job was running and is now stuck in running state.");
         abandonButton.setIcon(VaadinIcon.TRASH.create());
@@ -99,7 +87,6 @@ public class JobButtons extends FlexLayout {
         hl.add(abandonButton);
 
         infoButton = new Button("", clickEvent -> {
-
             Dialog infoDialog = new Dialog();
             infoDialog.add(mainView.createJobHistory(this.jobInstanceInfo.getName()));
             infoDialog.setWidth("800px");
@@ -109,8 +96,6 @@ public class JobButtons extends FlexLayout {
         infoButton.setIcon(VaadinIcon.BULLETS.create());
         infoButton.addClassName("margin-left");
         hl.add(infoButton);
-
-
 
         startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         restartButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -142,7 +127,6 @@ public class JobButtons extends FlexLayout {
     public void setRunEnabled(boolean enabled) {
         this.enabled = enabled;
         updateButtonState();
-
     }
 
     private void updateButtonState() {
@@ -164,6 +148,11 @@ public class JobButtons extends FlexLayout {
             abandonButton.setEnabled(false);
         }
     }
+
+    private void doStartJob(BasicJobInstanceInfo item) {
+        doStartJob(item, null);
+    }
+
     private void doStartJob(BasicJobInstanceInfo item, Map<String, String> params) {
         try {
             bautaManager.startJob(item.getName(), params);
@@ -174,6 +163,33 @@ public class JobButtons extends FlexLayout {
             UIUtils.showErrorMessage("This job is already running");
         } catch (NoSuchJobException e) {
             UIUtils.showErrorMessage(e.getMessage());
+        }
+    }
+
+    private void doStopJob(BasicJobInstanceInfo jobInstanceInfo) {
+        try {
+            bautaManager.stopJob(jobInstanceInfo.getName());
+        }
+        catch(Exception e) {
+            UIUtils.showErrorMessage(e.getMessage());
+        }
+    }
+
+    private void doRestartJob(BasicJobInstanceInfo jobInstanceInfo) {
+        try {
+            bautaManager.restartJob(this.jobInstanceInfo.getLatestExecutionId());
+        } catch (Exception e) {
+            UIUtils.showErrorMessage(e.getMessage());
+            log.warn("Failed to restart job", e);
+        }
+    }
+
+    private void doAbandonJob(BasicJobInstanceInfo jobInstanceInfo) {
+        try {
+            bautaManager.abandonJob(this.jobInstanceInfo.getLatestExecutionId());
+        } catch (Exception e) {
+            UIUtils.showErrorMessage(e.getMessage());
+            log.warn("Failed to abandon job", e);
         }
     }
 
@@ -237,5 +253,10 @@ public class JobButtons extends FlexLayout {
         dialog.add(formLayout);
 
         return dialog;
+    }
+
+    private void openConfirmDialog(String text, BasicJobInstanceInfo item, ConfirmDialog.ConfirmDialogListener<BasicJobInstanceInfo> function) {
+        ConfirmDialog<BasicJobInstanceInfo> dialog =  new ConfirmDialog<>("Are you sure you want to " + text + " job?", item, function);
+        dialog.open();
     }
 }
