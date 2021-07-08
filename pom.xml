@@ -32,7 +32,7 @@
             scm:git:https://github.com/ikama-innovation/Bauta
             <!--scm:git:ssh://git@github.com:ikama-innovation/Bauta.git-->
         </developerConnection>
-    <tag>HEAD</tag>
+        <tag>HEAD</tag>
   </scm>
     <developers>
         <developer>
