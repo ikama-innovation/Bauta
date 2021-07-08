@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: checkout project
       uses: actions/checkout@v2
+      with:
+        ref: 'master'
    
     - name: Configure Git user
       run: |
