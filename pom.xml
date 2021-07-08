@@ -29,8 +29,8 @@
             scm:git:git://github.com/ikama-innovation/Bauta.git
         </connection>-->
         <developerConnection>
-            scm:git:https://github.com/ikama-innovation/Bauta.git
-            <!--scm:git:ssh://git@github.com:ikama-innovation/Bauta.git-->
+            <!--scm:git:https://github.com/ikama-innovation/Bauta.git-->
+            scm:git:ssh://git@github.com:ikama-innovation/Bauta.git
         </developerConnection>
         <tag>HEAD</tag>
   </scm>
