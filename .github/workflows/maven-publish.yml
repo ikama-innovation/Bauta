@@ -31,10 +31,21 @@ jobs:
       run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-   
-    - name: Publish JAR
-      run: ./mvnw -B release:prepare release:perform
+          
+    - name: Set up Maven Central Repository
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+        server-id: ossrh
+        server-username: MAVEN_USERNAME
+        server-password: MAVEN_PASSWORD
+        
+    - name: Publish package
+      run: mvn -B release:prepare release:perform
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}       
+   
+    
     
