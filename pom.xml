@@ -4,7 +4,7 @@
 
     <groupId>se.ikama</groupId>
     <artifactId>bauta</artifactId>
-    <version>0.0.60</version>
+    <version>0.0.60-SNAPSHOT</version>
     <name>bauta</name>
     <packaging>pom</packaging>
     <description>Bauta is a batch automation framework based on Spring Batch.</description>
