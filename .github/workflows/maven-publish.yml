@@ -21,10 +21,10 @@ jobs:
       with:
         ref: 'master'
    
-    - name: Configure Git user
-      run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
+    #- name: Configure Git user
+    #  run: |
+     #     git config user.email "actions@github.com"
+       #   git config user.name "GitHub Actions"
           
     - name: Set up Maven Central Repository
       uses: actions/setup-java@v2
