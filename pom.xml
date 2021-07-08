@@ -4,7 +4,7 @@
 
     <groupId>se.ikama</groupId>
     <artifactId>bauta</artifactId>
-    <version>0.0.60</version>
+    <version>0.0.60-SNAPSHOT</version>
     <name>bauta</name>
     <packaging>pom</packaging>
     <description>Bauta is a batch automation framework based on Spring Batch.</description>
@@ -32,7 +32,6 @@
             scm:git:https://github.com/ikama-innovation/Bauta
             <!--scm:git:ssh://git@github.com:ikama-innovation/Bauta.git-->
         </developerConnection>
-    <tag>bauta-0.0.60</tag>
   </scm>
     <developers>
         <developer>
@@ -93,18 +92,13 @@
         </dependencies>
     </dependencyManagement>
     <distributionManagement>
-        <!--<snapshotRepository>
+        <snapshotRepository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>-->
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/ikama-innovation/Bauta</url>
         </repository>
     </distributionManagement>
     <build>
