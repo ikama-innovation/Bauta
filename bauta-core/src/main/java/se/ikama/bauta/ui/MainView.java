@@ -241,22 +241,27 @@ public class MainView extends AppLayout implements JobEventListener {
         jobPage.setVisible(true);
         // Job tab
         Tab jobTab = new Tab("Jobs");
-        Component aboutPage = createAboutView();
-        aboutPage.setVisible(false);
         // About tab
         Tab aboutTab = new Tab("About");
+        Component aboutPage = createAboutView();
+        aboutPage.setVisible(false);
         // Scheduling
         Tab schedulingTab = new Tab("Scheduling");
-
+        // Job flow
+        Tab jobFlowTab = new Tab("Job Flow");
+        Component jobFlowView = createJobGraphView();
+        
+        jobFlowView.setVisible(false);
         tabsToPages.put(jobTab, jobPage);
         tabsToPages.put(aboutTab, aboutPage);
         tabsToPages.put(schedulingTab, schedulingView);
+        tabsToPages.put(jobFlowTab, jobFlowView);
         schedulingView.setVisible(false);
 
-        Tabs tabs = new Tabs(jobTab, schedulingTab, aboutTab);
+        Tabs tabs = new Tabs(jobTab, schedulingTab, aboutTab, jobFlowTab);
         tabs.setSelectedTab(jobTab);
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        Div pages = new Div(jobPage, schedulingView, aboutPage);
+        Div pages = new Div(jobPage, schedulingView, aboutPage, jobFlowView);
         pages.setHeightFull();
         Set<Component> pagesShown = Stream.of(jobPage)
                 .collect(Collectors.toSet());
@@ -373,6 +378,9 @@ public class MainView extends AppLayout implements JobEventListener {
 
         aboutView.add(serverInfoGrid);
         return aboutView;
+    }
+    private Component createJobGraphView() {
+      return new JobFlow();
     }
 
     private Component createJobView() {
