@@ -162,10 +162,9 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
-
     private void setTitle() {
-        System.out.println(bautaManager.getServerInfo().get(4));
-        UI.getCurrent().getPage().setTitle(bautaManager.getServerInfo().get(4));
+        String value = "Bauta: " + bautaManager.getServerInfo().get(4).split(": ")[1];
+        UI.getCurrent().getPage().setTitle(value);
     }
 
     private void filterJobGrid() {
