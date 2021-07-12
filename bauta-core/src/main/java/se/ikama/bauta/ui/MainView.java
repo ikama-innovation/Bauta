@@ -113,6 +113,7 @@ public class MainView extends AppLayout implements JobEventListener {
     private Div jobGrid;
     private TextField tfJobFilter;
     private Checkbox cbShowOnlyRunningJobs;
+    private Label lNbrOfRunningJobs;
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
@@ -388,15 +389,17 @@ public class MainView extends AppLayout implements JobEventListener {
         hl.add(tfJobFilter);
         cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
         cbShowOnlyRunningJobs.setValue(false);
+        lNbrOfRunningJobs = new Label("Number of running jobs: " + runningJobs.size());
         hl.add(cbShowOnlyRunningJobs);
+        hl.add(lNbrOfRunningJobs);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, lNbrOfRunningJobs);
         vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
         vl.add(jobGrid);
         return vl;
-
     }
 
     private Component createStepComponent(JobInstanceInfo item) {
@@ -648,7 +651,6 @@ public class MainView extends AppLayout implements JobEventListener {
             grid.setItems(ji.getSteps());
             div.add(grid);
             vl.add(div);
-
         }
         return vl;
     }
@@ -731,6 +733,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 progressBar.update(jobInstanceInfo);
                 JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
                 jobInfo.update(jobInstanceInfo);
+                lNbrOfRunningJobs.setText("Number of running jobs: " + runningJobs.size());
                 filterJobGrid();
                 ui.push();
             });
@@ -750,7 +753,6 @@ public class MainView extends AppLayout implements JobEventListener {
                 ui.push();
             });
         }
-
     }
 
     private void showErrorMessage(String message) {
