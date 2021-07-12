@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.page.Page;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.shared.ui.Transport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -152,6 +154,7 @@ public class MainView extends AppLayout implements JobEventListener {
             //grid.setItems(bautaManager.jobDetails());
             updateJobGrid(bautaManager.jobDetails());
             filterJobGrid();
+            setTitle();
         } catch (Exception e) {
             log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
@@ -159,6 +162,11 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
+
+    private void setTitle() {
+        System.out.println(bautaManager.getServerInfo().get(4));
+        UI.getCurrent().getPage().setTitle(bautaManager.getServerInfo().get(4));
+    }
 
     private void filterJobGrid() {
         jobGrid.getChildren().forEach(component ->{
