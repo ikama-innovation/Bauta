@@ -20,7 +20,6 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
-import se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -184,7 +183,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                         return process.waitFor();
                     }
                     catch(InterruptedException ie) {
-                        log.debug("Interrupted. Trying to close sqlcl process..");
+                        log.debug("Interrupted. Trying to close Javascript process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
@@ -211,8 +210,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     int exitCode = systemCommandTask.get();
 
                     log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
-                    // Not all errors in SQLcl leads to an error code being returned.
-                    // The log file must be checked for errors.
 
                     checkForErrorsInLog(logFile);
 
@@ -225,7 +222,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                 } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
                     kill (systemCommandTask, "terminateOnly");
                 } else if (stopping) {
-                    // We are in the middle of executing a SQL script.
+                    // We are in the middle of executing a Javascript script.
                     // Only thing we can do is to terminate the processes that have been started.
                     stopping = false;
                     kill(systemCommandTask, "stop");
@@ -243,9 +240,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         try (LineNumberReader reader = new LineNumberReader(new InputStreamReader(new FileInputStream(logFile)))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
-                //if (line.startsWith("Error")) {
-                //    throw new JobExecutionException("There were PHP errors: " + line);
-                //}
+                log.debug("line in log: {}", line);
 
             }
         } catch (IOException ioe) {
