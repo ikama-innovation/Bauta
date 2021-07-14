@@ -32,6 +32,7 @@ import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.access.annotation.Secured;
 
@@ -101,7 +102,8 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
-
+    @Value("${bauta.application.title}")
+    private String title;
     //private UI ui;
     Grid<String> serverInfoGrid = null;
     Span buildInfo = null;
@@ -163,8 +165,7 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     private void setTitle() {
-        String value = "Bauta: " + bautaManager.getServerInfo().get(4).split(": ")[1];
-        UI.getCurrent().getPage().setTitle(value);
+        UI.getCurrent().getPage().setTitle(title);
     }
 
     private void filterJobGrid() {
