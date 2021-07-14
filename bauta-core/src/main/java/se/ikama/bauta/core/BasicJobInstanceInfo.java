@@ -77,6 +77,18 @@ public class BasicJobInstanceInfo {
         return (optionalJobParamKeys != null && optionalJobParamKeys.size() > 0) || (requiredJobParamKeys != null && requiredJobParamKeys.size() > 0);
     }
 
+    public boolean isUnknown() {
+        return StringUtils.equals(executionStatus, "UNKNOWN");
+    }
+
+    public boolean hasFailed() {
+        return StringUtils.equals(exitStatus, "FAILED");
+    }
+
+    public boolean isComplete() {
+        return StringUtils.equals(executionStatus, "COMPLETED");
+    }
+
     public boolean isRunning() {
         return StringUtils.equalsAny(executionStatus, "STARTED","STARTING");
     }

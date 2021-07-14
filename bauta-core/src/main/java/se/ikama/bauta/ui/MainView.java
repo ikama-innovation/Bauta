@@ -113,12 +113,18 @@ public class MainView extends AppLayout implements JobEventListener {
     private Div jobGrid;
     private TextField tfJobFilter;
     private Checkbox cbShowOnlyRunningJobs;
-    private Label lNbrOfRunningJobs;
+    private Button runningJobsIcon;
+    private Button completedJobsIcon;
+    private Button unknownJobsIcon;
+    private Button failedJobsIcon;
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
     private HashSet<String> runningJobs = new HashSet<>();
+    private HashSet<String> completedJobs = new HashSet<>();
+    private HashSet<String> failedJobs = new HashSet<>();
+    private HashSet<String> unknownJobs = new HashSet<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -175,16 +181,27 @@ public class MainView extends AppLayout implements JobEventListener {
 
         });
     }
+
     private void updateJobGrid(List<JobInstanceInfo> jobs) {
         jobGrid.removeAll();
         jobNameToJobButtons.clear();
         jobNameToStepFLow.clear();
         runningJobs.clear();
+        completedJobs.clear();
+        failedJobs.clear();
+        unknownJobs.clear();
         boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
         log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
             if (job.isRunning()) runningJobs.add(jobName); else runningJobs.remove(jobName);
+            if (job.isComplete()) completedJobs.add(jobName); else completedJobs.remove(jobName);
+            if (job.hasFailed()) failedJobs.add(jobName); else failedJobs.remove(jobName);
+            if (job.isUnknown()) unknownJobs.add(jobName); else unknownJobs.remove(jobName);
+            runningJobsIcon.click();
+            completedJobsIcon.click();
+            unknownJobsIcon.click();
+            failedJobsIcon.click();
             if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue())) continue;
             Div jobRow = new Div();
             jobRow.addClassNames("job-grid-row");
@@ -379,22 +396,60 @@ public class MainView extends AppLayout implements JobEventListener {
     private Component createJobView() {
         VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
+        HorizontalLayout hlStatusIcons = new HorizontalLayout();
         hl.setPadding(false);
         hl.setMargin(false);
         hl.setSpacing(true);
+        hlStatusIcons.setSpacing(false);
+        hlStatusIcons.addClassName("margin-left");
         tfJobFilter = new TextField(event -> {
             filterJobGrid();
         });
         tfJobFilter.setPlaceholder("Job filter");
         hl.add(tfJobFilter);
+
         cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
         cbShowOnlyRunningJobs.setValue(false);
-        lNbrOfRunningJobs = new Label("Number of running jobs: " + runningJobs.size());
-        hl.add(cbShowOnlyRunningJobs);
-        hl.add(lNbrOfRunningJobs);
+
+        runningJobsIcon = new Button("", clickEvent -> {
+            runningJobsIcon.setText(""+runningJobs.size());
+            runningJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
+        });
+        runningJobsIcon.setDisableOnClick(true);
+        runningJobsIcon.getStyle().set("border", "3px solid var(--lumo-primary-color)").set("color", "white");
+
+        completedJobsIcon = new Button("", clickEvent -> {
+            completedJobsIcon.setText(""+completedJobs.size());
+            completedJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
+        });
+        completedJobsIcon.setDisableOnClick(true);
+        completedJobsIcon.getStyle().set("border", "3px solid var(--lumo-success-color").set("color", "white");
+
+
+        unknownJobsIcon = new Button("", clickEvent -> {
+            unknownJobsIcon.setText(""+unknownJobs.size());
+            unknownJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
+        });
+        unknownJobsIcon.setDisableOnClick(true);
+        unknownJobsIcon.getStyle().set("border", "3px solid var(--lumo-contrast-30pct)").set("color", "white");
+
+
+        failedJobsIcon = new Button("", clickEvent -> {
+            failedJobsIcon.setText(""+failedJobs.size());
+            failedJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
+        });
+        failedJobsIcon.setDisableOnClick(true);
+        failedJobsIcon.getStyle().set("border", "3px solid var(--lumo-error-color)").set("color", "white");
+
+        hlStatusIcons.getElement().getStyle().set("margin-left", "auto");
+        //cbShowOnlyRunningJobs.getElement().getStyle().set("margin-right", "auto");
+
+        hlStatusIcons.add();
+        hl.add(cbShowOnlyRunningJobs, hlStatusIcons, runningJobsIcon, completedJobsIcon, unknownJobsIcon, failedJobsIcon);
+
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
-        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
-        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, lNbrOfRunningJobs);
+//        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+//        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, hlStatusIcons);
         vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
@@ -720,6 +775,9 @@ public class MainView extends AppLayout implements JobEventListener {
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
         log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
         if (jobInstanceInfo.isRunning()) runningJobs.add(jobInstanceInfo.getName()); else runningJobs.remove(jobInstanceInfo.getName());
+        if (jobInstanceInfo.isComplete()) completedJobs.add(jobInstanceInfo.getName()); else completedJobs.remove(jobInstanceInfo.getName());
+        if (jobInstanceInfo.hasFailed()) failedJobs.add(jobInstanceInfo.getName()); else failedJobs.remove(jobInstanceInfo.getName());
+        if (jobInstanceInfo.isUnknown()) unknownJobs.add(jobInstanceInfo.getName()); else unknownJobs.remove(jobInstanceInfo.getName());
         UI ui = this.getUI().get();
         if (ui != null) {
             ui.access(() -> {
@@ -733,8 +791,11 @@ public class MainView extends AppLayout implements JobEventListener {
                 progressBar.update(jobInstanceInfo);
                 JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
                 jobInfo.update(jobInstanceInfo);
-                lNbrOfRunningJobs.setText("Number of running jobs: " + runningJobs.size());
                 filterJobGrid();
+                runningJobsIcon.click();
+                completedJobsIcon.click();
+                unknownJobsIcon.click();
+                failedJobsIcon.click();
                 ui.push();
             });
         }
