@@ -100,7 +100,7 @@ public class MainView extends AppLayout implements JobEventListener {
     BautaManager bautaManager;
 
     @Autowired
-    JobFlowView jobFlowView;
+    JobFlowView jobFlowView = new JobFlowView();
 
 
     //private UI ui;

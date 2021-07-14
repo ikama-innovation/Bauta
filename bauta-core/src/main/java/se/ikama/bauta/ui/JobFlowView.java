@@ -45,16 +45,16 @@ public class JobFlowView extends VerticalLayout {
     BautaManager bautaManager;
 
 
-    HashMap<String, String> jobConnector;
-    Svg svg = new Svg();
+    private HashMap<String, String> jobConnector;
+    private Svg svg = new Svg();
 
-    double jobWidth = 150;
-    double jobHeight = 75;
-    double gridSize = 150;
-    String completedColor = "rgb(37, 177, 95)";
-    String runningColor = "rgb(42, 127, 239)";
-    String failedColor = "rgb(246, 84, 76)";
-    String lineColor = "rgb(177, 177, 177)";
+    private double jobWidth = 150;
+    private double jobHeight = 75;
+    private double gridSize = 200;
+    private String completedColor = "rgb(37, 177, 95)";
+    private String runningColor = "rgb(42, 127, 239)";
+    private String failedColor = "rgb(246, 84, 76)";
+    private String lineColor = "rgb(177, 177, 177)";
 
     public JobFlowView() {
         svg.viewbox(0, 0, 1000, 1000);
@@ -62,7 +62,9 @@ public class JobFlowView extends VerticalLayout {
         svg.setHeight("500px");
 
         HorizontalLayout controlButtons = new HorizontalLayout();
+
         this.add(controlButtons);
+        this.add(svg);
 
 
     }
@@ -82,8 +84,15 @@ public class JobFlowView extends VerticalLayout {
     }
 
     public void update() {
-        SortedSet<String> allJobs = bautaManager.listJobNames();
-        allJobs.forEach(System.out::println);
+        System.out.println("sdfsdfsdfsdf");
+        createRect();
+    }
+
+    private void createRect() {
+        Rect rect = new Rect("name", jobWidth, jobHeight);
+        rect.setFillColor(completedColor);
+        rect.move(gridSize-jobWidth/2, gridSize-jobHeight/2);
+        svg.add(rect);
     }
 
 
