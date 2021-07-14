@@ -38,7 +38,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
     private List<String> scriptFiles = null;
 
-    private String executable = "js";
+    private String executable = "node";
 
     private static final String SCRIPT_PARAMETER_PREFIX_JOBPARAM = "jobparam.";
     private static final String SCRIPT_PARAMETER_PREFIX_ENV = "env.";
@@ -79,8 +79,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
         log.debug("execute..");
         stopping = false;
-        String logFileName = "sql.log";
-
+        String logFileName = "nodejs.log";
         StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
         File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, logFileName);
         if (stepExecution.getJobExecutionId() != currentExecutionId) {
@@ -140,7 +139,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|"+executable+" " + easyConnectionIdentifier + " @" + scriptFile+" "+scriptParams;
+                    String cmd = "exit|"+executable+" " + scriptFile+" "+scriptParams;
                     if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -167,7 +166,10 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
                     Map<String, String> env = pb.environment();
-                    env.putAll(environmentParams);
+                    log.info("env params: {}", environmentParams);
+                    if (environmentParams != null){
+                        env.putAll(environmentParams);
+                    }
                     log.debug("environmentParams: {}", environmentParams);
                     log.debug("Environment: {}", pb.environment());
 
@@ -215,7 +217,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     checkForErrorsInLog(logFile);
 
                     if (exitCode != 0) {
-
                         throw new JobExecutionException("Javascript exited with code " + exitCode);
                     }
                     break;
@@ -343,6 +344,10 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
     public void setScriptFiles(List<String> scriptFiles) {
         this.scriptFiles = scriptFiles;
+    }
+
+    public void setScriptParameters(List<String> scriptParameters) {
+        this.scriptParameters = scriptParameters;
     }
 
 
