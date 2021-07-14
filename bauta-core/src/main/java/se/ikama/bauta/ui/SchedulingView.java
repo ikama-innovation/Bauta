@@ -565,6 +565,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
 
 	private void update() {
+		System.out.println("nu hej sdfsf");
 		triggers = jobTriggerDao.loadTriggers();
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);

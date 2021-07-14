@@ -99,6 +99,9 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
+    @Autowired
+    JobFlowView jobFlowView;
+
 
     //private UI ui;
     Grid<String> serverInfoGrid = null;
@@ -249,7 +252,6 @@ public class MainView extends AppLayout implements JobEventListener {
         Tab schedulingTab = new Tab("Scheduling");
         // Job flow
         Tab jobFlowTab = new Tab("Job Flow");
-        Component jobFlowView = createJobGraphView();
         
         jobFlowView.setVisible(false);
         tabsToPages.put(jobTab, jobPage);
@@ -378,9 +380,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
         aboutView.add(serverInfoGrid);
         return aboutView;
-    }
-    private Component createJobGraphView() {
-      return new JobFlow();
     }
 
     private Component createJobView() {
@@ -740,6 +739,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
                 jobInfo.update(jobInstanceInfo);
                 filterJobGrid();
+                jobFlowView.update();
                 ui.push();
             });
         }

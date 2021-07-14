@@ -278,6 +278,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         fireJobEvent(je, 0);
     }
 
+    public JobTriggerDao getJobTriggerDao() {
+        return this.jobTriggerDao;
+    }
+
     public Collection<String> listJobSummaries() throws NoSuchJobException, NoSuchJobInstanceException, NoSuchJobExecutionException {
         ArrayList<String> out = new ArrayList<>();
         Set<String> jobNames = jobOperator.getJobNames();
