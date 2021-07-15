@@ -115,6 +115,8 @@ public class MainView extends AppLayout implements JobEventListener {
     private Div jobGrid;
     private TextField tfJobFilter;
     private String filterValue = "";
+    private Checkbox cbUnknownJobs;
+    private boolean showUnknownJobs = false;
     private ComboBox cbFilterOnStatus;
     private ComboBox<String> cbSortingList;
     private ComboBox<String> cbShowTimeList;
@@ -205,6 +207,7 @@ public class MainView extends AppLayout implements JobEventListener {
             if (filterValue.equalsIgnoreCase("Stopped") && !jobStatus.equalsIgnoreCase("Stopped")) show = false;
             if (filterValue.equalsIgnoreCase("Unknown") && !jobStatus.equalsIgnoreCase("Unknown")) show = false;
 
+            if (showUnknownJobs && jobStatus.equalsIgnoreCase("Unknown")) show = true;
             component.setVisible(show);
         });
     }
@@ -423,18 +426,11 @@ public class MainView extends AppLayout implements JobEventListener {
     private Component createJobView() {
         VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
-        HorizontalLayout hlRight = new HorizontalLayout();
-        HorizontalLayout hlLeft = new HorizontalLayout();
 
         hl.setPadding(false);
         hl.setMargin(false);
         hl.setSpacing(true);
-        hlLeft.setSpacing(true);
-        hlLeft.setMargin(false);
-        hlLeft.setPadding(false);
-        hlRight.setSpacing(true);
-        hlRight.setMargin(false);
-        hlRight.setPadding(false);
+
         tfJobFilter = new TextField(event -> {
             filterJobGrid();
         });
@@ -501,15 +497,19 @@ public class MainView extends AppLayout implements JobEventListener {
             }
             filterJobGrid();
         });
-        hlLeft.add(tfJobFilter);
-        hlLeft.add(cbFilterOnStatus);
-        hlRight.add(cbSortingList);
-        hlLeft.add(cbShowTimeList);
-        hlLeft.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbFilterOnStatus);
-        hlLeft.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
-        hlRight.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbSortingList);
-        hl.add(hlLeft);
-        hl.add(hlRight);
+        cbUnknownJobs = new Checkbox("Not started jobs");
+        cbUnknownJobs.addValueChangeListener(event -> {
+            showUnknownJobs = cbUnknownJobs.getValue();
+            filterJobGrid();
+            sortJobGrid();
+        });
+
+        hl.add(tfJobFilter, cbFilterOnStatus, cbSortingList, cbShowTimeList, cbUnknownJobs);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbFilterOnStatus);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbSortingList);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowTimeList);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.END, cbUnknownJobs);
         vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
