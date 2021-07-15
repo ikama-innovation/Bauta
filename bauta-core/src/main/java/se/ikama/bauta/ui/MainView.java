@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextFieldVariant;
 import com.vaadin.flow.shared.ui.Transport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -397,16 +399,18 @@ public class MainView extends AppLayout implements JobEventListener {
         VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
         HorizontalLayout hlStatusIcons = new HorizontalLayout();
-        hl.setPadding(false);
+        HorizontalLayout hlFilter = new HorizontalLayout();
+
+        hl.setPadding(true);
+        hl.setWidthFull();
         hl.setMargin(false);
         hl.setSpacing(true);
         hlStatusIcons.setSpacing(false);
-        hlStatusIcons.addClassName("margin-left");
+
         tfJobFilter = new TextField(event -> {
             filterJobGrid();
         });
         tfJobFilter.setPlaceholder("Job filter");
-        hl.add(tfJobFilter);
 
         cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
         cbShowOnlyRunningJobs.setValue(false);
@@ -415,41 +419,37 @@ public class MainView extends AppLayout implements JobEventListener {
             runningJobsIcon.setText(""+runningJobs.size());
             runningJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
         });
-        runningJobsIcon.setDisableOnClick(true);
-        runningJobsIcon.getStyle().set("border", "3px solid var(--lumo-primary-color)").set("color", "white");
+       // runningJobsIcon.setDisableOnClick(true);
+        runningJobsIcon.getStyle().set("border", "3px solid var(--lumo-primary-color)").set("color", "white").set("title", "Running jobs");
+        runningJobsIcon.getElement().setProperty("title", "Number of running jobs");
 
         completedJobsIcon = new Button("", clickEvent -> {
             completedJobsIcon.setText(""+completedJobs.size());
             completedJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
         });
-        completedJobsIcon.setDisableOnClick(true);
         completedJobsIcon.getStyle().set("border", "3px solid var(--lumo-success-color").set("color", "white");
-
+        completedJobsIcon.getElement().setProperty("title", "Number of completed jobs");
 
         unknownJobsIcon = new Button("", clickEvent -> {
             unknownJobsIcon.setText(""+unknownJobs.size());
             unknownJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
         });
-        unknownJobsIcon.setDisableOnClick(true);
         unknownJobsIcon.getStyle().set("border", "3px solid var(--lumo-contrast-30pct)").set("color", "white");
-
+        unknownJobsIcon.getElement().setProperty("title", "Number of not started jobs");
 
         failedJobsIcon = new Button("", clickEvent -> {
             failedJobsIcon.setText(""+failedJobs.size());
             failedJobsIcon.addThemeVariants(ButtonVariant.LUMO_ICON);
         });
-        failedJobsIcon.setDisableOnClick(true);
         failedJobsIcon.getStyle().set("border", "3px solid var(--lumo-error-color)").set("color", "white");
+        failedJobsIcon.getElement().setProperty("title", "Number of failed jobs");
 
-        hlStatusIcons.getElement().getStyle().set("margin-left", "auto");
-        //cbShowOnlyRunningJobs.getElement().getStyle().set("margin-right", "auto");
-
-        hlStatusIcons.add();
-        hl.add(cbShowOnlyRunningJobs, hlStatusIcons, runningJobsIcon, completedJobsIcon, unknownJobsIcon, failedJobsIcon);
-
+        hlStatusIcons.add(runningJobsIcon, completedJobsIcon, unknownJobsIcon, failedJobsIcon);
+        hlFilter.add(tfJobFilter, cbShowOnlyRunningJobs);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
-//        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
-//        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, hlStatusIcons);
+        hlStatusIcons.getElement().getStyle().set("margin-left", "auto");
+
+        hl.add(hlFilter, hlStatusIcons);
         vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
