@@ -1,7 +1,11 @@
 package se.ikama.bauta.batch.tasklet.kotlin;
 
+import com.sun.jna.Native;
+import lombok.var;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.kotlin.script.jsr223.KotlinJsr223JvmLocalScriptEngine;
+import org.jetbrains.kotlin.script.jsr223.KotlinJsr223JvmLocalScriptEngineFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -17,20 +21,31 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.scripting.ScriptExecutor;
+import org.springframework.integration.scripting.dsl.Scripts;
 import org.springframework.integration.scripting.jsr223.KotlinScriptExecutor;
+import org.springframework.integration.scripting.jsr223.ScriptExecutorFactory;
+import org.springframework.scripting.ScriptCompilationException;
+import org.springframework.scripting.ScriptEvaluator;
 import org.springframework.scripting.ScriptSource;
+import org.springframework.scripting.support.ResourceScriptSource;
+import org.springframework.scripting.support.StaticScriptSource;
 import org.springframework.util.Assert;
+import reactor.core.Disposable;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
-import se.ikama.bauta.batch.tasklet.php.PhpTasklet;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -98,6 +113,9 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
 
         @Autowired
         Environment env;
+
+        @Autowired
+        public ApplicationContext context;
 
         @Value("${bauta.reportDir}")
         protected String reportDir;
@@ -179,7 +197,7 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                     public Integer call() throws Exception {
                         ArrayList<String> commands = new ArrayList<>();
                         String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                        String cmd = "exit|"+executable+" "+scriptFile+" "+scriptParams;
+                        String cmd = "exit|" + executable + " " + scriptFile + " " + scriptParams;
                         if (runsOnWindows()) {
                             log.debug("Running on windows.");
                             commands.add("cmd.exe");
@@ -188,8 +206,7 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                                 cmd = "chcp 65001|" + cmd;
                             }
                             commands.add(cmd);
-                        }
-                        else {
+                        } else {
                             commands.add("/bin/sh");
                             commands.add("-c");
                             // Add the processUid as the last script parameter
@@ -202,10 +219,12 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                             commands.add(cmd);
                         }
 
-                        log.debug("Command is: " + StringUtils.join(commands, ","));
-                        //KotlinScriptExecutor kse = new KotlinScriptExecutor();
-                        ProcessBuilder pb = new ProcessBuilder(commands);
+                        KotlinExample.anotherTest();
+                        log.info("Command is: " + StringUtils.join(commands, ","));
+                        //Gets all arguments - even processUid gets passed into script
 
+                        /*
+                        ProcessBuilder pb = new ProcessBuilder(commands);
                         String jobInstanceId = Long.toString(contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
                         String jobExecutionId = Long.toString(contribution.getStepExecution().getJobExecution().getId());
                         String jobName = contribution.getStepExecution().getJobExecution().getJobInstance().getJobName();
@@ -226,9 +245,12 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                         pb.redirectErrorStream(true);
                         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile));
                         pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
-
+                        log.info(pb.directory().toString());
                         Process process = pb.start();
                         log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
+
+
+
                         try {
                             return process.waitFor();
                         }
@@ -245,6 +267,8 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                                 log.warn("Failed to flush process output stream");
                             }
                         }
+                        */
+                        return 0;
                     }
                 });
 
@@ -252,19 +276,16 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                 TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName());
                 taskExecutor.execute(systemCommandTask);
 
+
                 while (true) {
                     Thread.sleep(checkInterval);
 
                     if (systemCommandTask.isDone()) {
-
-                        int exitCode = systemCommandTask.get();
-
-                        log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
-
+                        int exitCode = 0;
+                       //int exitCode = systemCommandTask.get();
+                        //log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
                         checkForErrorsInLog(logFile);
-
                         if (exitCode != 0) {
-
                             throw new JobExecutionException("kscript exited with code " + exitCode);
                         }
                         break;
@@ -273,7 +294,7 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                     } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
                         kill (systemCommandTask, "terminateOnly");
                     } else if (stopping) {
-                        // We are in the middle of executing a PHP script.
+                        // We are in the middle of executing a Kotlin script.
                         // Only thing we can do is to terminate the processes that have been started.
                         stopping = false;
                         kill(systemCommandTask, "stop");
@@ -459,5 +480,6 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
         public void setReportName(String reportName) {
             this.reportName = reportName;
         }
+
 }
 

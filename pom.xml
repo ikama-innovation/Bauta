@@ -50,6 +50,7 @@
         <timeZone>Europe/Stockholm</timeZone>
         <bautabuildtimestamp>${maven.build.timestamp}</bautabuildtimestamp>
         <project.scm.id>github</project.scm.id>
+        <kotlin.version>1.5.21</kotlin.version>
     </properties>
 
     <modules>
@@ -93,6 +94,11 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+    </dependencies>
+
+
     <distributionManagement>
         <!--<snapshotRepository>
             <id>ossrh</id>
@@ -129,6 +135,32 @@
                 -->
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>test-compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jvmTarget>1.8</jvmTarget>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
     <profiles>
         <profile>
