@@ -99,8 +99,7 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
-    @Autowired
-    JobFlowView jobFlowView = new JobFlowView();
+    JobFlowView jobFlowView;
 
 
     //private UI ui;
@@ -122,13 +121,15 @@ public class MainView extends AppLayout implements JobEventListener {
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
     private HashSet<String> runningJobs = new HashSet<>();
 
-    public MainView(@Autowired SchedulingView schedulingView) {
+    public MainView(@Autowired SchedulingView schedulingView, @Autowired JobFlowView jobFlowView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
-        createMainView(schedulingView);
+        createMainView(schedulingView, jobFlowView);
     }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
+        log.warn("manager in view: {}",bautaManager);
+        //jobFlowView.bautaManager = this.bautaManager;
         String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
         String address = attachEvent.getSession().getBrowser().getAddress();
         if (SecurityUtils.isSecurityEnabled()) {
@@ -160,6 +161,7 @@ public class MainView extends AppLayout implements JobEventListener {
             showErrorMessage("Failed to fetch job details");
         }
         bautaManager.registerJobChangeListener(this);
+        log.warn("manager in view: {}",bautaManager);
     }
 
 
@@ -182,6 +184,7 @@ public class MainView extends AppLayout implements JobEventListener {
         jobNameToJobButtons.clear();
         jobNameToStepFLow.clear();
         runningJobs.clear();
+
         boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
         log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
@@ -231,8 +234,9 @@ public class MainView extends AppLayout implements JobEventListener {
         //grid.setItems(Collections.emptyList());
     }
 
-    private void createMainView(SchedulingView schedulingView) {
+    private void createMainView(SchedulingView schedulingView, JobFlowView jobFlowView) {
         log.debug("createMainView");
+        log.warn("manager in view: {}",bautaManager);
         Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
         img.setHeight("28px");
         DrawerToggle drawerToggle = new DrawerToggle();
@@ -252,6 +256,7 @@ public class MainView extends AppLayout implements JobEventListener {
         Tab schedulingTab = new Tab("Scheduling");
         // Job flow
         Tab jobFlowTab = new Tab("Job Flow");
+        this.jobFlowView = jobFlowView;
         
         jobFlowView.setVisible(false);
         tabsToPages.put(jobTab, jobPage);
@@ -350,6 +355,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         this.addToNavbar(rightPanel);
         log.debug("createMainView.end");
+        log.warn("manager in mainview last: {}", bautaManager);
 
     }
     private Component createUserMenu() {
@@ -403,7 +409,6 @@ public class MainView extends AppLayout implements JobEventListener {
         jobGrid.addClassNames("job-grid");
         vl.add(jobGrid);
         return vl;
-
     }
 
     private Component createStepComponent(JobInstanceInfo item) {
