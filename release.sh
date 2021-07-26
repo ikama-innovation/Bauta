@@ -38,7 +38,7 @@ git commit -m "removed snapshot"
 git push
 
 #deploy maven 
-mvn clean deploy-X-Dgpg.passphrase=${password} -P ossrh,release,production
+mvn clean deploy -X -Dgpg.passphrase=${password} -P ossrh,release,production
 
 #create tag and release on github
 git tag -a "v${releaseVersion}" -m "Version ${releaseVersion}"
