@@ -2,6 +2,8 @@ package se.ikama.bauta.core.metadata;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class StepMetadata extends SubFlow {
 
@@ -21,7 +23,8 @@ public class StepMetadata extends SubFlow {
     private StepType stepType = StepType.OTHER;
 
     private String description;
-
+    private List<String> scripts;
+    private List<String> scriptParameters;
     private SplitMetadata split;
     private FlowMetadata flow;
     private boolean firstInSplit;
@@ -31,6 +34,8 @@ public class StepMetadata extends SubFlow {
         return "StepMetadata("
                 + "id="+id
                 + ", stepType="+stepType.toString()
+                +", scripts="+scripts.toString()
+                +", scriptParameters="+scriptParameters.toString()
                 +", description="+description
                 +", next=" + nextId
                 +", firstInSplit=" + firstInSplit

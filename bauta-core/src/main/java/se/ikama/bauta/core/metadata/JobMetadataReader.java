@@ -2,6 +2,7 @@ package se.ikama.bauta.core.metadata;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.var;
 import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -269,7 +270,53 @@ public class JobMetadataReader {
                             return;
                         }
                         else if (StringUtils.containsIgnoreCase(parent, "php", Locale.US)) {
+                            log.warn("bean {}:", ce.getNodeName());
+                            ArrayList<String> scripts = new ArrayList<>();
+                            ArrayList<String> scriptParams = new ArrayList<>();
+
+                            for (int j=0; j<ce.getChildNodes().getLength(); j++){
+                                NodeList ch = ce.getChildNodes();
+                                if (ch.item(j).getAttributes() != null){
+                                    var atr =  ch.item(j).getAttributes();
+                                    ArrayList<String> list = new ArrayList<>();
+                                    for (int e=0; e<atr.getLength(); e++){
+                                        //log.warn("attribute: {}", atr.item(e).toString());
+                                        //log.warn("test: {}", ce.getElementsByTagName("value").item(e).getFirstChild().getNodeValue());
+                                        String value =  ce.getElementsByTagName("value").item(e).getTextContent();
+                                        if (value.endsWith(".php") && !scripts.contains(value)){
+                                            scripts.add(value);
+                                        }else if (!value.endsWith(".php") && !scriptParams.contains(value)){
+                                            scriptParams.add(value);
+                                        }
+                                        if (atr.item(e).hasChildNodes()){
+                                            //log.warn("child: {}",atr.item(e).getNodeType());
+                                        }
+                                        boolean bool = atr.item(e).toString().startsWith("name");
+                                        boolean bool2 = atr.item(e).toString().startsWith("value");
+                                        if (bool || bool2){
+                                            String name = atr.item(e).getNodeValue();
+                                            list.add(name);
+                                        }
+                                    }
+                                    HashMap<String, String> map = new HashMap<>();
+                                    for (int a=0; a<list.size(); a++){
+                                        if (a%2==0 && a < list.size()-1){
+                                            map.put(list.get(a), list.get(a+1));
+                                        }
+                                    }
+
+                                    map.forEach((key, value) -> {
+                                        //log.warn("key, val, length: {} {} {} ", key, value, map.size());
+                                    });
+                                }
+
+                            }
+                            log.warn("scripts {}", scripts.toString());
+                            log.warn("params: {}",scriptParams.toString());
+                            step.setScripts(scripts);
+                            step.setScriptParameters(scriptParams);
                             step.setStepType(StepMetadata.StepType.PHP);
+                            log.warn("step: {}", step.toString());
                             return;
                         } else {
                             log.info("parent: {}", parent);

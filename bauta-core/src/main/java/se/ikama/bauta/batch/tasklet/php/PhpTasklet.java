@@ -22,12 +22,12 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
+import se.ikama.bauta.core.metadata.JobMetadata;
+import se.ikama.bauta.core.metadata.JobMetadataReader;
+import se.ikama.bauta.core.metadata.StepMetadata;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -96,6 +96,9 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private String processUid;
 
     @Autowired
+    JobMetadataReader metadataReader;
+
+    @Autowired
     Environment env;
 
     @Value("${bauta.reportDir}")
@@ -160,14 +163,21 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
             }
         }
         chunkContext.getStepContext().getJobParameters();
-
+        JobMetadata meta = metadataReader.getMetadata(contribution.getStepExecution().getJobExecution().getJobInstance().getJobName());
+        Collection<StepMetadata> steps = meta.getAllSteps();
         for (String scriptFile : scriptFiles) {
-            log.debug("Handling {}", scriptFile);
+            log.warn("Handling {}", scriptFile);
             if (StringUtils.equals(logSuffix, "log")) {
                 try (PrintWriter pw = new PrintWriter(new FileWriter(logFile, true))) {
                     String line = StringUtils.repeat("-", scriptFile.length());
                     pw.println(line);
                     pw.println(scriptFile + ":");
+                    steps.forEach(step -> {
+                        if (step.getScripts().contains(scriptFile)){
+                            pw.println("Script parameters: "+ step.getScriptParameters());
+                            log.warn("meta params: {}", step.getScriptParameters());
+                        }
+                    });
                     pw.println(line);
                     pw.flush();
                 }
