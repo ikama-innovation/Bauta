@@ -39,10 +39,10 @@ git push
 pwd
 
 ls
-#-Dgpg.passphrase=${password}
+#
 
 #deploy maven 
-mvn -s settings.xml clean deploy -X -P ossrh,release,production -f pom.xml
+mvn -s settings.xml clean deploy -X -Dgpg.passphrase=${password} -P ossrh,release,production -f pom.xml
 
 #create tag and release on github
 git tag -a "v${releaseVersion}" -m "Version ${releaseVersion}"
