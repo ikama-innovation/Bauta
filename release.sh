@@ -37,6 +37,7 @@ git add .
 git commit -m "removed snapshot"
 git push
 pwd
+ls -la
 #deploy maven 
 mvn -s settings.xml clean deploy -X -Dgpg.passphrase=${password} -P ossrh,release,production -f pom.xml
 
