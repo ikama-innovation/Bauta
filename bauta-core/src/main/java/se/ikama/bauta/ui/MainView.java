@@ -252,7 +252,7 @@ public class MainView extends AppLayout implements JobEventListener {
         // Job flow
         Tab jobFlowTab = new Tab("Job Flow");
         this.jobFlowView = jobFlowView;
-        System.out.println(jobFlowView);
+//        System.out.println(jobFlowView);
         
         jobFlowView.setVisible(false);
         tabsToPages.put(jobTab, jobPage);

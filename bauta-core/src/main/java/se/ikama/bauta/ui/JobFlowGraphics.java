@@ -57,20 +57,20 @@ public class JobFlowGraphics extends VerticalLayout{
     }
 
     public void recursiveDraw(JobFlowNode node) {
-        Iterator<JobFlowNode> iterator = jobFlowGraph.getNodes(node).iterator();
-        if (iterator.hasNext()) {
-
-        }
-        Rect rect = drawRect(node);
-        Line line = drawLine(iterator.next(), node);
-        svg.add(rect);
-        svg.add(line);
-        svg.update(rect);
-        x += space + 40;
-
-        while (iterator.hasNext()) {
-
-        }
+//        Iterator<JobFlowNode> iterator = jobFlowGraph.getNodes(node).iterator();
+//        if (iterator.hasNext()) {
+//
+//        }
+//        Rect rect = drawRect(node);
+//        Line line = drawLine(iterator.next(), node);
+//        svg.add(rect);
+//        svg.add(line);
+//        svg.update(rect);
+//        x += space + 40;
+//
+//        while (iterator.hasNext()) {
+//
+//        }
         for (JobFlowNode nextNode : jobFlowGraph.getNodes(node)) {
             drawLine(nextNode, node);
             recursiveDraw(nextNode);

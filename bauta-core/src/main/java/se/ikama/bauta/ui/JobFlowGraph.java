@@ -35,23 +35,29 @@ public class JobFlowGraph {
         this.nameToNode = new HashMap<>();
     }
 
-    public void update() throws Exception {
+    public void update() throws Exception{
         graph.clear();
         rootNodes.clear();
         nameToNode.clear();
         if (bautaManager != null) {
-            for (String jobName : bautaManager.listJobNames()) {
-                JobInstanceInfo jobInfo = bautaManager.jobDetails(jobName);
-                JobFlowNode jobFlowNode = new JobFlowNode(jobName, jobInfo.getExecutionStatus());
-                graph.put(jobFlowNode, new ArrayList<>());
-                nameToNode.put(jobName, jobFlowNode);
-                for (JobTrigger nextJob : jobTriggerDao.getJobCompletionTriggersFor(jobName)) {
-                    graph.get(jobFlowNode).add(nextJob.getJobName());
+            if (bautaManager.listJobNames() != null) {
+                for (String jobName : bautaManager.listJobNames()) {
+                    JobInstanceInfo jobInfo = bautaManager.jobDetails(jobName);
+                    JobFlowNode jobFlowNode = new JobFlowNode(jobName, jobInfo.getExecutionStatus());
+                    if (!jobTriggerDao.getJobCompletionTriggersFor(jobName).isEmpty()) {
+                        graph.put(jobFlowNode, new ArrayList<>());
+                        nameToNode.put(jobName, jobFlowNode);
+                        for (JobTrigger nextJob : jobTriggerDao.getJobCompletionTriggersFor(jobName)) {
+                            graph.get(jobFlowNode).add(nextJob.getJobName());
+                        }
+                    }
                 }
             }
             for (JobFlowNode jobFlowNode : graph.keySet()) {
                 for (String triggeredJob : graph.get(jobFlowNode)) {
-                    nameToNode.get(triggeredJob).setRoot(false);
+                    if (nameToNode.containsKey(triggeredJob)) {
+                        nameToNode.get(triggeredJob).setRoot(false);
+                    }
                 }
             }
             for (JobFlowNode jobFlowNode : graph.keySet()) {
@@ -64,15 +70,19 @@ public class JobFlowGraph {
         return rootNodes;
     }
 
+
     public List<JobFlowNode> getNodes(JobFlowNode node) {
         List<JobFlowNode> list = new ArrayList<>();
         List<String> templist = graph.get(node);
-        templist.forEach(name -> list.add(nameToNode.get(name)));
-
+        templist.forEach(name -> {
+            if (nameToNode.containsKey(name)) {
+                list.add(nameToNode.get(name));
+            }
+        });
         return list;
     }
 
     public void printGraph() {
-        System.out.println(graph);
+        graph.forEach((node, list) -> list.forEach(nextNode -> System.out.println(node.getName() + " --> " + nextNode)));
     }
 }

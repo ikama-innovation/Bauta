@@ -53,11 +53,11 @@ public class JobFlowView extends VerticalLayout {
     public void update() {
         try {
             jobFlowGraph.update();
-            jobFlowGraphics.render();
         } catch (Exception e) {
-            log.error("i update i jobflowview");
-            log.error(e.getMessage());
+            e.printStackTrace();
         }
+        jobFlowGraph.printGraph();
+        jobFlowGraphics.render();
     }
 }
 
