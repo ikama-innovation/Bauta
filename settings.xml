@@ -7,15 +7,15 @@
             <password>Axel@ikama1</password>
         </server>
         <server>
-            <id>${server}</id>
+            <id>ossrh</id>
             <username>HrxlPrFm</username>
             <password>RXqqZ91ZRKJ7e+MVG1ZPS0G/1Ht/Fems89wjkaYsu0Ev</password>
         </server>
-        <server>
+        <!--<server>
             <id>ossrh</id>
             <username>mattias-arbin</username>
             <password>HamnPuben1985!</password>
-        </server>
+        </server>-->
         <server>
             <id>gpg.passphrase</id>
             <passphrase>BautaSten72</passphrase>
