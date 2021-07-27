@@ -37,7 +37,7 @@ jobs:
         git config user.name "release-bot"
 
     - name: Start release script
-      run: source ./release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }} -p ${{ secrets.OSSRH_PASSPHRASE}}
+      run: source ./release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }} -p $OSS_PASSPHRASE
       env:
         OSS_PASSWORD: ${{ secrets.OSSRH_PASSPHRASE }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OSS_USERNAME: ${{ secrets.OSSRH_USERNAME }}
