@@ -219,7 +219,7 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                             commands.add(cmd);
                         }
 
-                        KotlinExample.anotherTest();
+
                         log.info("Command is: " + StringUtils.join(commands, ","));
                         //Gets all arguments - even processUid gets passed into script
 
