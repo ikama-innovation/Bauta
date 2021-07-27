@@ -128,8 +128,6 @@ public class MainView extends AppLayout implements JobEventListener {
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
-        log.warn("manager in view: {}",bautaManager);
-        //jobFlowView.bautaManager = this.bautaManager;
         String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
         String address = attachEvent.getSession().getBrowser().getAddress();
         if (SecurityUtils.isSecurityEnabled()) {
@@ -161,7 +159,6 @@ public class MainView extends AppLayout implements JobEventListener {
             showErrorMessage("Failed to fetch job details");
         }
         bautaManager.registerJobChangeListener(this);
-        log.warn("manager in view: {}",bautaManager);
     }
 
 
@@ -235,8 +232,6 @@ public class MainView extends AppLayout implements JobEventListener {
     }
 
     private void createMainView(SchedulingView schedulingView, JobFlowView jobFlowView) {
-        log.debug("createMainView");
-        log.warn("manager in view: {}",bautaManager);
         Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
         img.setHeight("28px");
         DrawerToggle drawerToggle = new DrawerToggle();
@@ -257,6 +252,7 @@ public class MainView extends AppLayout implements JobEventListener {
         // Job flow
         Tab jobFlowTab = new Tab("Job Flow");
         this.jobFlowView = jobFlowView;
+        System.out.println(jobFlowView);
         
         jobFlowView.setVisible(false);
         tabsToPages.put(jobTab, jobPage);
@@ -354,9 +350,6 @@ public class MainView extends AppLayout implements JobEventListener {
         rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right").set("flex-grow","1").set("margin-top", "4px").set("margin-bottom","4px").set("padding-right","20px");
 
         this.addToNavbar(rightPanel);
-        log.debug("createMainView.end");
-        log.warn("manager in mainview last: {}", bautaManager);
-
     }
     private Component createUserMenu() {
         Label lSignout = new Label("Logout");

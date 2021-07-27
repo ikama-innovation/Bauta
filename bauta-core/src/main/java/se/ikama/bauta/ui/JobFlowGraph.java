@@ -25,9 +25,9 @@ public class JobFlowGraph {
     @Autowired
     JobTriggerDao jobTriggerDao;
 
-    Map<JobFlowNode, List<String>> graph;
-    List<JobFlowNode> rootNodes;
-    Map<String, JobFlowNode> nameToNode;
+    private Map<JobFlowNode, List<String>> graph;
+    private List<JobFlowNode> rootNodes;
+    private Map<String, JobFlowNode> nameToNode;
 
     public JobFlowGraph() {
         this.graph = new HashMap<>();
@@ -49,10 +49,6 @@ public class JobFlowGraph {
                     graph.get(jobFlowNode).add(nextJob.getJobName());
                 }
             }
-            System.out.println("\n");
-            System.out.println("all nodes");
-            graph.keySet().stream().map(e -> e.getName()).forEach(System.out::println);
-
             for (JobFlowNode jobFlowNode : graph.keySet()) {
                 for (String triggeredJob : graph.get(jobFlowNode)) {
                     nameToNode.get(triggeredJob).setRoot(false);
@@ -62,9 +58,18 @@ public class JobFlowGraph {
                 if (jobFlowNode.isRoot()) rootNodes.add(jobFlowNode);
             }
         }
-        System.out.println("root nodes: ");
-        rootNodes.forEach(j -> System.out.println(j.getName()));
-        graph.keySet().stream().map(j -> j.isRoot()).forEach(System.out::println);
+    }
+
+    public List<JobFlowNode> getRoots() {
+        return rootNodes;
+    }
+
+    public List<JobFlowNode> getNodes(JobFlowNode node) {
+        List<JobFlowNode> list = new ArrayList<>();
+        List<String> templist = graph.get(node);
+        templist.forEach(name -> list.add(nameToNode.get(name)));
+
+        return list;
     }
 
     public void printGraph() {

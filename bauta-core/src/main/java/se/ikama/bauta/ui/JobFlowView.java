@@ -55,6 +55,7 @@ public class JobFlowView extends VerticalLayout {
             jobFlowGraph.update();
             jobFlowGraphics.render();
         } catch (Exception e) {
+            log.error("i update i jobflowview");
             log.error(e.getMessage());
         }
     }

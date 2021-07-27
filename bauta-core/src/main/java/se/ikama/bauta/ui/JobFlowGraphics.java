@@ -4,11 +4,12 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.svg.Svg;
-import com.vaadin.flow.component.svg.elements.Rect;
-import com.vaadin.flow.component.svg.elements.SvgElement;
+import com.vaadin.flow.component.svg.elements.*;
+import org.springframework.batch.core.Job;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class JobFlowGraphics extends VerticalLayout{
@@ -17,7 +18,7 @@ public class JobFlowGraphics extends VerticalLayout{
     private HashMap<String, String> statusToColor = new HashMap<>();
 
     double size = 100;
-    double space = size + 20;
+    double space = size + 10;
     double x = 20;
     double y = 20;
 
@@ -45,10 +46,54 @@ public class JobFlowGraphics extends VerticalLayout{
     }
 
     public void render() {
-        Rect rect = new Rect("hej", 300, 300);
-        rect.setFillColor("red");
-        rect.move(0,0);
+        x = 20;
+        y = 20;
+        clear();
+        for (JobFlowNode node : jobFlowGraph.getRoots()) {
+            x = 20;
+            recursiveDraw(node);
+            y += space;
+        }
+    }
+
+    public void recursiveDraw(JobFlowNode node) {
+        Iterator<JobFlowNode> iterator = jobFlowGraph.getNodes(node).iterator();
+        if (iterator.hasNext()) {
+
+        }
+        Rect rect = drawRect(node);
+        Line line = drawLine(iterator.next(), node);
         svg.add(rect);
+        svg.add(line);
+        svg.update(rect);
+        x += space + 40;
+
+        while (iterator.hasNext()) {
+
+        }
+        for (JobFlowNode nextNode : jobFlowGraph.getNodes(node)) {
+            drawLine(nextNode, node);
+            recursiveDraw(nextNode);
+            if (jobFlowGraph.getNodes(node).size() > 1) {
+                y += space;
+                x -= space + 40;
+            }
+        }
+    }
+
+    public Line drawLine(JobFlowNode to, JobFlowNode from) {
+        Line line = new Line("line",
+                new AbstractPolyElement.PolyCoordinatePair(gridSize, gridSize),
+                new AbstractPolyElement.PolyCoordinatePair(gridSize + gridSize, gridSize));
+        line.setStroke("beige", 10, Path.LINE_CAP.ROUND, Path.LINE_JOIN.ROUND);
+        return line;
+    }
+
+    public Rect drawRect(JobFlowNode node) {
+        Rect rect = new Rect(node.getName(), jobWidth, jobHeight);
+        rect.setFillColor(statusToColor.get(node.getStatus()));
+        rect.move(x, y);
+        return rect;
     }
 
     public void clear() {
