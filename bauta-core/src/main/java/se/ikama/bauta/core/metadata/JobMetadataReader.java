@@ -17,6 +17,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import se.ikama.bauta.ui.StepFlow;
 
 import javax.annotation.PostConstruct;
 import javax.xml.parsers.DocumentBuilder;
@@ -261,6 +262,7 @@ public class JobMetadataReader {
                             return;
                         } else {
                             log.info("class: {}", class_);
+                            log.info("parent: {}", parent);
                             step.setStepType(StepMetadata.StepType.OTHER);
                             return;
                         }
@@ -269,54 +271,64 @@ public class JobMetadataReader {
                             step.setStepType(StepMetadata.StepType.SQL);
                             return;
                         }
-                        else if (StringUtils.containsIgnoreCase(parent, "php", Locale.US)) {
-                            log.warn("bean {}:", ce.getNodeName());
+                        else if (StringUtils.containsIgnoreCase(parent, "php", Locale.US) ||
+                                StringUtils.containsIgnoreCase(parent, "job_base", Locale.US)) {
                             ArrayList<String> scripts = new ArrayList<>();
                             ArrayList<String> scriptParams = new ArrayList<>();
-
                             for (int j=0; j<ce.getChildNodes().getLength(); j++){
                                 NodeList ch = ce.getChildNodes();
                                 if (ch.item(j).getAttributes() != null){
                                     var atr =  ch.item(j).getAttributes();
-                                    ArrayList<String> list = new ArrayList<>();
                                     for (int e=0; e<atr.getLength(); e++){
-                                        //log.warn("attribute: {}", atr.item(e).toString());
-                                        //log.warn("test: {}", ce.getElementsByTagName("value").item(e).getFirstChild().getNodeValue());
                                         String value =  ce.getElementsByTagName("value").item(e).getTextContent();
-                                        if (value.endsWith(".php") && !scripts.contains(value)){
-                                            scripts.add(value);
-                                        }else if (!value.endsWith(".php") && !scriptParams.contains(value)){
-                                            scriptParams.add(value);
-                                        }
-                                        if (atr.item(e).hasChildNodes()){
-                                            //log.warn("child: {}",atr.item(e).getNodeType());
-                                        }
-                                        boolean bool = atr.item(e).toString().startsWith("name");
-                                        boolean bool2 = atr.item(e).toString().startsWith("value");
-                                        if (bool || bool2){
-                                            String name = atr.item(e).getNodeValue();
-                                            list.add(name);
-                                        }
-                                    }
-                                    HashMap<String, String> map = new HashMap<>();
-                                    for (int a=0; a<list.size(); a++){
-                                        if (a%2==0 && a < list.size()-1){
-                                            map.put(list.get(a), list.get(a+1));
-                                        }
-                                    }
+                                        /*
+                                        var fileTypes = new ArrayList<String>();
+                                        fileTypes.add("php");
+                                        fileTypes.add("py");
+                                        fileTypes.add("js");
+                                        fileTypes.add("kts");
+                                        if (!scripts.contains(value)){
+                                            fileTypes.forEach(ending -> {
+                                                if (value.endsWith(ending)){
+                                                    log.warn("scriptfile: {}", value);
+                                                    scripts.add(value);
+                                                }
+                                            });
+                                        */
 
-                                    map.forEach((key, value) -> {
-                                        //log.warn("key, val, length: {} {} {} ", key, value, map.size());
-                                    });
+                                        //IMPLEMENT FOR PY,JS,KTS
+                                        if (!scripts.contains(value)){
+                                            if (value.endsWith(".php") ){
+                                                scripts.add(value);
+                                            }
+                                        }
+                                        if (!scriptParams.contains(value)){
+                                            if (!value.endsWith(".php")){
+                                                scriptParams.add(value);
+                                            }
+                                        }
+                                    }
                                 }
-
                             }
-                            log.warn("scripts {}", scripts.toString());
-                            log.warn("params: {}",scriptParams.toString());
+                            //log.info("scripts {}", scripts.toString());
+                            //log.info("params: {}",scriptParams.toString());
                             step.setScripts(scripts);
                             step.setScriptParameters(scriptParams);
-                            step.setStepType(StepMetadata.StepType.PHP);
-                            log.warn("step: {}", step.toString());
+                            if (StringUtils.containsIgnoreCase(parent, "php", Locale.US)){
+                                step.setStepType(StepMetadata.StepType.PHP);
+                            }
+                            /*
+                            else if (StringUtils.containsIgnoreCase(parent, "py", Locale.US)){
+                                step.setStepType(StepMetadata.StepType.PY);
+                            } else if (StringUtils.containsIgnoreCase(parent, "js", Locale.US)){
+                                step.setStepType(StepMetadata.StepType.JS);
+                            } else if (StringUtils.containsIgnoreCase(parent, "kts", Locale.US)){
+                                step.setStepType(StepMetadata.StepType.KTS);
+                            else{
+                                log.warn("No language found of php, python, javascript or kotlin!");
+                            }
+                             */
+                            log.info("step: {}", step.toString());
                             return;
                         } else {
                             log.info("parent: {}", parent);

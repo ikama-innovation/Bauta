@@ -172,12 +172,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                     String line = StringUtils.repeat("-", scriptFile.length());
                     pw.println(line);
                     pw.println(scriptFile + ":");
-                    steps.forEach(step -> {
-                        if (step.getScripts().contains(scriptFile)){
-                            pw.println("Script parameters: "+ step.getScriptParameters());
-                            log.warn("meta params: {}", step.getScriptParameters());
-                        }
-                    });
                     pw.println(line);
                     pw.flush();
                 }

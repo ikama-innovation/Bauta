@@ -11,6 +11,9 @@ public class StepMetadata extends SubFlow {
         /* SQL script(s) */
         SQL,
         PHP,
+        JS,
+        PY,
+        KTS,
         /* Scheduled stored procedure */
         SCH,
         REP,
