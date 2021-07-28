@@ -80,6 +80,8 @@ import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.core.JobEventListener;
 import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
+import se.ikama.bauta.scheduling.JobTrigger;
+import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.security.SecurityUtils;
 
 import javax.swing.*;
@@ -101,6 +103,8 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
+    @Autowired
+    JobTriggerDao jobTriggerDao;
 
     //private UI ui;
     Grid<String> serverInfoGrid = null;
@@ -129,6 +133,7 @@ public class MainView extends AppLayout implements JobEventListener {
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
     private TreeMap<String, Div> jobNameToJobRow = new TreeMap<>();
     private HashSet<String> runningJobs = new HashSet<>();
+    private HashSet<String> scheduledJobs = new HashSet<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -206,6 +211,7 @@ public class MainView extends AppLayout implements JobEventListener {
             if (filterValue.equalsIgnoreCase("Failed") && !jobStatus.equalsIgnoreCase("Failed")) show = false;
             if (filterValue.equalsIgnoreCase("Stopped") && !jobStatus.equalsIgnoreCase("Stopped")) show = false;
             if (filterValue.equalsIgnoreCase("Unknown") && !jobStatus.equalsIgnoreCase("Unknown")) show = false;
+            if (filterValue.equalsIgnoreCase("Scheduled") && !scheduledJobs.contains(jobName)) show = false;
 
             if (showUnknownJobs && jobStatus.equalsIgnoreCase("Unknown")) show = true;
             component.setVisible(show);
@@ -217,10 +223,18 @@ public class MainView extends AppLayout implements JobEventListener {
         jobNameToJobButtons.clear();
         jobNameToStepFLow.clear();
         runningJobs.clear();
+        scheduledJobs.clear();
         boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
         log.debug("Run enabled: " + enabled);
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
+            List<JobTrigger> triggers = jobTriggerDao.getJobCompletionTriggersFor(jobName);
+            if (!triggers.isEmpty()) {
+                scheduledJobs.add(jobName);
+                for (JobTrigger nextJob : triggers) {
+                    scheduledJobs.add(nextJob.getJobName());
+                }
+            }
             if (job.isRunning())
                 runningJobs.add(jobName);
             else
@@ -439,7 +453,7 @@ public class MainView extends AppLayout implements JobEventListener {
 
         cbFilterOnStatus = new ComboBox<>();
         cbFilterOnStatus.setLabel("Filter:");
-        cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Stopped", "Unknown");
+        cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Stopped", "Unknown", "Scheduled");
         cbFilterOnStatus.setClearButtonVisible(true);
         cbFilterOnStatus.addValueChangeListener(event -> {
            if (event.getValue() == null) {
@@ -475,7 +489,6 @@ public class MainView extends AppLayout implements JobEventListener {
                 showJobsFrom = new Date(0);
             } else if (event.getValue().equals("Custom")) {
                 openDateTimeDialog(cbShowTimeList);
-
             } else if (event.getValue().equals("Today")) {
                 showJobsFrom = Date.from(LocalDateTime
                                 .now()
@@ -483,11 +496,9 @@ public class MainView extends AppLayout implements JobEventListener {
                                 .atZone(ZoneId.systemDefault())
                                 .toInstant());
                 showJobsTo = new Date();
-
             } else if (event.getValue().equals("Last 24h")) {
                 showJobsFrom = DateUtils.addHours(new Date(), -24);
                 showJobsTo = new Date();
-
             } else if (event.getValue().equals("Last 48h")) {
                 showJobsFrom = DateUtils.addHours(new Date(), -48);
                 showJobsTo = new Date();
