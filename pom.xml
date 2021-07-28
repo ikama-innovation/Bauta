@@ -59,6 +59,7 @@
         <module>bauta-sample</module>
         <module>bauta-sample-oracle</module>
         <module>bauta-sample-php</module>
+        <module>bauta-standalone</module>
 
     </modules>
     <dependencyManagement>

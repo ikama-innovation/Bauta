@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>se.ikama</groupId>
+        <artifactId>bauta</artifactId>
+        <version>0.0.60-SNAPSHOT</version>
+    </parent>
+    <artifactId>bauta-standalone</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>bauta-standalone</name>
+    <description>Standalone version for Bauta</description>
+    <properties>
+        <java.version>1.8</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>se.ikama</groupId>
+            <artifactId>bauta-core</artifactId>
+            <version>0.0.59</version>
+        </dependency>
+        <dependency>
+            <groupId>se.ikama</groupId>
+            <artifactId>bauta-sample</artifactId>
+            <version>0.0.59</version>
+        </dependency>
+        <dependency>
+            <groupId>se.ikama</groupId>
+            <artifactId>bauta-sample-php</artifactId>
+            <version>0.0.59</version>
+        </dependency>
+        <dependency>
+            <groupId>se.ikama</groupId>
+            <artifactId>bauta-sample-oracle</artifactId>
+            <version>0.0.59</version>
+        </dependency>
+        <dependency>
+            <groupId>se.ikama</groupId>
+            <artifactId>bauta-starter</artifactId>
+            <version>0.0.59</version>
+        </dependency>
+        <dependency>
+            <groupId>se.ikama</groupId>
+            <artifactId>bauta-autoconfigure</artifactId>
+            <version>0.0.59</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <fork>true</fork>
+                    <mainClass>se.ikama.bautastandalone.BautaStandaloneApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
