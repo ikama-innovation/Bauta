@@ -11,6 +11,7 @@ do
   esac
 done
 
+
 #ta bort SNAPSHOT taggen
 git pull
 sed -i "s/${releaseVersion}-SNAPSHOT/${releaseVersion}/g" pom.xml
