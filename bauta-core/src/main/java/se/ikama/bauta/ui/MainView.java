@@ -175,6 +175,16 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
+    private void findScheduledJobs() {
+        scheduledJobs.clear();
+        for (JobTrigger jobTrigger : jobTriggerDao.loadTriggers()) {
+            scheduledJobs.add(jobTrigger.getJobName());
+            if (!(jobTrigger.getTriggerType() == JobTrigger.TriggerType.CRON)) {
+                scheduledJobs.add(jobTrigger.getTriggeringJobName());
+            }
+        }
+    }
+
     private void sortJobGrid() {
         if (!sortingValue.equalsIgnoreCase("")) {
             List<Component> jobList = new ArrayList<>();
@@ -223,18 +233,11 @@ public class MainView extends AppLayout implements JobEventListener {
         jobNameToJobButtons.clear();
         jobNameToStepFLow.clear();
         runningJobs.clear();
-        scheduledJobs.clear();
         boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
         log.debug("Run enabled: " + enabled);
+        findScheduledJobs();
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
-            List<JobTrigger> triggers = jobTriggerDao.getJobCompletionTriggersFor(jobName);
-            if (!triggers.isEmpty()) {
-                scheduledJobs.add(jobName);
-                for (JobTrigger nextJob : triggers) {
-                    scheduledJobs.add(nextJob.getJobName());
-                }
-            }
             if (job.isRunning())
                 runningJobs.add(jobName);
             else
@@ -323,6 +326,7 @@ public class MainView extends AppLayout implements JobEventListener {
         Set<Component> pagesShown = Stream.of(jobPage)
                 .collect(Collectors.toSet());
         tabs.addSelectedChangeListener(event -> {
+            findScheduledJobs();
             pagesShown.forEach(page -> page.setVisible(false));
             pagesShown.clear();
             Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
@@ -866,6 +870,7 @@ public class MainView extends AppLayout implements JobEventListener {
                 jobRow.getElement().setAttribute("data-execution-status", jobInstanceInfo.getExecutionStatus());
                 filterJobGrid();
                 sortJobGrid();
+                findScheduledJobs();
                 ui.push();
             });
         }
