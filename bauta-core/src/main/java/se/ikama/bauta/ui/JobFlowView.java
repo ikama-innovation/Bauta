@@ -56,7 +56,7 @@ public class JobFlowView extends VerticalLayout {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        jobFlowGraph.printGraph();
+        //jobFlowGraph.printGraph();
         jobFlowGraphics.render();
     }
 }

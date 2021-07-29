@@ -12,18 +12,18 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.apache.commons.lang3.math.NumberUtils.max;
+
 public class JobFlowGraphics extends VerticalLayout{
     private JobFlowGraph jobFlowGraph;
     private Svg svg = new Svg();
     private HashMap<String, String> statusToColor = new HashMap<>();
 
-    double size = 100;
-    double space = size + 10;
-    double x = 20;
-    double y = 20;
+    double spaceX = 200;
+    double spaceY = 100;
 
-    private double jobWidth = 125;
-    private double jobHeight = 75;
+    private double jobWidth = 120;
+    private double jobHeight = 70;
     private double gridSize = 200;
 
     public JobFlowGraphics(JobFlowGraph jobFlowGraph) {
@@ -46,18 +46,31 @@ public class JobFlowGraphics extends VerticalLayout{
     }
 
     public void render() {
-        x = 20;
-        y = 20;
         clear();
+        int roots = 0;
         for (JobFlowNode node : jobFlowGraph.getRoots()) {
-            x = 20;
-            recursiveDraw(node);
-            y += space;
+            recursiveDraw(node, 20 ,20 + spaceY * roots);
+            roots++;
         }
     }
 
-    public void recursiveDraw(JobFlowNode node) {
-//        Iterator<JobFlowNode> iterator = jobFlowGraph.getNodes(node).iterator();
+    public int recursiveDraw(JobFlowNode node, double x, double y) {
+        List<JobFlowNode> list = jobFlowGraph.getNodes(node);
+        System.out.println(list + " size = " + list.size());
+        for (int i = 0; i < list.size(); i++) {
+            System.out.println(i);
+            System.out.println("xFrom = "+ (x+60) + " " + "yFrom = " + (y+35) + " " + "xTo = " +(x+60+spaceX) +" "+ "yTo = " + (y+ 35 + spaceY * i));
+            drawLine(x + 60, y + 35, x + 60 + spaceX, y + 35 + spaceY * i);
+        }
+
+        drawRect(node, x, y);
+        int lines = 0;
+        for (JobFlowNode nextNode : list) {
+            recursiveDraw(nextNode, x + spaceX, y + spaceY * lines);
+            lines++;
+        }
+
+        return lines;
 //        if (iterator.hasNext()) {
 //
 //        }
@@ -71,29 +84,29 @@ public class JobFlowGraphics extends VerticalLayout{
 //        while (iterator.hasNext()) {
 //
 //        }
-        for (JobFlowNode nextNode : jobFlowGraph.getNodes(node)) {
-            drawLine(nextNode, node);
-            recursiveDraw(nextNode);
-            if (jobFlowGraph.getNodes(node).size() > 1) {
-                y += space;
-                x -= space + 40;
-            }
-        }
+//        for (JobFlowNode nextNode : jobFlowGraph.getNodes(node)) {
+//            drawLine(nextNode, node);
+//            recursiveDraw(nextNode);
+//            if (jobFlowGraph.getNodes(node).size() > 1) {
+//                y += space;
+//                x -= space + 40;
+//            }
+//        }
     }
 
-    public Line drawLine(JobFlowNode to, JobFlowNode from) {
+    public void drawLine(double xFrom, double yFrom, double xTo, double yTo) {
         Line line = new Line("line",
-                new AbstractPolyElement.PolyCoordinatePair(gridSize, gridSize),
-                new AbstractPolyElement.PolyCoordinatePair(gridSize + gridSize, gridSize));
+                new AbstractPolyElement.PolyCoordinatePair(xFrom, yFrom),
+                new AbstractPolyElement.PolyCoordinatePair(xTo, yTo));
         line.setStroke("beige", 10, Path.LINE_CAP.ROUND, Path.LINE_JOIN.ROUND);
-        return line;
+        svg.add(line);
     }
 
-    public Rect drawRect(JobFlowNode node) {
+    public void drawRect(JobFlowNode node, double x, double y) {
         Rect rect = new Rect(node.getName(), jobWidth, jobHeight);
         rect.setFillColor(statusToColor.get(node.getStatus()));
         rect.move(x, y);
-        return rect;
+        svg.add(rect);
     }
 
     public void clear() {
