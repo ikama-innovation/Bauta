@@ -16,7 +16,8 @@ import static org.apache.commons.lang3.math.NumberUtils.max;
 
 public class JobFlowGraphics extends VerticalLayout{
     private JobFlowGraph jobFlowGraph;
-    private Svg svg = new Svg();
+    private VerticalLayout svgs;
+    private Svg svg;
     private HashMap<String, String> statusToColor = new HashMap<>();
 
     double spaceX = 200;
@@ -32,8 +33,11 @@ public class JobFlowGraphics extends VerticalLayout{
         statusToColor.put("COMPLETED", "var(--lumo-success-color)");
         statusToColor.put("STARTED", "var(--lumo-primary-color)");
         statusToColor.put("FAILED", "var(--lumo-error-color)");
-        statusToColor.put("UNKNOWN", "var(--lumo-contrast-30pct)");
+//        statusToColor.put("UNKNOWN", "var(--lumo-contrast-30pct)");
         statusToColor.put("LINE", "rgb(177, 177, 177)");
+        statusToColor.put("UNKNOWN", "#82889C");
+
+
 
         svg.viewbox(0, 0, 1000, 1000);
         svg.setWidth("100%");
@@ -43,11 +47,12 @@ public class JobFlowGraphics extends VerticalLayout{
         controlButtons.add(new Button("Toggle Zoom", e -> {
             svg.setZoomEnabled(!svg.isZoomEnabled());
         }));
+
     }
 
     public void render() {
         clear();
-        int roots = 0;
+        int roots = 1;
         for (JobFlowNode node : jobFlowGraph.getRoots()) {
             recursiveDraw(node, 20 ,20 + spaceY * roots);
             roots++;
@@ -108,6 +113,8 @@ public class JobFlowGraphics extends VerticalLayout{
         Rect rect = new Rect(node.getName(), jobWidth, jobHeight);
         rect.setFillColor(statusToColor.get(node.getStatus()));
         rect.move(x, y);
+        Button b = new Button();
+
         svg.add(rect);
     }
 

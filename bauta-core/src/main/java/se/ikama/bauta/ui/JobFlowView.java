@@ -52,12 +52,13 @@ public class JobFlowView extends VerticalLayout {
 
     public void update() {
         try {
+            jobFlowGraphics.render();
             jobFlowGraph.update();
         } catch (Exception e) {
             e.printStackTrace();
         }
         //jobFlowGraph.printGraph();
-        jobFlowGraphics.render();
+
     }
 }
 

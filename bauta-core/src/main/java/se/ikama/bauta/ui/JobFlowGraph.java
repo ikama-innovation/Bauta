@@ -3,13 +3,9 @@ package se.ikama.bauta.ui;
 import com.vaadin.flow.spring.annotation.UIScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.Job;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.batch.BatchProperties;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import java.util.*;
@@ -27,9 +23,9 @@ public class JobFlowGraph {
     @Autowired
     JobTriggerDao jobTriggerDao;
 
-    private Map<JobFlowNode, List<String>> graph;
-    private List<JobFlowNode> rootNodes;
-    private Map<String, JobFlowNode> nameToNode;
+    private final Map<JobFlowNode, List<String>> graph;
+    private final List<JobFlowNode> rootNodes;
+    private final Map<String, JobFlowNode> nameToNode;
 
     public JobFlowGraph() {
         this.graph = new HashMap<>();
@@ -45,22 +41,26 @@ public class JobFlowGraph {
             if (!bautaManager.listJobNames().isEmpty()) {
                 for (JobTrigger jobTrigger : jobTriggerDao.loadTriggers()) {
                     String jobName = jobTrigger.getJobName();
-                    System.out.println("current node: " + jobName);
                     JobFlowNode jobFlowNode = new JobFlowNode(jobName, bautaManager.jobDetails(jobName).getExecutionStatus());
                     graph.put(jobFlowNode, new ArrayList<>());
                     nameToNode.put(jobName, jobFlowNode);
-                    System.out.println("Trigger type: "+ jobTrigger.getTriggerType().toString());
-
-                    printGraph();
+                    if (!(jobTrigger.getTriggerType() == JobTrigger.TriggerType.CRON))  {
+                        String triggerName = jobTrigger.getTriggeringJobName();
+                        if (!nameToNode.containsKey(triggerName)) {
+                            JobFlowNode jobFlowNode1 = new JobFlowNode(triggerName, bautaManager.jobDetails(triggerName).getExecutionStatus());
+                            nameToNode.put(triggerName, jobFlowNode1);
+                            graph.put(jobFlowNode1, new ArrayList<>());
+                        }
+                    }
                 }
-//                for (JobFlowNode jobFlowNode : graph.keySet()) {
-//                    if (!(jobFlowNode.getTriggerType() == JobTrigger.TriggerType.CRON)) {
-//                        // triggad av annat jobb
-//
-//
-//                    }
-//                }
+                for (JobTrigger jobTrigger : jobTriggerDao.loadTriggers()) {
+                    if (!(jobTrigger.getTriggerType() == JobTrigger.TriggerType.CRON)) {
+                        // triggad av annat jobb
+                            graph.get(nameToNode.get(jobTrigger.getTriggeringJobName())).add(jobTrigger.getJobName());
+                    }
+                }
             }
+            printGraph();
         }
         for (JobFlowNode jobFlowNode : graph.keySet()) {
             for (String triggeredJob : graph.get(jobFlowNode)) {
@@ -75,6 +75,7 @@ public class JobFlowGraph {
             if (jobFlowNode.isRoot())
                 rootNodes.add(jobFlowNode);
         }
+        Collections.sort(rootNodes, (n1, n2) -> n1.getName().compareToIgnoreCase(n2.getName()));
     }
 
     public List<JobFlowNode> getRoots() { return rootNodes; }
@@ -85,20 +86,21 @@ public class JobFlowGraph {
 //        System.out.println("\nGraph: ");
 //        printGraph();
 //        System.out.println("current node: " + node.getName());
-        List<JobFlowNode> finalList = graph.get(node)
-                                            .stream()
-                                            .map(jobName -> nameToNode.get(jobName))
-                                            .collect(Collectors.toList());
 
         //System.out.println("actual list size = " + finalList.size());
-        return finalList;
+        return graph.get(node)
+                        .stream()
+                        .map(nameToNode::get)
+                        .collect(Collectors.toList());
     }
 
     public void printGraph() {
+        System.out.println("Graph below: ");
         for (JobFlowNode jobFlowNode : graph.keySet()) {
             System.out.print(jobFlowNode.getName() + " --> [");
             graph.get(jobFlowNode).forEach(n -> System.out.print(n + ", "));
             System.out.print("]\n");
         }
+        System.out.println("\n");
     }
 }
