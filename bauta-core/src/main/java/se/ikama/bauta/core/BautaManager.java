@@ -19,6 +19,7 @@ import se.ikama.bauta.batch.JobParametersProvider;
 import se.ikama.bauta.core.metadata.JobMetadata;
 import se.ikama.bauta.core.metadata.JobMetadataReader;
 import se.ikama.bauta.core.metadata.StepMetadata;
+import se.ikama.bauta.scheduling.JobGroupDao;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 
@@ -86,6 +87,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     JobTriggerDao jobTriggerDao;
 
     @Autowired
+    JobGroupDao groupDao;
+
+    @Autowired
     JobMetadataReader jobMetadataReader;
 
     // Set to true after rebuild has been issued. To avoid multiple calls to the rebuild command
@@ -131,7 +135,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         initListenerPushThread();
         // Make sure job names are initialized
         listJobNames();
-
+        groupDao.setJobNames(listJobNames());
 
     }
     @PreDestroy

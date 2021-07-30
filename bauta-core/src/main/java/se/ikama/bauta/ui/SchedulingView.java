@@ -50,9 +50,7 @@ import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.spring.annotation.UIScope;
 
 import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.scheduling.JobTrigger;
-import se.ikama.bauta.scheduling.JobTriggerDao;
-import se.ikama.bauta.scheduling.JobTriggerLog;
+import se.ikama.bauta.scheduling.*;
 import se.ikama.bauta.security.SecurityUtils;
 
 @Component
@@ -66,6 +64,9 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 	@Autowired
 	BautaManager bautaManager;
+
+	@Autowired
+	JobGroupDao groupDao;
 
 	Grid<JobTrigger> triggerGrid;
 	List<JobTrigger> triggers = new ArrayList<>();
@@ -565,6 +566,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
 
 	private void update() {
+		groupDao.testCreationAndSaving("demo_jobs", ".*demo.*");
 		triggers = jobTriggerDao.loadTriggers();
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);
