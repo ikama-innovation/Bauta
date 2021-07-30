@@ -55,11 +55,13 @@ public class JobFlowGraphics extends VerticalLayout{
     }
 
     public int recursiveDraw(JobFlowNode node, double x, double y) {
-        List<JobFlowNode> list = jobFlowGraph.getNodes(node);
-        System.out.println(list + " size = " + list.size());
+//        System.out.println("node in recursive step: " + node.getName());
+        List<JobFlowNode> list = jobFlowGraph.getNodesFor(node);
+//        System.out.println(list);
+        //System.out.println(list + " size = " + list.size());
         for (int i = 0; i < list.size(); i++) {
-            System.out.println(i);
-            System.out.println("xFrom = "+ (x+60) + " " + "yFrom = " + (y+35) + " " + "xTo = " +(x+60+spaceX) +" "+ "yTo = " + (y+ 35 + spaceY * i));
+          //  System.out.println(i);
+//            System.out.println("xFrom = "+ (x+60) + " " + "yFrom = " + (y+35) + " " + "xTo = " +(x+60+spaceX) +" "+ "yTo = " + (y+ 35 + spaceY * i));
             drawLine(x + 60, y + 35, x + 60 + spaceX, y + 35 + spaceY * i);
         }
 

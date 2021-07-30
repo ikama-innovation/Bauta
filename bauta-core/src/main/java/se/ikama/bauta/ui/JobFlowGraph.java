@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.batch.BatchProperties;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
@@ -36,61 +37,68 @@ public class JobFlowGraph {
         this.nameToNode = new HashMap<>();
     }
 
-    public void update() throws Exception{
+    public void update() throws Exception {
         graph.clear();
         rootNodes.clear();
         nameToNode.clear();
-        if (bautaManager != null) {
+        if (jobTriggerDao != null && bautaManager != null) {
             if (!bautaManager.listJobNames().isEmpty()) {
-                for (String jobName : bautaManager.listJobNames()) {
-                    JobInstanceInfo jobInfo = bautaManager.jobDetails(jobName);
-                    JobFlowNode jobFlowNode = new JobFlowNode(jobName, jobInfo.getExecutionStatus());
+                for (JobTrigger jobTrigger : jobTriggerDao.loadTriggers()) {
+                    String jobName = jobTrigger.getJobName();
+                    System.out.println("current node: " + jobName);
+                    JobFlowNode jobFlowNode = new JobFlowNode(jobName, bautaManager.jobDetails(jobName).getExecutionStatus());
+                    graph.put(jobFlowNode, new ArrayList<>());
                     nameToNode.put(jobName, jobFlowNode);
-                    if (!jobTriggerDao.getJobCompletionTriggersFor(jobName).isEmpty()) {
-                        graph.put(jobFlowNode, new ArrayList<>());
-                        for (JobTrigger nextJob : jobTriggerDao.getJobCompletionTriggersFor(jobName)) {
-                            graph.get(jobFlowNode).add(nextJob.getJobName());
-                            if (!graph.containsKey(nameToNode.get(nextJob.getJobName()))) {
-                                graph.put(nameToNode.get(nextJob.getJobName()), new ArrayList<>());
-                            }
-                        }
-                    }
+                    System.out.println("Trigger type: "+ jobTrigger.getTriggerType().toString());
+
+                    printGraph();
+                }
+//                for (JobFlowNode jobFlowNode : graph.keySet()) {
+//                    if (!(jobFlowNode.getTriggerType() == JobTrigger.TriggerType.CRON)) {
+//                        // triggad av annat jobb
+//
+//
+//                    }
+//                }
+            }
+        }
+        for (JobFlowNode jobFlowNode : graph.keySet()) {
+            for (String triggeredJob : graph.get(jobFlowNode)) {
+                if (nameToNode.containsKey(triggeredJob)) {
+                    nameToNode.get(triggeredJob).setRoot(false);
                 }
             }
-            for (JobFlowNode jobFlowNode : graph.keySet()) {
-                for (String triggeredJob : graph.get(jobFlowNode)) {
-                    if (nameToNode.containsKey(triggeredJob)) {
-                        nameToNode.get(triggeredJob).setRoot(false);
-                    }
-                }
-            }
-            graph.keySet().forEach(n -> System.out.println(n.getName()));
-            for (JobFlowNode jobFlowNode : graph.keySet()) {
-                System.out.println(jobFlowNode == null);
-                System.out.println(jobFlowNode.getName());
-                if (jobFlowNode.isRoot())
-                    rootNodes.add(jobFlowNode);
-            }
+        }
+        for (JobFlowNode jobFlowNode : graph.keySet()) {
+//            System.out.println(jobFlowNode == null);
+//            System.out.println(jobFlowNode.getName());
+            if (jobFlowNode.isRoot())
+                rootNodes.add(jobFlowNode);
         }
     }
 
-    public List<JobFlowNode> getRoots() {
-        return rootNodes;
-    }
+    public List<JobFlowNode> getRoots() { return rootNodes; }
 
-
-    public List<JobFlowNode> getNodes(JobFlowNode node) {
-        System.out.println(node.getName());
+    public List<JobFlowNode> getNodesFor(JobFlowNode node) {
+//        System.out.println("RootNodes: ");
+//        rootNodes.forEach(n -> System.out.print(n.getName() + ", "));
+//        System.out.println("\nGraph: ");
+//        printGraph();
+//        System.out.println("current node: " + node.getName());
         List<JobFlowNode> finalList = graph.get(node)
                                             .stream()
                                             .map(jobName -> nameToNode.get(jobName))
                                             .collect(Collectors.toList());
 
-        System.out.println("actual list size = " + finalList.size());
+        //System.out.println("actual list size = " + finalList.size());
         return finalList;
     }
 
     public void printGraph() {
-        graph.forEach((node, list) -> list.forEach(nextNode -> System.out.println(node.getName() + " --> " + nextNode)));
+        for (JobFlowNode jobFlowNode : graph.keySet()) {
+            System.out.print(jobFlowNode.getName() + " --> [");
+            graph.get(jobFlowNode).forEach(n -> System.out.print(n + ", "));
+            System.out.print("]\n");
+        }
     }
 }

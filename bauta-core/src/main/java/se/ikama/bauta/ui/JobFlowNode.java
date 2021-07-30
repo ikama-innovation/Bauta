@@ -1,6 +1,8 @@
 package se.ikama.bauta.ui;
 
 import lombok.Getter;
+import se.ikama.bauta.scheduling.JobTrigger;
+
 
 import java.time.Duration;
 import java.util.Date;
