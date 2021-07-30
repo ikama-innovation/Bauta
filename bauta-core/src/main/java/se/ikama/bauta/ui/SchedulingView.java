@@ -9,10 +9,18 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
 
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.Validator;
+import com.vaadin.flow.data.validator.RegexpValidator;
+import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jline.builtins.TTop;
 import org.jline.utils.Log;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +48,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
@@ -76,7 +83,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 	private Set<JobTrigger> selectedJobTriggers;
 
-	Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, exportButton, importButton;
+	Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, exportButton, importButton, createGroupButton;
 	Label lAdminInfo;
 	Anchor exportLink;
 
@@ -159,6 +166,9 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		exportLink.getElement().setAttribute("download", true);
 		exportLink.add(new Button("Export", new Icon(VaadinIcon.DOWNLOAD_ALT)));
 		buttons.add(exportLink);
+
+		createGroupButton = new Button("Create group", clickEvent -> addJobGroup());
+		buttons.add(createGroupButton);
 
 		add(buttons);
 		lAdminInfo = new Label("You need to be ADMIN in order to edit triggers");
@@ -341,6 +351,11 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	private void addJobCompletionOrFailure(JobTrigger jobTrigger) {
 		Dialog jobCompletionDialog = createAddJobCompletionDialog(JobTrigger.TriggerType.JOB_COMPLETION_OR_FAILURE, jobTrigger);
 		jobCompletionDialog.open();
+	}
+
+	private void addJobGroup() {
+		Dialog groupDialog = createGroupDialog();
+		groupDialog.open();
 	}
 
 	private void save(JobTrigger[] jobTriggers) {
@@ -565,8 +580,63 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		return dialog;
 	}
 
+	private Dialog createGroupDialog() {
+		Dialog dialog = new Dialog();
+		dialog.setWidth("600px");
+
+		//List<JobGroup> jobGroups = groupDao.getJobGroups();
+
+		VerticalLayout layout = new VerticalLayout();
+		layout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+		layout.setPadding(true);
+		layout.setSpacing(true);
+
+		Binder<JobGroup> binder = new Binder<>(JobGroup.class);
+
+		TextField nameTextField = new TextField();
+		nameTextField.setLabel("Group name");
+		nameTextField.setRequired(true);
+		nameTextField.setRequiredIndicatorVisible(true);
+		nameTextField.setWidthFull();
+		binder.forField(nameTextField)
+				//.withValidator(t -> !jobGroups.contains(t), "Group already exists");
+				.withValidator(t -> t.equals("hej"), "must equal hej")
+				.bind(JobGroup::getName, JobGroup::setName);
+
+		TextField regexTextField = new TextField();
+		regexTextField.setLabel("Regex");
+		regexTextField.setRequired(true);
+		regexTextField.setRequiredIndicatorVisible(true);
+		regexTextField.setWidthFull();
+//		binder.forField(regexTextField)
+//				.withValidator()
+//				.bind(JobGroup::getRegex, JobGroup::setRegex);
+
+
+		HorizontalLayout buttons = new HorizontalLayout();
+		buttons.setWidthFull();
+		buttons.setJustifyContentMode(JustifyContentMode.END);
+
+		Button confirmButton = new Button("Confirm", clickEvent -> {
+
+			//groupDao.testButton(nameTextField.getValue(), regexTextField.getValue());
+			dialog.close();
+		});
+		confirmButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+		Button cancelButton = new Button("Cancel", clickEvent -> {
+			dialog.close();
+		});
+		cancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+
+
+		buttons.add(confirmButton, cancelButton);
+		layout.add(nameTextField, regexTextField, buttons);
+		dialog.add(layout);
+		return dialog;
+	}
+
 	private void update() {
-		groupDao.testCreationAndSaving("demo_jobs", ".*demo.*");
+		//groupDao.testCreationAndSaving("demo_jobs", ".*demo.*");
 		triggers = jobTriggerDao.loadTriggers();
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);
