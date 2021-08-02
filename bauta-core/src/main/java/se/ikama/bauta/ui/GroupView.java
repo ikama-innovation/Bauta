@@ -7,6 +7,8 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.ListItem;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -163,7 +165,6 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
     }
 
     private Dialog createEditGroupDialog(JobGroup group){
-        log.info("edit dialog group: {}", group);
         Dialog dialog = new Dialog();
         dialog.setWidth("600px");
         Label label = new Label();
@@ -188,6 +189,7 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
         nameTextField.setWidthFull();
         binder.forField(nameTextField)
                 .withValidator(t -> !jobNameList.contains(t), "Group already exists")
+                .withValidator(t -> t.length() > 0, "Group cannot be null")
                 .bind(JobGroup::getName, JobGroup::setName);
 
         TextField regexTextField = new TextField();
@@ -196,30 +198,61 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
         regexTextField.setRequired(true);
         regexTextField.setRequiredIndicatorVisible(true);
         regexTextField.setWidthFull();
-        binder.forField(regexTextField).bind(JobGroup::getRegex, JobGroup::setRegex);
+        binder.forField(regexTextField)
+                .withValidator(t -> t.length() > 0, "Regex cannot be null")
+                .bind(JobGroup::getRegex, JobGroup::setRegex);
 
         HorizontalLayout buttons = new HorizontalLayout();
         buttons.setWidthFull();
         buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
         Button confirmButton = new Button("Update", clickEvent -> {
-            group.setName(nameTextField.getValue());
-            group.setRegex(regexTextField.getValue());
-            if (group.getName() != null && group.getRegex() != null){
-                groupDao.updateGroup(group);
-                update();
-                dialog.close();
+            var newGroup = groupDao.createJobGroup(nameTextField.getValue(), regexTextField.getValue());
+            if (newGroup != null){
+                group.setName(newGroup.getName());
+                group.setRegex(newGroup.getRegex());
+                group.setJobNames(newGroup.getJobNames());
+                if (group.getName() != null && group.getRegex() != null){
+                    groupDao.updateGroup(group);
+                    update();
+                    dialog.close();
+                }
             }else{
                 label.setText("Not a valid regexp!");
             }
         });
+
+        UnorderedList unorderedList = new UnorderedList();
+
+        Button previewButton = new Button("Preview", clickEvent -> {
+            unorderedList.removeAll();
+            label.setText("");
+            var tempGroup = new JobGroup();
+            tempGroup.setName(nameTextField.getValue());
+            tempGroup.setRegex(regexTextField.getValue());
+            List<String> jobNames = preview(tempGroup);
+            if (jobNames != null){
+                if (jobNames.size() > 0){
+                    jobNames.forEach(name -> {
+                        ListItem item = new ListItem();
+                        item.add(name);
+                        unorderedList.add(item);
+                    });
+                }else{
+                    label.setText("The regex did not match any jobs.");
+                }
+            }else{
+                label.setText("Invalid regex.");
+            }
+        });
+
         confirmButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         Button cancelButton = new Button("Cancel", clickEvent -> {
-            dialog.close();
+           dialog.close();
         });
         cancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
-        buttons.add(label, confirmButton, cancelButton);
+        buttons.add(label, unorderedList, previewButton, confirmButton, cancelButton);
         layout.add(nameTextField, regexTextField, buttons);
         dialog.add(layout);
         return dialog;
@@ -258,6 +291,17 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
             createGroupButton.setEnabled(false);
             editButton.setEnabled(false);
             removeButton.setEnabled(false);
+        }
+    }
+
+    private List<String> preview(JobGroup group){
+        var tempGroup = groupDao.createJobGroup(group.getName(), group.getRegex());
+        if (tempGroup == null){
+            return null;
+        }else if (tempGroup.getJobNames().size() == 0){
+            return new ArrayList<>();
+        }else{
+            return tempGroup.getJobNames();
         }
     }
 

@@ -39,7 +39,6 @@ public class JobGroupDao implements RowMapper<JobGroup> {
     public JobGroup createJobGroup(String name, String regex) {
         if (!name.toUpperCase().startsWith("GROUP_")){
             name = "Group_"+name;
-            log.info("name: {}", name);
         }
 
         JobGroup jobGroup = new JobGroup();
@@ -64,7 +63,6 @@ public class JobGroupDao implements RowMapper<JobGroup> {
                 }
             }
             jobGroup.setJobNames(matchedJobs);
-            log.info("created group {}",jobGroup.toString());
             return jobGroup;
         }
     }
@@ -75,7 +73,6 @@ public class JobGroupDao implements RowMapper<JobGroup> {
         var dbGroups = getAllJobGroups();
         ArrayList<String> nameList = new ArrayList<>();
         dbGroups.forEach(g -> {
-            log.info("g: {}", g.getName());
             nameList.add(g.getName());
         });
         if (group.getId() == null && !nameList.contains(group.getName())) {
@@ -96,7 +93,6 @@ public class JobGroupDao implements RowMapper<JobGroup> {
     public List<JobGroup> getAllJobGroups(){
         JdbcTemplate template = new JdbcTemplate(dataSource);
         List<JobGroup> out = template.query("select * from JOB_GROUP", this);
-        log.info("groups: {}", out.toString());
         return out;
     }
 
