@@ -2,6 +2,8 @@ package se.ikama.bauta.scheduling;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -15,9 +17,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @Component
 public class JobGroupDao implements RowMapper<JobGroup> {
+
+    Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
     @Autowired
     DataSource dataSource;
@@ -29,47 +35,74 @@ public class JobGroupDao implements RowMapper<JobGroup> {
     @Getter
     SortedSet<String> jobNames;
 
-    public void testCreationAndSaving(String name, String regex){
-        JobGroup group = new JobGroup();
-        group.setName(name);
-        group.setRegex(regex);
 
-        List<String> matchedJobs = new ArrayList<>();
-
-        for (String job : jobNames){
-            boolean match = job.matches(regex);
-            if (match){
-                matchedJobs.add(job);
-            }
+    public JobGroup createJobGroup(String name, String regex) {
+        if (!name.toUpperCase().startsWith("GROUP_")){
+            name = "Group_"+name;
+            log.info("name: {}", name);
         }
-        group.setJobNames(matchedJobs);
-        //System.out.println("matches: "+matchedJobs.toString());
-        //System.out.println("group: "+group.toString());
-        saveOrUpdate(group);
-        var g = getJobGroups();
-        System.out.println("returned group: "+g.toString());
+
+        JobGroup jobGroup = new JobGroup();
+        jobGroup.setName(name);
+        jobGroup.setRegex(regex);
+
+        PatternSyntaxException exc = null;
+        try {
+            Pattern.compile(regex);
+        } catch (PatternSyntaxException e) {
+            exc = e;
+        }
+        if (exc != null) {
+            log.warn("INVALID REGEXP");
+            return null;
+        } else {
+            List<String> matchedJobs = new ArrayList<>();
+            for (String job : jobNames){
+                boolean match = job.matches(regex);
+                if (match){
+                    matchedJobs.add(job);
+                }
+            }
+            jobGroup.setJobNames(matchedJobs);
+            log.info("created group {}",jobGroup.toString());
+            return jobGroup;
+        }
     }
 
     @Transactional
-    public void saveOrUpdate(JobGroup group) {
-        System.out.println("group : "+group);
+    public void save(JobGroup group) {
         JdbcTemplate template = new JdbcTemplate(dataSource);
-        var dbGroups = getJobGroups();
-
-        if (group.getId() == null) {
-            System.out.println("saving group "+group.toString());
+        var dbGroups = getAllJobGroups();
+        ArrayList<String> nameList = new ArrayList<>();
+        dbGroups.forEach(g -> {
+            log.info("g: {}", g.getName());
+            nameList.add(g.getName());
+        });
+        if (group.getId() == null && !nameList.contains(group.getName())) {
+            log.info("saving group {}",group.toString());
             template.update("insert into JOB_GROUP (GROUP_NAME, REGEX, JOB_NAMES) values(?,?,?)",
                     group.getName(), group.getRegex(), group.getJobNames().toString());
-        } else {
-            System.out.println("updating group "+group.toString());
-            template.update("update JOB_GROUP set GROUP_NAME=?,REGEX=?,JOB_NAMES=? where ID=?",
-                    group.getName(), group.getRegex(), group.getJobNames().toString(), group.getId());
         }
     }
 
-    public List<JobGroup> getJobGroups(){
+    @Transactional
+    public void updateGroup(JobGroup group){
+        JdbcTemplate template = new JdbcTemplate(dataSource);
+        log.info("updating group {}",group.toString());
+        template.update("update JOB_GROUP set GROUP_NAME=?,REGEX=?,JOB_NAMES=? where ID=?",
+                    group.getName(), group.getRegex(), group.getJobNames().toString(), group.getId());
+    }
+
+    public List<JobGroup> getAllJobGroups(){
         JdbcTemplate template = new JdbcTemplate(dataSource);
         List<JobGroup> out = template.query("select * from JOB_GROUP", this);
+        log.info("groups: {}", out.toString());
+        return out;
+    }
+
+    public List<JobGroup> getJobGroup(String groupName){
+        JdbcTemplate template = new JdbcTemplate(dataSource);
+        List<JobGroup> out = template.query("select * from JOB_GROUP where GROUP_NAME='"+groupName+"'", this);
         return out;
     }
 
@@ -88,9 +121,9 @@ public class JobGroupDao implements RowMapper<JobGroup> {
         jg.setId(resultSet.getLong("ID"));
         jg.setName(resultSet.getString("GROUP_NAME"));
         jg.setRegex(resultSet.getString("REGEX"));
+
         String dbStrings =  resultSet.getString("JOB_NAMES");
-        dbStrings = dbStrings.replace("[", "");
-        dbStrings = dbStrings.replace("]", "");
+        dbStrings = dbStrings.replace("[", "").replace("]", "");
         String[] toList = dbStrings.split(",");
         List<String> jobList = new ArrayList<>(Arrays.asList(toList));
         jg.setJobNames(jobList);
