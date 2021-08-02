@@ -1,32 +1,5 @@
 package se.ikama.bauta.ui;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.PostConstruct;
-
-import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.binder.Validator;
-import com.vaadin.flow.data.validator.RegexpValidator;
-import org.apache.commons.lang3.RegExUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.jline.builtins.TTop;
-import org.jline.utils.Log;
-import org.springframework.batch.core.configuration.JobRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.support.CronTrigger;
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.vaadin.flow.component.AttachEvent;
@@ -38,11 +11,7 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.html.ListItem;
-import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -55,10 +24,25 @@ import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.data.selection.SelectionListener;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.spring.annotation.UIScope;
-
+import org.apache.commons.lang3.StringUtils;
+import org.jline.utils.Log;
+import org.springframework.batch.core.configuration.JobRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.scheduling.*;
+import se.ikama.bauta.scheduling.JobGroupDao;
+import se.ikama.bauta.scheduling.JobTrigger;
+import se.ikama.bauta.scheduling.JobTriggerDao;
+import se.ikama.bauta.scheduling.JobTriggerLog;
 import se.ikama.bauta.security.SecurityUtils;
+
+import javax.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Component
 @UIScope
@@ -166,9 +150,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		exportLink.getElement().setAttribute("download", true);
 		exportLink.add(new Button("Export", new Icon(VaadinIcon.DOWNLOAD_ALT)));
 		buttons.add(exportLink);
-
-		createGroupButton = new Button("Create group", clickEvent -> addJobGroup());
-		buttons.add(createGroupButton);
 
 		add(buttons);
 		lAdminInfo = new Label("You need to be ADMIN in order to edit triggers");
@@ -353,10 +334,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		jobCompletionDialog.open();
 	}
 
-	private void addJobGroup() {
-		Dialog groupDialog = createGroupDialog();
-		groupDialog.open();
-	}
 
 	private void save(JobTrigger[] jobTriggers) {
 		jobTriggerDao.deleteAll();
@@ -367,6 +344,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		update();
 		bautaManager.initializeScheduling(true);
 	}
+
 	private void saveOrUpdate(JobTrigger jobTrigger) {
 		jobTriggerDao.saveOrUpdate(jobTrigger);
 		update();
@@ -383,6 +361,10 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		layout.setSpacing(false);
 
 		ArrayList<String> jobNames = new ArrayList<>(jobRegistry.getJobNames());
+		//var groups = groupDao.getAllJobGroups();
+		//groups.forEach(group -> {
+		//	jobNames.add(group.getName());
+		//});
 		Collections.sort(jobNames);
 
 		ComboBox<String> jobComboBox = new ComboBox<String>("Job");
@@ -580,63 +562,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		return dialog;
 	}
 
-	private Dialog createGroupDialog() {
-		Dialog dialog = new Dialog();
-		dialog.setWidth("600px");
-
-		//List<JobGroup> jobGroups = groupDao.getJobGroups();
-
-		VerticalLayout layout = new VerticalLayout();
-		layout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-		layout.setPadding(true);
-		layout.setSpacing(true);
-
-		Binder<JobGroup> binder = new Binder<>(JobGroup.class);
-
-		TextField nameTextField = new TextField();
-		nameTextField.setLabel("Group name");
-		nameTextField.setRequired(true);
-		nameTextField.setRequiredIndicatorVisible(true);
-		nameTextField.setWidthFull();
-		binder.forField(nameTextField)
-				//.withValidator(t -> !jobGroups.contains(t), "Group already exists");
-				.withValidator(t -> t.equals("hej"), "must equal hej")
-				.bind(JobGroup::getName, JobGroup::setName);
-
-		TextField regexTextField = new TextField();
-		regexTextField.setLabel("Regex");
-		regexTextField.setRequired(true);
-		regexTextField.setRequiredIndicatorVisible(true);
-		regexTextField.setWidthFull();
-//		binder.forField(regexTextField)
-//				.withValidator()
-//				.bind(JobGroup::getRegex, JobGroup::setRegex);
-
-
-		HorizontalLayout buttons = new HorizontalLayout();
-		buttons.setWidthFull();
-		buttons.setJustifyContentMode(JustifyContentMode.END);
-
-		Button confirmButton = new Button("Confirm", clickEvent -> {
-
-			//groupDao.testButton(nameTextField.getValue(), regexTextField.getValue());
-			dialog.close();
-		});
-		confirmButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		Button cancelButton = new Button("Cancel", clickEvent -> {
-			dialog.close();
-		});
-		cancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
-
-
-		buttons.add(confirmButton, cancelButton);
-		layout.add(nameTextField, regexTextField, buttons);
-		dialog.add(layout);
-		return dialog;
-	}
-
 	private void update() {
-		//groupDao.testCreationAndSaving("demo_jobs", ".*demo.*");
 		triggers = jobTriggerDao.loadTriggers();
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);
