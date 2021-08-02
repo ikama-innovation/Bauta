@@ -1,23 +1,32 @@
 package se.ikama.bauta.ui;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.data.selection.SelectionListener;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.spring.annotation.UIScope;
+import org.jline.utils.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +36,8 @@ import se.ikama.bauta.scheduling.JobGroup;
 import se.ikama.bauta.scheduling.JobGroupDao;
 import se.ikama.bauta.security.SecurityUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -44,9 +55,9 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
 
     Grid<JobGroup> groupGrid;
     List<JobGroup> groups = new ArrayList<>();
+    Button removeButton, editButton, createGroupButton;
+    Anchor exportLink;
     private Set<JobGroup> selectedGroups;
-    Button removeButton, editButton, addCronButton, createGroupButton;
-
 
     public GroupView(){
         groupGrid = new Grid<>();
@@ -79,6 +90,39 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
         removeButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         removeButton.setEnabled(false);
         buttons.add(removeButton);
+
+        MemoryBuffer buffer = new MemoryBuffer();
+        Upload upload = new Upload(buffer);
+        Button uploadButton = new Button("Import");
+        uploadButton.setIcon(VaadinIcon.UPLOAD_ALT.create());
+        upload.setUploadButton(uploadButton);
+        upload.setDropAllowed(false);
+        upload.setMaxFiles(1);
+
+        upload.addSucceededListener(event -> {
+            try (InputStream is = buffer.getInputStream()) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JobGroup[] imported = objectMapper.readValue(is, JobGroup[].class);
+                save(imported);
+                Notification.show("Imported " + imported.length + " groups");
+            } catch (Exception e) {
+                Log.error("Failed to import triggers", e);
+                Notification.show("Failed to import triggers: " + e.getMessage());
+            }
+        });
+
+        buttons.add(upload);
+        StreamResource streamResource = new StreamResource("groups.json", () -> currentConfigAsStream());
+        streamResource.setContentType("application/json");
+
+        exportLink = new Anchor(streamResource, "");
+        exportLink.getElement().setAttribute("download", true);
+        exportLink.add(new Button("Export", new Icon(VaadinIcon.DOWNLOAD_ALT)));
+        buttons.add(exportLink);
+
+        add(buttons);
+
+
 
         add(buttons);
     }
@@ -143,13 +187,17 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
         buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
         Button confirmButton = new Button("Confirm", clickEvent -> {
-
-            var newGroup = groupDao.createJobGroup(nameTextField.getValue(), regexTextField.getValue());
-            if (newGroup != null){
-                groupDao.save(newGroup);
-                dialog.close();
+            if (nameTextField.getValue().length() > 0 && regexTextField.getValue().length() > 0){
+                var newGroup = groupDao.createJobGroup(nameTextField.getValue(), regexTextField.getValue());
+                if (newGroup != null){
+                    groupDao.save(newGroup);
+                    update();
+                    dialog.close();
+                }else{
+                    label.setText("Not a valid regexp!");
+                }
             }else{
-                label.setText("Not a valid regexp!");
+                label.setText("Both fields are required!");
             }
         });
         confirmButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -287,11 +335,24 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
             createGroupButton.setEnabled(true);
             editButton.setEnabled(selectedGroups.size() == 1);
             removeButton.setEnabled(selectedGroups.size() > 0);
+            exportLink.setEnabled(selectedGroups.size() > 0);
         } else {
             createGroupButton.setEnabled(false);
             editButton.setEnabled(false);
             removeButton.setEnabled(false);
+            exportLink.setEnabled(false);
         }
+    }
+
+    public void save(JobGroup[] groups){
+        for (JobGroup jg : groups) {
+            if (this.groups.contains(jg)){
+                jg.setName(jg.getName()+"(2)");
+            }
+            jg.setId(null);
+            groupDao.save(jg);
+        }
+        update();
     }
 
     private List<String> preview(JobGroup group){
@@ -304,5 +365,18 @@ public class GroupView extends VerticalLayout implements SelectionListener<Grid<
             return tempGroup.getJobNames();
         }
     }
+
+
+    private InputStream currentConfigAsStream() {
+        ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        try {
+            String json = mapper.writeValueAsString(groupGrid.getSelectionModel().getSelectedItems());
+            return new ByteArrayInputStream(json.getBytes("UTF-8"));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to stream scheduling configuration", e);
+        }
+
+    }
+
 
 }
