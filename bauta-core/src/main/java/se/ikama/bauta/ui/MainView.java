@@ -1,38 +1,6 @@
 package se.ikama.bauta.ui;
 
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.shared.ui.Transport;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
-import org.springframework.batch.core.launch.NoSuchJobException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.security.access.annotation.Secured;
-
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -41,19 +9,13 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H4;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.html.ListItem;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -74,13 +36,30 @@ import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.shared.communication.PushMode;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
-
-import se.ikama.bauta.core.BasicJobInstanceInfo;
-import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.core.JobEventListener;
-import se.ikama.bauta.core.JobInstanceInfo;
-import se.ikama.bauta.core.StepInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
+import org.springframework.batch.core.launch.NoSuchJobException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.security.access.annotation.Secured;
+import se.ikama.bauta.core.*;
 import se.ikama.bauta.security.SecurityUtils;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Push(value = PushMode.MANUAL)
 @Route("")
@@ -119,9 +98,9 @@ public class MainView extends AppLayout implements JobEventListener {
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
     private HashSet<String> runningJobs = new HashSet<>();
 
-    public MainView(@Autowired SchedulingView schedulingView) {
+    public MainView(@Autowired SchedulingView schedulingView, @Autowired GroupView groupView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
-        createMainView(schedulingView);
+        createMainView(schedulingView, groupView);
     }
 
     @Override
@@ -228,7 +207,7 @@ public class MainView extends AppLayout implements JobEventListener {
         //grid.setItems(Collections.emptyList());
     }
 
-    private void createMainView(SchedulingView schedulingView) {
+    private void createMainView(SchedulingView schedulingView, GroupView groupView) {
         log.debug("createMainView");
         Image img = new Image("../static/images/bauta-logo-light.png", "Bauta logo");
         img.setHeight("28px");
@@ -248,15 +227,19 @@ public class MainView extends AppLayout implements JobEventListener {
         // Scheduling
         Tab schedulingTab = new Tab("Scheduling");
 
+        Tab groupTab = new Tab("Groups");
+
         tabsToPages.put(jobTab, jobPage);
         tabsToPages.put(aboutTab, aboutPage);
         tabsToPages.put(schedulingTab, schedulingView);
+        tabsToPages.put(groupTab, groupView);
+        groupView.setVisible(false);
         schedulingView.setVisible(false);
 
-        Tabs tabs = new Tabs(jobTab, schedulingTab, aboutTab);
+        Tabs tabs = new Tabs(jobTab, groupTab, schedulingTab, aboutTab);
         tabs.setSelectedTab(jobTab);
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        Div pages = new Div(jobPage, schedulingView, aboutPage);
+        Div pages = new Div(jobPage, groupView, schedulingView, aboutPage);
         pages.setHeightFull();
         Set<Component> pagesShown = Stream.of(jobPage)
                 .collect(Collectors.toSet());
