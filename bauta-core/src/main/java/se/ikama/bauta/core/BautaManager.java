@@ -841,4 +841,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         }
         return  sb.toString();
     }
+
+    public JobFlowGraph getGraph() {
+        return new JobFlowGraph(jobTriggerDao);
+    }
 }

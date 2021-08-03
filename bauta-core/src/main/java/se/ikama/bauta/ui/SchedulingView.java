@@ -1,24 +1,5 @@
 package se.ikama.bauta.ui;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.lang3.StringUtils;
-import org.jline.utils.Log;
-import org.springframework.batch.core.configuration.JobRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.support.CronTrigger;
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.vaadin.flow.component.AttachEvent;
@@ -30,17 +11,14 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.html.ListItem;
-import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
@@ -48,12 +26,26 @@ import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.data.selection.SelectionListener;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.spring.annotation.UIScope;
-
+import org.apache.commons.lang3.StringUtils;
+import org.jline.utils.Log;
+import org.springframework.batch.core.configuration.JobRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.scheduling.JobTriggerLog;
 import se.ikama.bauta.security.SecurityUtils;
+
+import javax.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @UIScope
@@ -66,6 +58,8 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 	@Autowired
 	BautaManager bautaManager;
+
+	JobFlowView jobFlowView;
 
 	Grid<JobTrigger> triggerGrid;
 	List<JobTrigger> triggers = new ArrayList<>();
@@ -80,6 +74,9 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	Anchor exportLink;
 
 	public SchedulingView() {
+		//--------GRID----------------------------------------------------------------//
+		Tab gridTab = new Tab("Grid view");
+
 		triggerGrid = new Grid<>();
 		triggerGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
 		Grid.Column<JobTrigger> jobNameColumn = triggerGrid.addColumn(JobTrigger::getJobName).setHeader("Job Name")
@@ -97,7 +94,63 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 		triggerGrid.setSelectionMode(Grid.SelectionMode.MULTI);
 		triggerGrid.addSelectionListener(this);
-		add(triggerGrid);
+
+
+		//------------------------------------------------------------------------//
+		VerticalLayout graphAreaLayout = new VerticalLayout();
+		graphAreaLayout.setPadding(false);
+		graphAreaLayout.setVisible(false);
+		graphAreaLayout.setWidthFull();
+
+		Tab graphTab = new Tab("Graph view");
+		jobFlowView = new JobFlowView();
+//		jobFlowView.setVisible(false);
+//		jobFlowView = new Svg();
+		jobFlowView.setWidth("100%");
+		jobFlowView.setHeight("650px");
+		jobFlowView.viewbox(0, 0, 1000, 1000);
+		jobFlowView.setZoomEnabled(true);
+
+		HorizontalLayout controlButtons = new HorizontalLayout();
+		controlButtons.add(new Button("Toggle zoom", event -> {
+			jobFlowView.setZoomEnabled(!jobFlowView.isZoomEnabled());
+		}));
+
+		graphAreaLayout.add(controlButtons, jobFlowView);
+
+
+
+		//------------------TABS-TO-PAGES----------------------------------------//
+		Map<Tab, com.vaadin.flow.component.Component> tabsToPages = new HashMap<>();
+		tabsToPages.put(gridTab, triggerGrid);
+		tabsToPages.put(graphTab, graphAreaLayout);
+		Tabs tabs = new Tabs(gridTab, graphTab);
+		tabs.setSelectedTab(gridTab);
+		//Div pages = new Div(triggerGrid, jobFlowView);
+
+		Set<com.vaadin.flow.component.Component> pagesShown = Stream.of(triggerGrid)
+				.collect(Collectors.toSet());
+		tabs.addSelectedChangeListener(event -> {
+			pagesShown.forEach(page -> page.setVisible(false));
+			pagesShown.clear();
+			com.vaadin.flow.component.Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
+			selectedPage.setVisible(true);
+			update();
+			System.out.println("hej");
+			pagesShown.add(selectedPage);
+		});
+
+//
+//		tabs.addSelectedChangeListener(event -> {
+//			tabsToPages.values().forEach(page -> page.setVisible(false));
+//			com.vaadin.flow.component.Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
+//			selectedPage.setVisible(true);
+//		});
+
+		add(tabs, triggerGrid, graphAreaLayout);
+
+		//-------------------------------------------------------------------------//
+
 		HorizontalLayout buttons = new HorizontalLayout();
 		removeButton = new Button("Remove", clickEvent -> {
 			remove();
@@ -569,6 +622,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);
 		logGrid.setItems(logs);
+		jobFlowView.update(bautaManager.getGraph());
 		updateButtonState();
 	}
 }

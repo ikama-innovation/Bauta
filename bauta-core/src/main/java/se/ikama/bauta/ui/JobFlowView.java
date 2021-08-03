@@ -1,42 +1,37 @@
 package se.ikama.bauta.ui;
 
 import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.spring.annotation.UIScope;
+import com.vaadin.flow.component.svg.Svg;
+import com.vaadin.flow.component.svg.elements.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.scheduling.JobTriggerDao;
+import se.ikama.bauta.core.JobFlowGraph;
+import se.ikama.bauta.scheduling.JobTrigger;
+import java.util.ArrayList;
+import java.util.List;
 
 
-/**
- * IDÈER: använd algoritm för att hitta alla connected components i grafen. Lägg alla i set och sen måla upp varje för sig,
- * alla cc kommer då under varandra
- */
-
-@Component
-@UIScope
-@DependsOn("bautaManager")
-public class JobFlowView extends VerticalLayout {
-
+public class JobFlowView extends Svg {
     Logger log = LoggerFactory.getLogger(this.getClass());
-    @Autowired
-    JobTriggerDao jobTriggerDao;
 
     @Autowired
     BautaManager bautaManager;
 
-    private JobFlowGraph jobFlowGraph;
-    private JobFlowGraphics jobFlowGraphics;
+    double spaceX = 400;
+    double spaceY = 200;
+    double jobHeight = 120;
+    double jobWidth = 200;
+    double radialX = 80;
+    double radialY = 50;
 
-    public JobFlowView(@Autowired JobFlowGraph jobFlowGraph) {
-        this.jobFlowGraph = jobFlowGraph;
-        this.jobFlowGraphics = new JobFlowGraphics(jobFlowGraph);
-        add(jobFlowGraphics);
-        update();
+    private int level;
+
+    public JobFlowView() {
+        viewbox(0, 0, 1000, 1000);
+        setWidth("100%");
+        setHeight("650px");
     }
 
     @Override
@@ -50,15 +45,106 @@ public class JobFlowView extends VerticalLayout {
         update();
     }
 
-    public void update() {
-        try {
-            jobFlowGraphics.render();
-            jobFlowGraph.update();
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void draw(JobFlowGraph jobFlowGraph) {
+        clear();
+        level = 0;
+        jobFlowGraph.printGraph();
+        for (JobFlowNode node : jobFlowGraph.getRootNodes()) {
+            System.out.println("level before draw=" +level + "\ncurrent root = " + node.getName());
+            recursiveDraw(node, 20 ,20 + spaceY * level, jobFlowGraph);
         }
-        //jobFlowGraph.printGraph();
+    }
 
+    public void recursiveDraw(JobFlowNode node, double x, double y, JobFlowGraph jobFlowGraph) {
+//        System.out.println("node in recursive step: " + node.getName());
+//        System.out.println("y_pos = " + y);
+        List<JobFlowNode> list = jobFlowGraph.getNodesFor(node);
+        if (node.getTriggerType() == JobTrigger.TriggerType.CRON) {
+            drawLine(x - jobWidth, y + jobHeight/2, x + jobWidth/2, y + jobHeight/2, JobTrigger.TriggerType.CRON);
+            Ellipse ellipse = new Ellipse("cronEllipse", radialX, radialY);
+            ellipse.setFillColor("#1aa3ff");
+            ellipse.move(x - (spaceX/2 + radialX) , y + (jobHeight - radialY * 2)/2);
+            add(ellipse);
+
+            Text cron = new Text("cronText", node.getCron());
+            cron.setFontFamily("'Roboto', 'Noto', sans-serif");
+            cron.setFillColor("white");
+            cron.setFontSize("14");
+            cron.move(x - (jobWidth + radialX/2), y + jobHeight/2 - Double.parseDouble(cron.getFontSize()));
+            add(cron);
+        }
+
+        for (int i = 0; i < list.size(); i++) {
+            drawLine(x + jobWidth/2, y + jobHeight/2,
+                    x + jobWidth/2 + spaceX, y + (jobHeight/2) + (spaceY * i),
+                    node.getTriggerType());
+        }
+
+        drawRect(node, x, y);
+        int lines = 0;
+        for (JobFlowNode nextNode : list) {
+            recursiveDraw(nextNode, x + spaceX, y + spaceY * lines, jobFlowGraph);
+            lines++;
+            if (level <= lines) {
+                level = lines;
+                System.out.println("hej");
+            }
+//            System.out.println("level=" + level + "lines=" + lines );
+        }
+        if (list.isEmpty()) {
+            level++;
+        }
+    }
+
+    public void drawLine(double xFrom, double yFrom, double xTo, double yTo, JobTrigger.TriggerType triggerType) {
+        Line line = new Line("line",
+                new AbstractPolyElement.PolyCoordinatePair(xFrom, yFrom),
+                new AbstractPolyElement.PolyCoordinatePair(xTo, yTo));
+        line.setStroke("beige", 10, Path.LINE_CAP.ROUND, Path.LINE_JOIN.ROUND);
+        add(line);
+    }
+
+    public void drawRect(JobFlowNode node, double x, double y) {
+        String name = node.getName();
+        Rect rect = new Rect(node.getName(), jobWidth, jobHeight);
+        rect.setFillColor("#1aa3ff");
+        rect.move(x, y);
+
+        if (name.length() > 21 ) {
+            for (int i = 14; i < name.length(); i++) {
+                char ch = name.charAt(i);
+                if (ch == '-' || ch == '_' || ch == '.') {
+                    StringBuilder sb = new StringBuilder(name);
+                    sb.insert(i, "\n");
+                    name = sb.toString();
+                    break;
+                }
+            }
+        }
+        if (!name.contains("\n") && name.length() > 21) {
+            StringBuilder sb = new StringBuilder(name);
+            sb.insert(20, "\n");
+            name = sb.toString();
+        }
+
+        Text text = new Text("text", name);
+        text.setFontFamily("'Roboto', 'Noto', sans-serif");
+        text.setFillColor("white");
+        text.setFontSize("14");
+        text.move(x + 8, y + 8);
+
+        add(rect);
+        add(text);
+    }
+
+    public void clear() {
+        List<SvgElement> elements = new ArrayList<>(getSvgElements());
+        elements.forEach(this::remove);
+    }
+
+    public void update(JobFlowGraph jobFlowGraph) {
+        draw(jobFlowGraph);
+        jobFlowGraph.printGraph();
     }
 }
 
