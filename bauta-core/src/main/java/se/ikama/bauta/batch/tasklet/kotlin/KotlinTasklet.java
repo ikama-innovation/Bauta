@@ -1,11 +1,7 @@
 package se.ikama.bauta.batch.tasklet.kotlin;
 
-import com.sun.jna.Native;
-import lombok.var;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.kotlin.script.jsr223.KotlinJsr223JvmLocalScriptEngine;
-import org.jetbrains.kotlin.script.jsr223.KotlinJsr223JvmLocalScriptEngineFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -22,30 +18,17 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.scripting.ScriptExecutor;
-import org.springframework.integration.scripting.dsl.Scripts;
-import org.springframework.integration.scripting.jsr223.KotlinScriptExecutor;
-import org.springframework.integration.scripting.jsr223.ScriptExecutorFactory;
-import org.springframework.scripting.ScriptCompilationException;
-import org.springframework.scripting.ScriptEvaluator;
-import org.springframework.scripting.ScriptSource;
-import org.springframework.scripting.support.ResourceScriptSource;
-import org.springframework.scripting.support.StaticScriptSource;
 import org.springframework.util.Assert;
-import reactor.core.Disposable;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +39,7 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
 
         private List<String> scriptFiles = null;
 
-        private String executable = "kscript";
+        private String executable = "kotlinc";
 
         private static final String SCRIPT_PARAMETER_PREFIX_JOBPARAM = "jobparam.";
         private static final String SCRIPT_PARAMETER_PREFIX_ENV = "env.";
@@ -219,11 +202,7 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                             commands.add(cmd);
                         }
 
-
                         log.info("Command is: " + StringUtils.join(commands, ","));
-                        //Gets all arguments - even processUid gets passed into script
-
-                        /*
                         ProcessBuilder pb = new ProcessBuilder(commands);
                         String jobInstanceId = Long.toString(contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
                         String jobExecutionId = Long.toString(contribution.getStepExecution().getJobExecution().getId());
@@ -249,8 +228,6 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                         Process process = pb.start();
                         log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
 
-
-
                         try {
                             return process.waitFor();
                         }
@@ -267,8 +244,6 @@ public class KotlinTasklet extends StepExecutionListenerSupport implements Stopp
                                 log.warn("Failed to flush process output stream");
                             }
                         }
-                        */
-                        return 0;
                     }
                 });
 
