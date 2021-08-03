@@ -37,10 +37,6 @@ public class JobGroupDao implements RowMapper<JobGroup> {
 
 
     public JobGroup createJobGroup(String name, String regex) {
-        if (!name.toUpperCase().startsWith("GROUP_")){
-            name = "Group_"+name;
-        }
-
         JobGroup jobGroup = new JobGroup();
         jobGroup.setName(name);
         jobGroup.setRegex(regex);
