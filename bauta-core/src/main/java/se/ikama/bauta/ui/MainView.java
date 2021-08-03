@@ -200,23 +200,43 @@ public class MainView extends AppLayout implements JobEventListener {
 
             Div cell0 = new Div();
             cell0.addClassNames("job-grid-cell");
-            JobInfo jobInfo = new JobInfo(job);
-            jobNameToJobInfo.put(jobName, jobInfo);
-            Div jobNameDiv = new Div();
-            jobNameDiv.setText(jobName);
-            cell0.add(jobNameDiv);
-            if (job.getDescription() != null) {
-	            Div jobDescriptionDiv = new Div();
-	            jobDescriptionDiv.getStyle().set("font-size", "0.7em");
-	            jobDescriptionDiv.setText(job.getDescription());
-	            cell0.add(jobDescriptionDiv);
+            if (expandedJobs.contains(job.getName())){
+                log.info("expanded: {}", job.getName());
+                JobInfo jobInfo = new JobInfo(job);
+                jobInfo.expanded = true;
+                jobInfo.update(job);
+                jobNameToJobInfo.put(jobName, jobInfo);
+                Div jobNameDiv = new Div();
+                jobNameDiv.setText(jobName);
+                cell0.add(jobNameDiv);
+                if (job.getDescription() != null) {
+                    Div jobDescriptionDiv = new Div();
+                    jobDescriptionDiv.getStyle().set("font-size", "0.7em");
+                    jobDescriptionDiv.setText(job.getDescription());
+                    cell0.add(jobDescriptionDiv);
+                }
+                Div cell1 = new Div(jobInfo);
+                cell1.addClassNames("job-grid-cell");
+                jobRow.add(cell0, cell1, cell2, cell3);
+                jobGrid.add(jobRow);
+            }else{
+                JobInfo jobInfo = new JobInfo(job);
+                jobNameToJobInfo.put(jobName, jobInfo);
+                Div jobNameDiv = new Div();
+                jobNameDiv.setText(jobName);
+                cell0.add(jobNameDiv);
+                if (job.getDescription() != null) {
+                    Div jobDescriptionDiv = new Div();
+                    jobDescriptionDiv.getStyle().set("font-size", "0.7em");
+                    jobDescriptionDiv.setText(job.getDescription());
+                    cell0.add(jobDescriptionDiv);
+                }
+                Div cell1 = new Div(jobInfo);
+                cell1.addClassNames("job-grid-cell");
+                jobRow.add(cell0, cell1, cell2, cell3);
+                jobGrid.add(jobRow);
             }
-	        
-            Div cell1 = new Div(jobInfo);
-            cell1.addClassNames("job-grid-cell");
 
-            jobRow.add(cell0, cell1, cell2, cell3);
-            jobGrid.add(jobRow);
         }
     }
 
@@ -417,6 +437,7 @@ public class MainView extends AppLayout implements JobEventListener {
             bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
         }
         bExpand.addClickListener(e -> {
+
                     bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
                     if (expandedJobs.remove(item.getName())) {
                         stepFlow.setVisible(false);
@@ -427,7 +448,12 @@ public class MainView extends AppLayout implements JobEventListener {
                         stepFlow.setVisible(true);
                         bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
                     }
-                    // A trick to force the grid to resize
+            try {
+                updateJobGrid(bautaManager.jobDetails());
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+            // A trick to force the grid to resize
                     // grid.getElement().executeJs("this.notifyResize()");
                 }
         );
