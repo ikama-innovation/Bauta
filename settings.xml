@@ -3,8 +3,6 @@
     <servers>
         <server>
             <id>github</id>
-            <username>axelikama</username>
-            <password>Axel@ikama1</password>
         </server>
         <server>
             <id>ossrh</id>
