@@ -36,8 +36,15 @@ jobs:
         git config user.email "release-bot@ikama.se"
         git config user.name "release-bot"
 
-    - name: Start release script
-      run: source ./release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }} -p ${{ secrets.OSSRH_PASSPHRASE }}
+    - name: Pre-release script
+      run: source ./pre_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
+
+    - name: Deploy script
+      run: source ./release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
       env:
         OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSPHRASE }}
         OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+   
+    - name: Post-release script
+      run: source ./post_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
+
