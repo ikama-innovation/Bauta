@@ -6,10 +6,11 @@ import org.slf4j.LoggerFactory;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.ui.JobFlowNode;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-
 
 @Getter
 public class JobFlowGraph {
@@ -20,7 +21,7 @@ public class JobFlowGraph {
     private final List<JobFlowNode> rootNodes;
     private final Map<String, JobFlowNode> nameToNode;
     private final List<JobFlowNode> potentialNodes;
-    private JobTriggerDao jobTriggerDao;
+    private final JobTriggerDao jobTriggerDao;
 
     private int index;
 
@@ -88,7 +89,7 @@ public class JobFlowGraph {
                 rootNodes.add(jobFlowNode);
         }
         // sorting root nodes
-        Collections.sort(rootNodes, (n1, n2) -> n1.getName().compareToIgnoreCase(n2.getName()));
+        rootNodes.sort((n1, n2) -> n1.getName().compareToIgnoreCase(n2.getName()));
     }
 
     public List<JobFlowNode> getNodesFor(JobFlowNode node) {
@@ -98,6 +99,10 @@ public class JobFlowGraph {
                         .collect(Collectors.toList());
     }
 
+    /**
+     * Adds a relation and possibly two nodes, by using the JobTrigger provided
+     * @param jobTrigger JobTrigger
+     */
     public void addEdge(JobTrigger jobTrigger) {
         String jobName = jobTrigger.getJobName();
         if (!nameToNode.containsKey(jobName)) {
@@ -113,11 +118,9 @@ public class JobFlowGraph {
             index++;
         }
         graph.get(nameToNode.get(jobTrigger.getTriggeringJobName())).add(jobName);
-
     }
 
     public boolean containsCycles() {
-        // TODO: Implement DFS to search for cycles
         boolean[] visited = new boolean[index];
         boolean[] recStack = new boolean[index];
 

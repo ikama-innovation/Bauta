@@ -75,7 +75,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	Anchor exportLink;
 
 	public SchedulingView() {
-		//--------GRID----------------------------------------------------------------//
 		Tab gridTab = new Tab("Grid view");
 
 		triggerGrid = new Grid<>();
@@ -96,8 +95,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		triggerGrid.setSelectionMode(Grid.SelectionMode.MULTI);
 		triggerGrid.addSelectionListener(this);
 
-
-		//------------------------------------------------------------------------//
 		VerticalLayout graphAreaLayout = new VerticalLayout();
 		graphAreaLayout.setPadding(false);
 		graphAreaLayout.setVisible(false);
@@ -105,8 +102,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 		Tab graphTab = new Tab("Graph view");
 		jobFlowView = new JobFlowView();
-//		jobFlowView.setVisible(false);
-//		jobFlowView = new Svg();
 		jobFlowView.setWidth("100%");
 		jobFlowView.setHeight("650px");
 		jobFlowView.viewbox(0, 0, 1000, 1000);
@@ -116,19 +111,13 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		controlButtons.add(new Button("Toggle zoom", event -> {
 			jobFlowView.setZoomEnabled(!jobFlowView.isZoomEnabled());
 		}));
-
 		graphAreaLayout.add(controlButtons, jobFlowView);
 
-
-
-		//------------------TABS-TO-PAGES----------------------------------------//
 		Map<Tab, com.vaadin.flow.component.Component> tabsToPages = new HashMap<>();
 		tabsToPages.put(gridTab, triggerGrid);
 		tabsToPages.put(graphTab, graphAreaLayout);
 		Tabs tabs = new Tabs(gridTab, graphTab);
 		tabs.setSelectedTab(gridTab);
-		//Div pages = new Div(triggerGrid, jobFlowView);
-
 		Set<com.vaadin.flow.component.Component> pagesShown = Stream.of(triggerGrid)
 				.collect(Collectors.toSet());
 		tabs.addSelectedChangeListener(event -> {
@@ -140,16 +129,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			pagesShown.add(selectedPage);
 		});
 
-//
-//		tabs.addSelectedChangeListener(event -> {
-//			tabsToPages.values().forEach(page -> page.setVisible(false));
-//			com.vaadin.flow.component.Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
-//			selectedPage.setVisible(true);
-//		});
-
 		add(tabs, triggerGrid, graphAreaLayout);
-
-		//-------------------------------------------------------------------------//
 
 		HorizontalLayout buttons = new HorizontalLayout();
 		removeButton = new Button("Remove", clickEvent -> {
@@ -356,7 +336,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to stream scheduling configuration", e);
 		}
-
 	}
 
 	private void remove() {
@@ -631,10 +610,8 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			JobFlowGraph currentJobFlowGraph = bautaManager.getGraph();
 			currentJobFlowGraph.addEdge(trigger);
 			if (currentJobFlowGraph.containsCycles()) {
-				System.out.println("contains cycles");
 				createInvalidInputDialog().open();
 			} else {
-				System.out.println("does not contain cycles");
 				saveOrUpdate(trigger);
 				dialog.close();
 			}
@@ -650,7 +627,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
 
 	private void update() {
-//		jobTriggerDao.loadTriggers().forEach(t -> jobTriggerDao.delete(t));
 		triggers = jobTriggerDao.loadTriggers();
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);

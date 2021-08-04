@@ -17,15 +17,15 @@ public class JobFlowNode {
     private Duration duration;
     private boolean isRoot = true;
 
+    public JobFlowNode(String name, JobTrigger.TriggerType triggerType) {
+        this.name = name;
+        this.triggerType = triggerType;
+    }
+
     public JobFlowNode(String name, JobTrigger.TriggerType triggerType, int index) {
         this.name = name;
         this.triggerType = triggerType;
         this.index = index;
-    }
-
-    public JobFlowNode(String name, JobTrigger.TriggerType triggerType) {
-        this.name = name;
-        this.triggerType = triggerType;
     }
 
     public JobFlowNode(String name, String cron, JobTrigger.TriggerType triggerType, int index) {
