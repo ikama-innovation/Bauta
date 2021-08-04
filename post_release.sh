@@ -6,7 +6,6 @@ do
   case "${flag}" in
     v) releaseVersion=${OPTARG};;
     d) developmentVersion=${OPTARG};;
-    p) password=${OPTARG};;
   esac
 done
 
