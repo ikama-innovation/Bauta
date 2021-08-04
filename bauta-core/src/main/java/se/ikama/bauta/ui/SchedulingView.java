@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import se.ikama.bauta.core.BautaManager;
+import se.ikama.bauta.core.JobFlowGraph;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.scheduling.JobTriggerLog;
@@ -136,7 +137,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			com.vaadin.flow.component.Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
 			selectedPage.setVisible(true);
 			update();
-			System.out.println("hej");
 			pagesShown.add(selectedPage);
 		});
 
@@ -410,6 +410,29 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		bautaManager.initializeScheduling(true);
 	}
 
+	private Dialog createInvalidInputDialog() {
+		Dialog dialog = new Dialog(new Text("Error! This trigger would create a cycle!"));
+		dialog.setWidth("250px");
+		dialog.setCloseOnOutsideClick(false);
+
+		VerticalLayout layout = new VerticalLayout();
+		layout.setSpacing(true);
+		layout.setPadding(true);
+
+		HorizontalLayout horizontalLayout = new HorizontalLayout();
+		horizontalLayout.setWidthFull();
+
+		Button button = new Button("Okay", onClick -> dialog.close());
+		button.addThemeVariants(ButtonVariant.LUMO_ERROR);
+
+		horizontalLayout.add(button);
+		layout.add( horizontalLayout);
+		horizontalLayout.setJustifyContentMode(JustifyContentMode.CENTER);
+		dialog.add(layout);
+
+		return dialog;
+	}
+
 	private Dialog createAddCronDialog(JobTrigger existingTrigger) {
 		Dialog dialog = new Dialog();
 		dialog.setWidth("500px");
@@ -604,8 +627,17 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			trigger.setJobName(jobComboBox.getValue());
 			trigger.setTriggeringJobName(triggeredByComboBox.getValue());
 			trigger.setJobParameters(jobParameters.getValue());
-			saveOrUpdate(trigger);
-			dialog.close();
+
+			JobFlowGraph currentJobFlowGraph = bautaManager.getGraph();
+			currentJobFlowGraph.addEdge(trigger);
+			if (currentJobFlowGraph.containsCycles()) {
+				System.out.println("contains cycles");
+				createInvalidInputDialog().open();
+			} else {
+				System.out.println("does not contain cycles");
+				saveOrUpdate(trigger);
+				dialog.close();
+			}
 		});
 		Button cancelButton = new Button("Cancel", clickEvent -> {
 			dialog.close();
@@ -618,6 +650,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
 
 	private void update() {
+//		jobTriggerDao.loadTriggers().forEach(t -> jobTriggerDao.delete(t));
 		triggers = jobTriggerDao.loadTriggers();
 		triggerGrid.setItems(triggers);
 		logs = jobTriggerDao.loadLog(100);

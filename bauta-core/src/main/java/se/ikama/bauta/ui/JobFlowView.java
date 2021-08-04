@@ -50,28 +50,19 @@ public class JobFlowView extends Svg {
         level = 0;
         jobFlowGraph.printGraph();
         for (JobFlowNode node : jobFlowGraph.getRootNodes()) {
-            System.out.println("level before draw=" +level + "\ncurrent root = " + node.getName());
+//            System.out.println("level before draw=" +level + "\ncurrent root = " + node.getName());
             recursiveDraw(node, 20 ,20 + spaceY * level, jobFlowGraph);
         }
     }
 
-    public void recursiveDraw(JobFlowNode node, double x, double y, JobFlowGraph jobFlowGraph) {
+
+    // vida mattias buggen med att reloada sidan
+    private void recursiveDraw(JobFlowNode node, double x, double y, JobFlowGraph jobFlowGraph) {
 //        System.out.println("node in recursive step: " + node.getName());
 //        System.out.println("y_pos = " + y);
         List<JobFlowNode> list = jobFlowGraph.getNodesFor(node);
         if (node.getTriggerType() == JobTrigger.TriggerType.CRON) {
-            drawLine(x - jobWidth, y + jobHeight/2, x + jobWidth/2, y + jobHeight/2, JobTrigger.TriggerType.CRON);
-            Ellipse ellipse = new Ellipse("cronEllipse", radialX, radialY);
-            ellipse.setFillColor("#1aa3ff");
-            ellipse.move(x - (spaceX/2 + radialX) , y + (jobHeight - radialY * 2)/2);
-            add(ellipse);
-
-            Text cron = new Text("cronText", node.getCron());
-            cron.setFontFamily("'Roboto', 'Noto', sans-serif");
-            cron.setFillColor("white");
-            cron.setFontSize("14");
-            cron.move(x - (jobWidth + radialX/2), y + jobHeight/2 - Double.parseDouble(cron.getFontSize()));
-            add(cron);
+            drawEllipse(node, x - (spaceX/2 + radialX), y + (jobHeight - radialY * 2)/2);
         }
 
         for (int i = 0; i < list.size(); i++) {
@@ -87,7 +78,6 @@ public class JobFlowView extends Svg {
             lines++;
             if (level <= lines) {
                 level = lines;
-                System.out.println("hej");
             }
 //            System.out.println("level=" + level + "lines=" + lines );
         }
@@ -96,7 +86,22 @@ public class JobFlowView extends Svg {
         }
     }
 
-    public void drawLine(double xFrom, double yFrom, double xTo, double yTo, JobTrigger.TriggerType triggerType) {
+    private void drawEllipse(JobFlowNode node, double x, double y) {
+        drawLine(x + radialX, y + radialY, x + spaceX, y + radialY, JobTrigger.TriggerType.CRON);
+        Ellipse ellipse = new Ellipse("cronEllipse", radialX, radialY);
+        ellipse.setFillColor("#1aa3ff");
+        ellipse.move(x  , y );
+        add(ellipse);
+
+        Text cron = new Text("cronText", node.getCron());
+        cron.setFontFamily("'Roboto', 'Noto', sans-serif");
+        cron.setFillColor("white");
+        cron.setFontSize("14");
+        cron.move(x + radialX*2/node.getCron().length(), y + radialY - Double.parseDouble(cron.getFontSize()) + 5);
+        add(cron);
+    }
+
+    private void drawLine(double xFrom, double yFrom, double xTo, double yTo, JobTrigger.TriggerType triggerType) {
         Line line = new Line("line",
                 new AbstractPolyElement.PolyCoordinatePair(xFrom, yFrom),
                 new AbstractPolyElement.PolyCoordinatePair(xTo, yTo));
@@ -104,7 +109,7 @@ public class JobFlowView extends Svg {
         add(line);
     }
 
-    public void drawRect(JobFlowNode node, double x, double y) {
+    private void drawRect(JobFlowNode node, double x, double y) {
         String name = node.getName();
         Rect rect = new Rect(node.getName(), jobWidth, jobHeight);
         rect.setFillColor("#1aa3ff");
@@ -115,7 +120,7 @@ public class JobFlowView extends Svg {
                 char ch = name.charAt(i);
                 if (ch == '-' || ch == '_' || ch == '.') {
                     StringBuilder sb = new StringBuilder(name);
-                    sb.insert(i, "\n");
+                    sb.insert(i+1, "\n");
                     name = sb.toString();
                     break;
                 }
@@ -137,7 +142,7 @@ public class JobFlowView extends Svg {
         add(text);
     }
 
-    public void clear() {
+    private void clear() {
         List<SvgElement> elements = new ArrayList<>(getSvgElements());
         elements.forEach(this::remove);
     }

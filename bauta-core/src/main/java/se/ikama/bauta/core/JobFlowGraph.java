@@ -20,25 +20,32 @@ public class JobFlowGraph {
     private final List<JobFlowNode> rootNodes;
     private final Map<String, JobFlowNode> nameToNode;
     private final List<JobFlowNode> potentialNodes;
+    private JobTriggerDao jobTriggerDao;
+
+    private int index;
 
     public JobFlowGraph(JobTriggerDao jobTriggerDao) {
         this.graph = new HashMap<>();
         this.rootNodes = new ArrayList<>();
         this.nameToNode = new HashMap<>();
         this.potentialNodes = new ArrayList<>();
+        this.jobTriggerDao = jobTriggerDao;
+        index = 0;
         if (jobTriggerDao != null) {
             for (JobTrigger jobTrigger : jobTriggerDao.loadTriggers()) {
                 String jobName = jobTrigger.getJobName();
                 //cron trigger
                 if (jobTrigger.getTriggerType() == JobTrigger.TriggerType.CRON) {
-                    JobFlowNode jobFlowNodeCron = new JobFlowNode(jobName, jobTrigger.getCron(), jobTrigger.getTriggerType());
+                    JobFlowNode jobFlowNodeCron = new JobFlowNode(jobName, jobTrigger.getCron(), jobTrigger.getTriggerType(), index);
                     graph.put(jobFlowNodeCron, new ArrayList<>());
                     nameToNode.put(jobName, jobFlowNodeCron);
-                } else {
+                    index++;
+                } else if (!nameToNode.containsKey(jobName)) {
                     // triggered by job
-                    JobFlowNode jobFlowNode = new JobFlowNode(jobName, jobTrigger.getTriggerType());
+                    JobFlowNode jobFlowNode = new JobFlowNode(jobName, jobTrigger.getTriggerType(), index);
                     graph.put(jobFlowNode, new ArrayList<>());
                     nameToNode.put(jobName, jobFlowNode);
+                    index++;
                 }
                 // manual trigger, could be a cron so have to be put in a potential nodes list
                 if (!(jobTrigger.getTriggerType() == JobTrigger.TriggerType.CRON)) {
@@ -52,8 +59,10 @@ public class JobFlowGraph {
             // checking potential nodes
             for (JobFlowNode jobFlowNode : potentialNodes) {
                 if (!nameToNode.containsKey(jobFlowNode.getName())) {
+                    jobFlowNode.setIndex(index);
                     nameToNode.put(jobFlowNode.getName(), jobFlowNode);
                     graph.put(jobFlowNode, new ArrayList<>());
+                    index++;
                 }
             }
 
@@ -68,9 +77,8 @@ public class JobFlowGraph {
         // determining which nodes are roots
         for (JobFlowNode jobFlowNode : graph.keySet()) {
             for (String triggeredJob : graph.get(jobFlowNode)) {
-                if (nameToNode.containsKey(triggeredJob)) {
-                    nameToNode.get(triggeredJob).setRoot(false);
-                }
+
+                nameToNode.get(triggeredJob).setRoot(false);
             }
         }
 
@@ -90,11 +98,64 @@ public class JobFlowGraph {
                         .collect(Collectors.toList());
     }
 
+    public void addEdge(JobTrigger jobTrigger) {
+        String jobName = jobTrigger.getJobName();
+        if (!nameToNode.containsKey(jobName)) {
+            JobFlowNode jobFlowNode = new JobFlowNode(jobName, jobTrigger.getTriggerType(), index);
+            graph.put(jobFlowNode, new ArrayList<>());
+            nameToNode.put(jobName, jobFlowNode);
+            index++;
+        }
+        if (!nameToNode.containsKey(jobTrigger.getTriggeringJobName())) {
+            JobFlowNode jobFlowNode1 = new JobFlowNode(jobTrigger.getTriggeringJobName(), jobTrigger.getTriggerType(), index);
+            graph.put(jobFlowNode1, new ArrayList<>());
+            nameToNode.put(jobTrigger.getTriggeringJobName(), jobFlowNode1);
+            index++;
+        }
+        graph.get(nameToNode.get(jobTrigger.getTriggeringJobName())).add(jobName);
+
+    }
+
+    public boolean containsCycles() {
+        // TODO: Implement DFS to search for cycles
+        boolean[] visited = new boolean[index];
+        boolean[] recStack = new boolean[index];
+
+        for (JobFlowNode node : graph.keySet()) {
+            if (containsCyclesUtil(node, visited, recStack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsCyclesUtil(JobFlowNode node, boolean[] visited, boolean[] recStack) {
+        if (recStack[node.getIndex()])
+            return true;
+
+        if (visited[node.getIndex()])
+            return false;
+
+        visited[node.getIndex()] = true;
+        recStack[node.getIndex()] = true;
+        List<JobFlowNode> children = getNodesFor(node);
+
+        for (JobFlowNode child : children) {
+            if (containsCyclesUtil(child, visited, recStack)) {
+                return true;
+            }
+        }
+
+        recStack[node.getIndex()] = false;
+        return false;
+    }
+
     public void printGraph() {
         System.out.println("------------------------------------------------------------------");
         System.out.println("Graph below: ");
         for (JobFlowNode jobFlowNode : graph.keySet()) {
-            System.out.println("{name: " + jobFlowNode.getName()+ ", triggerType: " + jobFlowNode.getTriggerType()+ "}");
+            System.out.println("{name: " + jobFlowNode.getName()+ ", triggerType: "
+                    + jobFlowNode.getTriggerType()+ ", index = " + jobFlowNode.getIndex() + "}");
             System.out.print(jobFlowNode.getName() + " --> [");
             graph.get(jobFlowNode).forEach(n -> System.out.print(n + ", "));
             System.out.print("]\n\n");
@@ -103,6 +164,8 @@ public class JobFlowGraph {
         System.out.println("Root nodes: ");
         System.out.print("{");
         rootNodes.forEach(n -> System.out.print(n.getName() + ", "));
-        System.out.println("}\n\n");
+        System.out.print("}");
+        System.out.println("\n" + "index = " + index);
+        System.out.println("\n\n");
     }
 }
