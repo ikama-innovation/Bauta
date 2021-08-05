@@ -35,6 +35,12 @@ jobs:
       run: |
         git config user.email "release-bot@ikama.se"
         git config user.name "release-bot"
+        
+    - id: install-secret-key
+      name: Install gpg secret key
+      run: |
+        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
 
     - name: Pre-release script
       run: source ./pre_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
@@ -44,6 +50,8 @@ jobs:
       env:
         OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSPHRASE }}
         OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        
+    
    
     - name: Post-release script
       run: source ./post_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
