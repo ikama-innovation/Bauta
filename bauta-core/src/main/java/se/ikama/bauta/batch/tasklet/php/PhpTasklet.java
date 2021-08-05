@@ -17,20 +17,21 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.AbstractEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 
 public class PhpTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
@@ -94,6 +95,10 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      * to make it possible to find and kill all processes with a command line containing this uid.
      */
     private String processUid;
+
+    private boolean addProperties;
+
+    private String propertyRegex = "";
 
     @Autowired
     Environment env;
@@ -199,6 +204,35 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                             cmd = cmd + " " + processUid;
                         }
                         commands.add(cmd);
+                    }
+
+
+                    Properties props = new Properties();
+                    MutablePropertySources propSrcs = ((AbstractEnvironment) env).getPropertySources();
+                    StreamSupport.stream(propSrcs.spliterator(), false)
+                            .filter(ps -> ps instanceof EnumerablePropertySource)
+                            .map(ps -> ((EnumerablePropertySource) ps).getPropertyNames())
+                            .flatMap(Arrays::<String>stream)
+                            .forEach(propName -> props.setProperty(propName, env.getProperty(propName)));
+
+                    environmentParams.forEach((key, val) -> {
+                        log.info("key: {}, value: {}", key, val);
+                        if (key.equals("addProperties") && val.equals("true")){
+                            addProperties =  true;
+                        }else if(key.equals("propertyRegex")){
+                            propertyRegex = val;
+                        }
+                    });
+
+                    if (addProperties && propertyRegex.length() > 0){
+                        props.forEach((key, val) -> {
+                            if (key.toString().matches(propertyRegex)){
+                                key = key.toString().toUpperCase();
+                                key = key.toString().replaceAll("\\.", "_");
+                                log.info("{} : {}", key, val);
+                                environmentParams.put(key.toString(), val.toString());
+                            }
+                        });
                     }
 
                     log.debug("Command is: " + StringUtils.join(commands, ","));
