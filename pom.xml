@@ -24,17 +24,14 @@
         </license>
     </licenses>
     <scm>
-        <!--<url>https://github.com/ikama-innovation/Bauta</url>
+        <url>https://github.com/ikama-innovation/Bauta</url>
         <connection>
             scm:git:git://github.com/ikama-innovation/Bauta.git
-        </connection>-->
+        </connection>
         <developerConnection>
-            <!--scm:git:https://github.com/ikama-innovation/Bauta.git-->
-           <!-- scm:git:ssh://git@github.com:ikama-innovation/Bauta.git-->
-            scm:git:git://github.com/ikama-innovation/Bauta.git
+            scm:git:ssh://git@github.com:ikama-innovation/Bauta.git
         </developerConnection>
-        <tag>HEAD</tag>
-  </scm>
+    </scm>
     <developers>
         <developer>
             <name>mattias-arbin</name>
