@@ -44,11 +44,17 @@ jobs:
 
     - name: Pre-release script
       run: source ./pre_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
+    - name: Deploy
+      run: mvn -s settings.xml clean deploy -X -P ossrh,release,production -f pom.xml
+      env:
+        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        OSSRH_PGP_PASSPHRASE: ${{secrets.OSSRH_GPG_SECRET_KEY_PASSWORD}}
 
     - name: Deploy script
       run: source ./release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
       env:
-        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSPHRASE }}
+        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
         OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
         OSSRH_PGP_PASSPHRASE: ${{secrets.OSSRH_GPG_SECRET_KEY_PASSWORD}}
 
