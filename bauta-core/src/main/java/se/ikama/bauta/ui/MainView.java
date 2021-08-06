@@ -415,6 +415,7 @@ public class MainView extends AppLayout implements JobEventListener {
         bExpand.addClassName("margin-left");
         StepFlow stepFlow = new StepFlow();
         jobNameToStepFLow.put(item.getName(), stepFlow);
+        stepFlow.metadataReader = this.bautaManager.jobMetadataReader;
         stepFlow.init(item);
         if (expandedJobs.contains(item.getName())) {
             stepFlow.setVisible(true);

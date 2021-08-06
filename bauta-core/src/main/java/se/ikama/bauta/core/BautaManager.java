@@ -86,7 +86,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     JobTriggerDao jobTriggerDao;
 
     @Autowired
-    JobMetadataReader jobMetadataReader;
+    public JobMetadataReader jobMetadataReader;
 
     // Set to true after rebuild has been issued. To avoid multiple calls to the rebuild command
     private boolean rebuilding = false;
