@@ -30,6 +30,7 @@ import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.access.annotation.Secured;
 
@@ -99,6 +100,8 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
+    @Value("${bauta.confirmJobOperations}")
+    private String confirmJobOperations;
 
     //private UI ui;
     Grid<String> serverInfoGrid = null;
@@ -193,6 +196,7 @@ public class MainView extends AppLayout implements JobEventListener {
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
             JobButtons jb = new JobButtons(job, this, bautaManager);
             jb.setRunEnabled(enabled);
+            jb.setConfirmJobEnabled(Boolean.parseBoolean(confirmJobOperations));
 
             jobNameToJobButtons.put(jobName, jb);
             Div cell3 = new Div(jb);

@@ -4,6 +4,7 @@ bauta.application.name: Php Sample
 bauta.application.description: Demo of Php-based batch automation
 bauta.application.version: '@project.version@'
 bauta.application.buildTime: '@bautainstancetimestamp@'
+bauta.confirmJobOperations: false
 
 # Optionally eplace this with build number from build tool
 bauta.application.build: 1
