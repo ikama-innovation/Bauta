@@ -267,7 +267,7 @@ public class JobButtons extends FlexLayout {
     }
 
     private void openConfirmDialog(String text, BasicJobInstanceInfo item, ConfirmDialog.ConfirmDialogListener<BasicJobInstanceInfo> function) {
-        ConfirmDialog<BasicJobInstanceInfo> dialog = new ConfirmDialog<>("Are you sure you want to " + text + " job?", item, function);
+        ConfirmDialog<BasicJobInstanceInfo> dialog = new ConfirmDialog<>("Are you sure you want to " + text + " job " +item.getName()+ "?", item, function);
         dialog.open();
     }
 }

@@ -11,15 +11,15 @@ public class ConfirmDialog <T> {
     ConfirmDialogListener<T> callback;
     T payload;
     Dialog dialog;
-    HorizontalLayout layout;
+    
 
     ConfirmDialog(String text, T payload, ConfirmDialogListener<T> callback){
         this.callback = callback;
         this.payload = payload;
-        this.dialog = new Dialog((new Text(text)));
-        this.layout = new HorizontalLayout();
+        this.dialog = new Dialog(new Text(text));
         this.dialog.setCloseOnOutsideClick(false);
 
+        HorizontalLayout buttonLayout = new HorizontalLayout();
         Button confirmButton = new Button("Confirm", onClick -> {
             execute();
             dialog.close();
@@ -30,13 +30,11 @@ public class ConfirmDialog <T> {
         });
 
         confirmButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
-        layout.setSpacing(true);
-        layout.setPadding(true);
-        layout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-        layout.add(confirmButton);
-        layout.add(cancelButton);
-        dialog.add(layout);
+        buttonLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        buttonLayout.add(confirmButton);
+        buttonLayout.add(cancelButton);
+        buttonLayout.getElement().getStyle().set("margin-top","40px");
+        dialog.add(buttonLayout);
     }
 
     public void execute() {
