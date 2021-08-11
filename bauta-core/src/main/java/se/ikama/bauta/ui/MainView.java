@@ -102,8 +102,12 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     BautaManager bautaManager;
 
+    @Value("${bauta.confirmJobOperations}")
+    private String confirmJobOperations;
+
     @Value("${bauta.application.title}")
     private String title;
+
     //private UI ui;
     Grid<String> serverInfoGrid = null;
     Span buildInfo = null;
@@ -201,6 +205,7 @@ public class MainView extends AppLayout implements JobEventListener {
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
             JobButtons jb = new JobButtons(job, this, bautaManager);
             jb.setRunEnabled(enabled);
+            jb.setConfirmJobEnabled(Boolean.parseBoolean(confirmJobOperations));
 
             jobNameToJobButtons.put(jobName, jb);
             Div cell3 = new Div(jb);
