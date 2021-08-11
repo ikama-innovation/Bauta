@@ -37,8 +37,8 @@ public class StepMetadata extends SubFlow {
         return "StepMetadata("
                 + "id="+id
                 + ", stepType="+stepType.toString()
-                +", scripts="+scripts.toString()
-                +", scriptParameters="+scriptParameters.toString()
+                +", scripts="+ (scripts != null ? scripts.toString():"null")
+                +", scriptParameters=" + (scriptParameters != null ? scriptParameters.toString() :"null")
                 +", description="+description
                 +", next=" + nextId
                 +", firstInSplit=" + firstInSplit

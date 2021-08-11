@@ -18,10 +18,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.page.Page;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.shared.ui.Transport;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -44,6 +40,7 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -415,7 +412,6 @@ public class MainView extends AppLayout implements JobEventListener {
         bExpand.addClassName("margin-left");
         StepFlow stepFlow = new StepFlow();
         jobNameToStepFLow.put(item.getName(), stepFlow);
-        stepFlow.metadataReader = this.bautaManager.jobMetadataReader;
         stepFlow.init(item);
         if (expandedJobs.contains(item.getName())) {
             stepFlow.setVisible(true);

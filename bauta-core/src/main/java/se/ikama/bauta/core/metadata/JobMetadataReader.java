@@ -1,8 +1,26 @@
 package se.ikama.bauta.core.metadata;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import lombok.var;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.annotation.PostConstruct;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,24 +29,14 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.thymeleaf.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import se.ikama.bauta.ui.StepFlow;
 
-import javax.annotation.PostConstruct;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Spring Batch API does not expose the meta-data for Flow beans.
@@ -250,89 +258,64 @@ public class JobMetadataReader {
                 if (ce.getNodeName().endsWith("bean")) {
                     String class_ = ce.getAttribute("class");
                     String parent = ce.getAttribute("parent");
+                    boolean isScriptTasklet = false;
                     if (class_ != null && class_.length() > 0) {
                         if ("se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet".equals(class_)) {
                             step.setStepType(StepMetadata.StepType.SCH);
-                            return;
                         } else if ("se.ikama.bauta.batch.tasklet.ResourceAssertTasklet".equals(class_)) {
                             step.setStepType(StepMetadata.StepType.ASSERT);
-                            return;
+                        } else if ("se.ikama.bauta.batch.tasklet.javascript.JavascriptTasklet".equals(class_)) {
+                            step.setStepType(StepMetadata.StepType.JS);
+                            isScriptTasklet = true;
+                        } else if ("se.ikama.bauta.batch.tasklet.oracle.ScriptTasklet".equals(class_) || "se.ikama.bauta.batch.tasklet.oracle.SqlClTasklet".equals(class_)) {
+                            step.setStepType(StepMetadata.StepType.SQL);
+                            isScriptTasklet = true;
+                        } else if ("se.ikama.bauta.batch.tasklet.php.PhpTasklet".equals(class_)) {
+                            step.setStepType(StepMetadata.StepType.PHP);
+                            isScriptTasklet = true;
                         } else if (class_.contains("Report")) {
                             step.setStepType(StepMetadata.StepType.REP);
-                            return;
                         } else {
-                            log.info("class: {}", class_);
-                            log.info("parent: {}", parent);
+                            log.debug("class: {}", class_);
+                            log.debug("parent: {}", parent);
                             step.setStepType(StepMetadata.StepType.OTHER);
-                            return;
                         }
                     } else if (parent != null && parent.length() > 0) {
-                        if (StringUtils.containsIgnoreCase(parent, "sql", Locale.US)) {
+                	
+                        if (StringUtils.containsIgnoreCase(parent, "sql")) {
                             step.setStepType(StepMetadata.StepType.SQL);
-                            return;
-                        }
-                        else if (StringUtils.containsIgnoreCase(parent, "php", Locale.US) ||
-                                StringUtils.containsIgnoreCase(parent, "job_base", Locale.US)) {
-                            ArrayList<String> scripts = new ArrayList<>();
-                            ArrayList<String> scriptParams = new ArrayList<>();
-                            for (int j=0; j<ce.getChildNodes().getLength(); j++){
-                                NodeList ch = ce.getChildNodes();
-                                if (ch.item(j).getAttributes() != null){
-                                    var atr =  ch.item(j).getAttributes();
-                                    for (int e=0; e<atr.getLength(); e++){
-                                        String value =  ce.getElementsByTagName("value").item(e).getTextContent();
-                                        /*
-                                        var fileTypes = new ArrayList<String>();
-                                        fileTypes.add("php");
-                                        fileTypes.add("py");
-                                        fileTypes.add("js");
-                                        fileTypes.add("kts");
-                                        if (!scripts.contains(value)){
-                                            fileTypes.forEach(ending -> {
-                                                if (value.endsWith(ending)){
-                                                    log.warn("scriptfile: {}", value);
-                                                    scripts.add(value);
-                                                }
-                                            });
-                                        */
-
-                                        //IMPLEMENT FOR PY,JS,KTS
-                                        if (!scripts.contains(value)){
-                                            if (value.endsWith(".php") ){
-                                                scripts.add(value);
-                                            }
-                                        }
-                                        if (!scriptParams.contains(value)){
-                                            if (!value.endsWith(".php")){
-                                                scriptParams.add(value);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            //log.info("scripts {}", scripts.toString());
-                            //log.info("params: {}",scriptParams.toString());
-                            step.setScripts(scripts);
-                            step.setScriptParameters(scriptParams);
-                            if (StringUtils.containsIgnoreCase(parent, "php", Locale.US)){
-                                step.setStepType(StepMetadata.StepType.PHP);
-                            }
-                            /*
-                            else if (StringUtils.containsIgnoreCase(parent, "py", Locale.US)){
+                            isScriptTasklet = true;
+                        }   
+                        else if (StringUtils.containsIgnoreCase(parent, "php")){
+                            step.setStepType(StepMetadata.StepType.PHP);
+                            isScriptTasklet = true;
+                        } 
+                        else if (StringUtils.containsIgnoreCase(parent, "py")){
                                 step.setStepType(StepMetadata.StepType.PY);
-                            } else if (StringUtils.containsIgnoreCase(parent, "js", Locale.US)){
-                                step.setStepType(StepMetadata.StepType.JS);
-                            } else if (StringUtils.containsIgnoreCase(parent, "kts", Locale.US)){
-                                step.setStepType(StepMetadata.StepType.KTS);
-                            else{
-                                log.warn("No language found of php, python, javascript or kotlin!");
-                            }
-                             */
-                            log.info("step: {}", step.toString());
-                            return;
-                        } else {
-                            log.info("parent: {}", parent);
+                                isScriptTasklet = true;
+                        } 
+                        else if (StringUtils.containsIgnoreCase(parent, "js")){
+                            step.setStepType(StepMetadata.StepType.JS);
+                            isScriptTasklet = true;
+                        } else if (StringUtils.containsIgnoreCase(parent, "kts")){
+                            step.setStepType(StepMetadata.StepType.KTS);
+                            isScriptTasklet = true;
                         }
+                    }
+                    if (isScriptTasklet) {
+                	// Look for scriptFiles and parameters
+                	NodeList propertyElements = ce.getElementsByTagName("property");
+                	for (int j = 0;j < propertyElements.getLength();j++) {
+                	    Element propertyElement = (Element)propertyElements.item(j);
+                	    String propertyName = propertyElement.getAttribute("name");
+                	    List<String> listItems = parseListItems(propertyElement);
+                	    if ("scriptFiles".equals(propertyName)) {
+                		step.setScripts(listItems);
+                	    }
+                	    else if ("scriptParameters".equals(propertyName)) {
+                		step.setScriptParameters(listItems);
+                	    } 
+                	}
                     }
                 } else if (ce.getNodeName().endsWith(":chunk")) {
                     step.setStepType(StepMetadata.StepType.RW);
@@ -340,6 +323,34 @@ public class JobMetadataReader {
                 }
             }
         }
+    }
+    private List<String> parseListItems(Element propertyElement) {
+	if (propertyElement.hasChildNodes()) {
+	    NodeList listNodes = propertyElement.getElementsByTagName("list");
+	    if (listNodes.getLength() == 1) {
+		Element listElement = (Element) listNodes.item(0);
+		NodeList values = listElement.getElementsByTagName("value");
+		if (values.getLength() > 0) {
+		    List<String> out = new ArrayList<>();
+    		    for (int i = 0; i < values.getLength(); i++) {
+    		        Element valueElement = (Element)values.item(i);
+    		        out.add(valueElement.getTextContent());
+    		    }
+    		    return out;
+		}
+	    }
+	}
+	return null;
+    }
+
+    public static void main(String args[]) {
+	JobMetadataReader reader = new JobMetadataReader();
+	reader.jobBeansDir = "C:\\projects\\se_mig_scripts\\jobs";
+	reader.init();
+	//for (Entry<String, JobMetadata> entry : reader.getJobMetadata().entrySet()) {
+	//    System.out.println(entry.getValue());
+	//}
+	System.out.println(reader.getMetadata("Job.400.Setup"));
     }
 
 }

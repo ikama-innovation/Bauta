@@ -1,5 +1,23 @@
 package se.ikama.bauta.batch.tasklet.javascript;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -22,14 +40,8 @@ import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
-import se.ikama.bauta.batch.tasklet.ReportUtils;
 
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
+import se.ikama.bauta.batch.tasklet.ReportUtils;
 
 public class JavascriptTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
 
@@ -59,8 +71,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
     private String killSignal = "15";
 
     private boolean setExplicitCodepage = true;
-
-    private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
 
@@ -309,10 +319,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    public void setJobExplorer(JobExplorer jobExplorer) {
-        this.jobExplorer = jobExplorer;
-    }
-
+    
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
@@ -377,6 +384,25 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;
     }
+
+    /**
+     * Add Spring properties as environment variables when executing the script. 
+     * If you dont want to add all properties, see {@link #setPropertyRegex(String)}
+     * @param addProperties
+     */
+	public void setAddProperties(boolean addProperties) {
+		this.addProperties = addProperties;
+	}
+
+	/**
+	 * If {@link #addProperties} is set to true, only Spring properties matching the provided regexp will be added as environment variables.
+	 * @param propertyRegex
+	 */
+	public void setPropertyRegex(String propertyRegex) {
+		this.propertyRegex = propertyRegex;
+	}
+    
+    
 
 
 }

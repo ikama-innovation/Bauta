@@ -1,5 +1,19 @@
 package se.ikama.bauta.ui;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
@@ -13,25 +27,14 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.dom.Element;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.ReadWriteInfo;
 import se.ikama.bauta.core.StepInfo;
-import se.ikama.bauta.core.metadata.JobMetadataReader;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Tag("div")
 public class StepFlow extends Component {
     HashMap<String, Element> stepToElement = new HashMap<>();
-
-    JobMetadataReader metadataReader;
 
     String jobName = "";
 
@@ -139,25 +142,15 @@ public class StepFlow extends Component {
     private void update(StepInfo step, Element stepElement) {
         //System.out.println("job: "+this.jobName);
         stepElement.setAttribute("data-status", step.getExecutionStatus());
-
-        if (metadataReader.getMetadata(this.jobName).getStepMetadata(step.getName()).getScripts() != null){
-            //System.out.println("scriptFiles: "+metadataReader.getMetadata(this.jobName).getStepMetadata(step.getName()).getScripts().toString());
-            //System.out.println("scriptParams: "+metadataReader.getMetadata(this.jobName).getStepMetadata(step.getName()).getScriptParameters().toString());
-            stepElement.setProperty("title", step.getName()
-                    +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
-                    +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
-                    +", scriptFiles: "+metadataReader.getMetadata(this.jobName).getStepMetadata(step.getName()).getScripts().toString()
-                    +", scriptParameters: "+metadataReader.getMetadata(this.jobName).getStepMetadata(step.getName()).getScriptParameters().toString()
-            );
-        }else{
-            stepElement.setProperty("title", step.getName()
-                    +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
-                    +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss")
-                    +", scriptFiles: none"
-                    +", scriptParameters: none"
-            );
-        }
-
+        StringBuilder title = new StringBuilder();
+        title.append(step.getName());
+        title.append(", start time: ").append((step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : ""));
+        title.append(", duration: " ).append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
+        if (step.getScriptFiles() != null && step.getScriptFiles().size() > 0) title.append(", scriptFiles: ").append(StringUtils.join(step.getScriptFiles()));
+        if (step.getScriptParameters() != null && step.getScriptParameters().size() > 0) title.append(", scriptParameters: ").append(StringUtils.join(step.getScriptParameters()));
+        
+        stepElement.setProperty("title", title.toString());
+        
         stepElement.removeAllChildren();
         String stepName = step.getName();
         if (step.getType() != null && !"OTHER".equals(step.getType())) {
