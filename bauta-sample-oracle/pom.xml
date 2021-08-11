@@ -1,14 +1,12 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>bauta-sample-oracle</artifactId>
     <name>bauta-sample-oracle</name>
-    <version>0.0.60-SNAPSHOT</version>
-
+    <version>0.0.63-SNAPSHOT</version>
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>0.0.60-SNAPSHOT</version>
+        <version>0.0.63-SNAPSHOT</version>
     </parent>
     <properties>
         <bautainstancebuildtime>${maven.build.timestamp}</bautainstancebuildtime>
@@ -18,7 +16,7 @@
         <dependency>
             <groupId>se.ikama</groupId>
             <artifactId>bauta-starter</artifactId>
-            <version>0.0.60-SNAPSHOT</version>
+            <version>0.0.63-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -55,7 +53,6 @@
             you need to download it yourself and install it locally in your maven repo
             This is a convenient way to install it as part of your build. Just add it
             under src/main/lib and adjust the version details.
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>

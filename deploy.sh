@@ -1,1 +1,2 @@
-mvn clean deploy -Dgpg.passphrase=BautaSten72 -Possrh,release,production -f pom.xml
+# gpg.passphrase must be set in your settings.xml
+mvn clean deploy  -Possrh,release,production -f pom.xml
