@@ -26,8 +26,12 @@ public class StepMetadata extends SubFlow {
     private StepType stepType = StepType.OTHER;
 
     private String description;
+    // For script-executing steps, e.g. SQL, PHP, JS etc, this property holds the list of scripts to execute in this step
     private List<String> scripts;
+    // For script-executing steps, e.g. SQL, PHP, JS etc, this property holds the parameters that are passed to the script(s)
     private List<String> scriptParameters;
+    // For the SCH type, the action property holds the actual SQL to execute as a scheduled job
+    private String action;
     private SplitMetadata split;
     private FlowMetadata flow;
     private boolean firstInSplit;

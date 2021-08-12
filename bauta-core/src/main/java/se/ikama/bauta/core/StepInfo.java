@@ -26,6 +26,7 @@ public class StepInfo {
     private ReadWriteInfo readWriteInfo;
     private List<String> scriptFiles;
     private List<String> scriptParameters;
+    private String action;
 
     public StepInfo(String name) {
         this.name = name;

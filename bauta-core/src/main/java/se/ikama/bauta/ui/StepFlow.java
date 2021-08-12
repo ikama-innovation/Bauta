@@ -148,6 +148,7 @@ public class StepFlow extends Component {
         title.append(", duration: " ).append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
         if (step.getScriptFiles() != null && step.getScriptFiles().size() > 0) title.append(", scriptFiles: ").append(StringUtils.join(step.getScriptFiles()));
         if (step.getScriptParameters() != null && step.getScriptParameters().size() > 0) title.append(", scriptParameters: ").append(StringUtils.join(step.getScriptParameters()));
+        if (step.getAction() != null) title.append(", action: ").append(step.getAction());
         
         stepElement.setProperty("title", title.toString());
         

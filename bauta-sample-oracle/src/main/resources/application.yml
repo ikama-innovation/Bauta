@@ -77,4 +77,22 @@ bauta.stagingDB.password: ARBINMAT
 bauta.stagingDB.adminusername: ARBINMAT
 bauta.stagingDB.adminpassword: ARBINMAT
 
+---
+spring:
+  profiles: mattias-win
+vaadin.productionMode: false
+bauta:
+  homeDir: c:/projects/oracle_sample_home
+  jobBeansDir: c:/projects/Bauta/bauta-sample-oracle/src/main/install/jobs
+  scriptDir: c:/projects/Bauta/bauta-sample-oracle/src/main/install/scripts
+  application.description: Mattias Demo of Oracle-based batch automation
+  rebuildServerCommand: ${bauta.homeDir}/bin/rebuild_command 1 master
+  stagingDB:
+    connectionPool:
+      maxTotal: 100
+
+bauta.stagingDB.username: ARBINMAT
+bauta.stagingDB.password: ARBINMAT
+bauta.stagingDB.adminusername: ARBINMAT
+bauta.stagingDB.adminpassword: ARBINMAT
 

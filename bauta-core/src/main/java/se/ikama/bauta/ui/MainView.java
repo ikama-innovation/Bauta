@@ -68,6 +68,7 @@ import com.vaadin.flow.component.page.Viewport;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
@@ -93,7 +94,7 @@ import se.ikama.bauta.security.SecurityUtils;
 @Viewport("width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes, viewport-fit=cover")
 @DependsOn("bautaManager")
 @Secured({"ROLE_BATCH_VIEW", "ROLE_BATCH_EXECUTE", "ROLE_ADMIN"})
-public class MainView extends AppLayout implements JobEventListener {
+public class MainView extends AppLayout implements JobEventListener, HasDynamicTitle {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
@@ -103,7 +104,7 @@ public class MainView extends AppLayout implements JobEventListener {
     private String confirmJobOperations;
 
     @Value("${bauta.application.title}")
-    private String title;
+    private String pageTitle;
 
     //private UI ui;
     Grid<String> serverInfoGrid = null;
@@ -157,7 +158,7 @@ public class MainView extends AppLayout implements JobEventListener {
             //grid.setItems(bautaManager.jobDetails());
             updateJobGrid(bautaManager.jobDetails());
             filterJobGrid();
-            setTitle();
+            
         } catch (Exception e) {
             log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
@@ -165,9 +166,6 @@ public class MainView extends AppLayout implements JobEventListener {
         bautaManager.registerJobChangeListener(this);
     }
 
-    private void setTitle() {
-        UI.getCurrent().getPage().setTitle(title);
-    }
 
     private void filterJobGrid() {
         jobGrid.getChildren().forEach(component ->{
@@ -778,6 +776,11 @@ public class MainView extends AppLayout implements JobEventListener {
         notification.setPosition(Notification.Position.BOTTOM_START);
         notification.setDuration(10000);
         notification.open();
+    }
+
+    @Override
+    public String getPageTitle() {
+	return pageTitle;
     }
 
 }

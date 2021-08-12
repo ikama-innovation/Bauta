@@ -259,9 +259,12 @@ public class JobMetadataReader {
                     String class_ = ce.getAttribute("class");
                     String parent = ce.getAttribute("parent");
                     boolean isScriptTasklet = false;
+                    boolean hasAction = false;
                     if (class_ != null && class_.length() > 0) {
                         if ("se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet".equals(class_)) {
                             step.setStepType(StepMetadata.StepType.SCH);
+                            String action = parseBeanProperty(ce, "action");
+                            step.setAction(action);
                         } else if ("se.ikama.bauta.batch.tasklet.ResourceAssertTasklet".equals(class_)) {
                             step.setStepType(StepMetadata.StepType.ASSERT);
                         } else if ("se.ikama.bauta.batch.tasklet.javascript.JavascriptTasklet".equals(class_)) {
@@ -279,7 +282,7 @@ public class JobMetadataReader {
                             log.debug("class: {}", class_);
                             log.debug("parent: {}", parent);
                             step.setStepType(StepMetadata.StepType.OTHER);
-                        }
+                        } 
                     } else if (parent != null && parent.length() > 0) {
                 	
                         if (StringUtils.containsIgnoreCase(parent, "sql")) {
@@ -323,6 +326,16 @@ public class JobMetadataReader {
                 }
             }
         }
+    }
+    private String parseBeanProperty(Element beanElement, String propertyName) {
+	NodeList propertyElements = beanElement.getElementsByTagName("property");
+	for (int i = 0; i < propertyElements.getLength();i++) {
+	    Element propertyElement = (Element)propertyElements.item(i);
+	    if (StringUtils.equals(propertyName, propertyElement.getAttribute("name"))) {
+		return propertyElement.getAttribute("value");
+	    }
+	}
+	return null;
     }
     private List<String> parseListItems(Element propertyElement) {
 	if (propertyElement.hasChildNodes()) {

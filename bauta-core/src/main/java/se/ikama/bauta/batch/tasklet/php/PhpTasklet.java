@@ -73,7 +73,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      */
     private boolean setExplicitCodepage = false;
 
-    private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
 
@@ -95,8 +94,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      */
     private String processUid;
 
-    @Autowired
-    JobMetadataReader metadataReader;
 
     @Autowired
     Environment env;
@@ -163,8 +160,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
             }
         }
         chunkContext.getStepContext().getJobParameters();
-        JobMetadata meta = metadataReader.getMetadata(contribution.getStepExecution().getJobExecution().getJobInstance().getJobName());
-        Collection<StepMetadata> steps = meta.getAllSteps();
         for (String scriptFile : scriptFiles) {
             log.warn("Handling {}", scriptFile);
             if (StringUtils.equals(logSuffix, "log")) {
@@ -344,9 +339,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    public void setJobExplorer(JobExplorer jobExplorer) {
-        this.jobExplorer = jobExplorer;
-    }
 
     /**
      * Timeout in milliseconds.

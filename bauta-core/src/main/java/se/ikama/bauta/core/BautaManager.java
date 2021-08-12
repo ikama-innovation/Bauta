@@ -508,6 +508,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setNextId(stepMetadata.getNextId());
                 stepInfo.setScriptFiles(stepMetadata.getScripts());
                 stepInfo.setScriptParameters(stepMetadata.getScriptParameters());
+                stepInfo.setAction(stepMetadata.getAction());
                 jobInstanceInfo.appendStep(stepInfo);
             }
             jobInstanceInfo.updateCount();
@@ -543,6 +544,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
                 stepInfo.setScriptFiles(stepMetadata.getScripts());
                 stepInfo.setScriptParameters(stepMetadata.getScriptParameters());
+                stepInfo.setAction(stepMetadata.getAction());
                 jobInstanceInfo.appendStep(stepInfo);
                 idToStepInfo.put(stepMetadata.getId(), stepInfo);
             }
