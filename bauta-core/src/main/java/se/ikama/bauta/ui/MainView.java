@@ -7,20 +7,23 @@ import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datetimepicker.DateTimePicker;
+import com.vaadin.flow.shared.ui.Transport;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +84,11 @@ import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.core.JobEventListener;
 import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.StepInfo;
+import se.ikama.bauta.scheduling.JobTrigger;
+import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.security.SecurityUtils;
+
+import javax.swing.*;
 
 @Push(value = PushMode.MANUAL)
 @Route("")
@@ -100,13 +107,15 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     @Autowired
     BautaManager bautaManager;
 
+    @Autowired
+    JobTriggerDao jobTriggerDao;
+
     @Value("${bauta.confirmJobOperations}")
     private String confirmJobOperations;
 
     @Value("${bauta.application.title}")
     private String pageTitle;
 
-    //private UI ui;
     Grid<String> serverInfoGrid = null;
     Span buildInfo = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
@@ -118,12 +127,22 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     HashSet<String> expandedJobs = new HashSet<>();
     private Div jobGrid;
     private TextField tfJobFilter;
-    private Checkbox cbShowOnlyRunningJobs;
+    private String filterValue = "";
+    private Checkbox cbUnknownJobs;
+    private boolean showUnknownJobs = false;
+    private ComboBox cbFilterOnStatus;
+    private ComboBox<String> cbSortingList;
+    private ComboBox<String> cbShowTimeList;
+    private String sortingValue = "";
+    private static Date showJobsFrom = new Date(0);
+    private static Date showJobsTo = new Date();
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
     private TreeMap<String, StepProgressBar> jobNameToProgressBar = new TreeMap<>();
+    private TreeMap<String, Div> jobNameToJobRow = new TreeMap<>();
     private HashSet<String> runningJobs = new HashSet<>();
+    private HashSet<String> scheduledJobs = new HashSet<>();
 
     public MainView(@Autowired SchedulingView schedulingView) {
         log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -166,21 +185,59 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
         bautaManager.registerJobChangeListener(this);
     }
 
+    private void findScheduledJobs() {
+        scheduledJobs.clear();
+        for (JobTrigger jobTrigger : jobTriggerDao.loadTriggers()) {
+            scheduledJobs.add(jobTrigger.getJobName());
+            if (!(jobTrigger.getTriggerType() == JobTrigger.TriggerType.CRON)) {
+                scheduledJobs.add(jobTrigger.getTriggeringJobName());
+            }
+        }
+    }
+
+    private void sortJobGrid() {
+        if (!sortingValue.equalsIgnoreCase("")) {
+            List<Component> jobList = new ArrayList<>();
+            jobGrid.getChildren().forEach(jobList::add);
+            jobGrid.removeAll();
+
+            if (sortingValue.equalsIgnoreCase("Job Name")) {
+                jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-name").toLowerCase()));
+            } else if (sortingValue.equalsIgnoreCase("End Time")) {
+                jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-endtime")));
+                Collections.reverse(jobList);
+            } else if (sortingValue.equalsIgnoreCase("Start Time")) {
+                jobList.sort(Comparator.comparing(c -> c.getElement().getAttribute("data-job-startTime")));
+                Collections.reverse(jobList);
+            }
+            jobList.forEach(jobGrid::add);
+        }
+    }
 
     private void filterJobGrid() {
-        jobGrid.getChildren().forEach(component ->{
+        jobGrid.getChildren().forEach(component -> {
             String jobName = component.getElement().getAttribute("data-job-name");
-            boolean show = true;
-            if (cbShowOnlyRunningJobs.getValue() && !runningJobs.contains(jobName)) {
-                show = false;
-            }
-            if (!tfJobFilter.isEmpty() && !StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue())) {
-                show = false;
-            }
-            component.setVisible(show);
+            String jobStatus = component.getElement().getAttribute("data-execution-status");
+            Long startTime = Long.valueOf(component.getElement().getAttribute("data-job-startTime"));
+            Long endTime = Long.valueOf(component.getElement().getAttribute("data-job-endtime"));
 
+            boolean show = (showJobsFrom.getTime() <= startTime && showJobsTo.getTime() >= startTime) ||
+                    showJobsFrom.getTime() <= endTime && showJobsTo.getTime() >= endTime ||
+                    runningJobs.contains(jobName);
+
+            if (!tfJobFilter.isEmpty() && !StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue())) show = false;
+            if (filterValue.equalsIgnoreCase("Running") && !runningJobs.contains(jobName)) show = false;
+            if (filterValue.equalsIgnoreCase("Completed") && !jobStatus.equalsIgnoreCase("Completed")) show = false;
+            if (filterValue.equalsIgnoreCase("Failed") && !jobStatus.equalsIgnoreCase("Failed")) show = false;
+            if (filterValue.equalsIgnoreCase("Stopped") && !jobStatus.equalsIgnoreCase("Stopped")) show = false;
+            if (filterValue.equalsIgnoreCase("Unknown") && !jobStatus.equalsIgnoreCase("Unknown")) show = false;
+            if (filterValue.equalsIgnoreCase("Scheduled") && !scheduledJobs.contains(jobName)) show = false;
+
+            if (showUnknownJobs && jobStatus.equalsIgnoreCase("Unknown")) show = true;
+            component.setVisible(show);
         });
     }
+
     private void updateJobGrid(List<JobInstanceInfo> jobs) {
         jobGrid.removeAll();
         jobNameToJobButtons.clear();
@@ -188,13 +245,21 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
         runningJobs.clear();
         boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
         log.debug("Run enabled: " + enabled);
+        findScheduledJobs();
         for (JobInstanceInfo job : jobs) {
             String jobName = job.getName();
-            if (job.isRunning()) runningJobs.add(jobName); else runningJobs.remove(jobName);
-            if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue())) continue;
+            if (job.isRunning())
+                runningJobs.add(jobName);
+            else
+                runningJobs.remove(jobName);
+            if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue()))
+                continue;
             Div jobRow = new Div();
             jobRow.addClassNames("job-grid-row");
             jobRow.getElement().setAttribute("data-job-name", jobName);
+            jobRow.getElement().setAttribute("data-job-endtime", job.getEndTime() != null ? Long.toString(job.getEndTime().getTime()) : "0");
+            jobRow.getElement().setAttribute("data-job-startTime", job.getStartTime() != null ? Long.toString(job.getStartTime().getTime()) : "0");
+            jobRow.getElement().setAttribute("data-execution-status", job.getExecutionStatus());
 
             Div cell2 = new Div(createStepComponent(job));
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
@@ -224,9 +289,12 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
             cell1.addClassNames("job-grid-cell");
 
             jobRow.add(cell0, cell1, cell2, cell3);
+            jobNameToJobRow.put(jobName, jobRow);
             jobGrid.add(jobRow);
         }
+        sortJobGrid();
     }
+
 
 
     @Override
@@ -269,6 +337,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
         Set<Component> pagesShown = Stream.of(jobPage)
                 .collect(Collectors.toSet());
         tabs.addSelectedChangeListener(event -> {
+            findScheduledJobs();
             pagesShown.forEach(page -> page.setVisible(false));
             pagesShown.clear();
             Component selectedPage = tabsToPages.get(tabs.getSelectedTab());
@@ -386,25 +455,92 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     private Component createJobView() {
         VerticalLayout vl = new VerticalLayout();
         HorizontalLayout hl = new HorizontalLayout();
+
         hl.setPadding(false);
         hl.setMargin(false);
         hl.setSpacing(true);
+
         tfJobFilter = new TextField(event -> {
             filterJobGrid();
         });
         tfJobFilter.setPlaceholder("Job filter");
-        hl.add(tfJobFilter);
-        cbShowOnlyRunningJobs = new Checkbox("Only running jobs", e -> {filterJobGrid();});
-        cbShowOnlyRunningJobs.setValue(false);
-        hl.add(cbShowOnlyRunningJobs);
-        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowOnlyRunningJobs);
+        tfJobFilter.setLabel("Search by name:");
+
+        cbFilterOnStatus = new ComboBox<>();
+        cbFilterOnStatus.setLabel("Filter:");
+        cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Stopped", "Unknown", "Scheduled");
+        cbFilterOnStatus.setClearButtonVisible(true);
+        cbFilterOnStatus.addValueChangeListener(event -> {
+           if (event.getValue() == null) {
+               filterValue = "";
+           } else {
+               filterValue = (String) event.getValue();
+           }
+           filterJobGrid();
+        });
+
+        cbSortingList = new ComboBox<>();
+        cbSortingList.setLabel("Sort By:");
+        cbSortingList.setItems("Job Name", "Start Time", "End Time");
+        cbSortingList.setClearButtonVisible(true);
+        cbSortingList.addValueChangeListener(event -> {
+           if (event.getValue() == null) {
+               sortingValue = "";
+           } else {
+               sortingValue = event.getValue();
+               sortJobGrid();
+           }
+        });
+
+        cbShowTimeList = new ComboBox<>();
+        cbShowTimeList.setLabel("Show:");
+        cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week", "Custom");
+        cbShowTimeList.setClearButtonVisible(true);
+        cbShowTimeList.setPreventInvalidInput(true);
+        cbShowTimeList.addValueChangeListener(event -> {
+            cbShowTimeList.setHelperText("");
+            if (event.getValue() == null) {
+                showJobsTo = new Date();
+                showJobsFrom = new Date(0);
+            } else if (event.getValue().equals("Custom")) {
+                openDateTimeDialog(cbShowTimeList);
+            } else if (event.getValue().equals("Today")) {
+                showJobsFrom = Date.from(LocalDateTime
+                                .now()
+                                .with(LocalTime.MIDNIGHT)
+                                .atZone(ZoneId.systemDefault())
+                                .toInstant());
+                showJobsTo = new Date();
+            } else if (event.getValue().equals("Last 24h")) {
+                showJobsFrom = DateUtils.addHours(new Date(), -24);
+                showJobsTo = new Date();
+            } else if (event.getValue().equals("Last 48h")) {
+                showJobsFrom = DateUtils.addHours(new Date(), -48);
+                showJobsTo = new Date();
+            } else if (event.getValue().equals("Last Week")) {
+                showJobsFrom = DateUtils.addWeeks(new Date(), -1);
+                showJobsTo = new Date();
+            }
+            filterJobGrid();
+        });
+        cbUnknownJobs = new Checkbox("Not started jobs");
+        cbUnknownJobs.addValueChangeListener(event -> {
+            showUnknownJobs = cbUnknownJobs.getValue();
+            filterJobGrid();
+            sortJobGrid();
+        });
+
+        hl.add(tfJobFilter, cbFilterOnStatus, cbSortingList, cbShowTimeList, cbUnknownJobs);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbFilterOnStatus);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbSortingList);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowTimeList);
+        hl.setVerticalComponentAlignment(FlexComponent.Alignment.END, cbUnknownJobs);
         vl.add(hl);
         jobGrid = new Div();
         jobGrid.addClassNames("job-grid");
         vl.add(jobGrid);
         return vl;
-
     }
 
     private Component createStepComponent(JobInstanceInfo item) {
@@ -465,7 +601,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
             showErrorMessage(e.getMessage());
         }
     }
-
 
     private InputStream createJobReport() throws Exception {
         StringBuilder sb = new StringBuilder();
@@ -581,7 +716,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
         return null;
 
     }
-
 
     private Component createStatusLabel(String executionStatus, boolean oldExecution) {
         Div statusLabel = new Div();
@@ -729,17 +863,25 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
         UI ui = this.getUI().get();
         if (ui != null) {
             ui.access(() -> {
+                showJobsTo = new Date();
                 // grid.getDataProvider().refreshItem();
-                JobButtons jobButtons = jobNameToJobButtons.get(jobInstanceInfo.getName());
+                String jobName = jobInstanceInfo.getName();
+                JobButtons jobButtons = jobNameToJobButtons.get(jobName);
                 jobButtons.setJobInstanceInfo(jobInstanceInfo);
-                StepFlow stepFlow = jobNameToStepFLow.get(jobInstanceInfo.getName());
+                StepFlow stepFlow = jobNameToStepFLow.get(jobName);
                 // TODO: Only needed for job start?
                 stepFlow.update(jobInstanceInfo.getSteps());
-                StepProgressBar progressBar  = jobNameToProgressBar.get(jobInstanceInfo.getName());
+                StepProgressBar progressBar  = jobNameToProgressBar.get(jobName);
                 progressBar.update(jobInstanceInfo);
-                JobInfo jobInfo = jobNameToJobInfo.get(jobInstanceInfo.getName());
+                JobInfo jobInfo = jobNameToJobInfo.get(jobName);
                 jobInfo.update(jobInstanceInfo);
+                Div jobRow = jobNameToJobRow.get(jobName);
+                jobRow.getElement().setAttribute("data-job-endtime", jobInstanceInfo.getEndTime() != null ? Long.toString(jobInstanceInfo.getEndTime().getTime()) : "0");
+                jobRow.getElement().setAttribute("data-job-startTime", jobInstanceInfo.getStartTime() != null ? Long.toString(jobInstanceInfo.getStartTime().getTime()) : "0");
+                jobRow.getElement().setAttribute("data-execution-status", jobInstanceInfo.getExecutionStatus());
                 filterJobGrid();
+                sortJobGrid();
+                findScheduledJobs();
                 ui.push();
             });
         }
@@ -759,6 +901,53 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
             });
         }
 
+    }
+
+    public void openDateTimeDialog(ComboBox cbShowTimeList) {
+        Dialog dateTimeDialog = createDateTimeDialog(cbShowTimeList);
+        dateTimeDialog.open();
+    }
+
+    private Dialog createDateTimeDialog(ComboBox cbShowTimeList) {
+        Dialog dialog = new Dialog();
+        dialog.setWidth("450px");
+        dialog.setCloseOnOutsideClick(false);
+
+        VerticalLayout layout = new VerticalLayout();
+        layout.setPadding(false);
+        layout.setSpacing(false);
+
+        DateTimePicker dateTimePickerFrom = new DateTimePicker("From");
+        DateTimePicker dateTimePickerTo = new DateTimePicker("To");
+
+        HorizontalLayout buttons = new HorizontalLayout();
+        buttons.setWidthFull();
+        buttons.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        buttons.getStyle().set("margin-top", "20px");
+
+        Button applyButton = new Button("Apply", clickEvent -> {
+            try {
+                showJobsFrom = Date.from(dateTimePickerFrom.getValue().atZone(ZoneId.systemDefault()).toInstant());
+                showJobsTo = Date.from(dateTimePickerTo.getValue().atZone(ZoneId.systemDefault()).toInstant());
+                filterJobGrid();
+                dialog.close();
+                SimpleDateFormat formatter = new SimpleDateFormat("EEE, yyyy-MM-dd HH.mm");
+                cbShowTimeList.setHelperText("From: " + formatter.format(showJobsFrom) + "\n" + "To: " + formatter.format(showJobsTo));
+            } catch (NullPointerException e) {
+                showErrorMessage("Dates must be selected!");
+            }
+        });
+        Button closeButton = new Button("Close", clickEvent -> {
+            dialog.close();
+        });
+
+        buttons.add(applyButton);
+        buttons.add(closeButton);
+        layout.add(dateTimePickerFrom);
+        layout.add(dateTimePickerTo);
+        layout.add(buttons);
+        dialog.add(layout);
+        return dialog;
     }
 
     private void showErrorMessage(String message) {
