@@ -1,5 +1,19 @@
 package se.ikama.bauta.ui;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
@@ -13,20 +27,16 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.dom.Element;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
+
 import se.ikama.bauta.core.JobInstanceInfo;
 import se.ikama.bauta.core.ReadWriteInfo;
 import se.ikama.bauta.core.StepInfo;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 @Tag("div")
 public class StepFlow extends Component {
     HashMap<String, Element> stepToElement = new HashMap<>();
+
+    String jobName = "";
 
     public void init(JobInstanceInfo job) {
         getElement().setAttribute("class", "step-flow");
@@ -41,6 +51,7 @@ public class StepFlow extends Component {
         LinkedHashMap<String, Element> flowToElement = new LinkedHashMap<>();
         int flowCount = 0;
         // First round, calculate flow durations
+        this.jobName = job.getName();
         for (StepInfo step : job.getSteps()) {
             if (step.getFlowId() != null) {
                 if (currentFlow == null || !step.getFlowId().equals(currentFlow)) {
@@ -129,11 +140,18 @@ public class StepFlow extends Component {
         }
     }
     private void update(StepInfo step, Element stepElement) {
+        //System.out.println("job: "+this.jobName);
         stepElement.setAttribute("data-status", step.getExecutionStatus());
-
-        stepElement.setProperty("title", step.getName()
-                +", start time: " + (step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : "")
-                +", duration: " + DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
+        StringBuilder title = new StringBuilder();
+        title.append(step.getName());
+        title.append(", start time: ").append((step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : ""));
+        title.append(", duration: " ).append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
+        if (step.getScriptFiles() != null && step.getScriptFiles().size() > 0) title.append(", scriptFiles: ").append(StringUtils.join(step.getScriptFiles()));
+        if (step.getScriptParameters() != null && step.getScriptParameters().size() > 0) title.append(", scriptParameters: ").append(StringUtils.join(step.getScriptParameters()));
+        if (step.getAction() != null) title.append(", action: ").append(step.getAction());
+        
+        stepElement.setProperty("title", title.toString());
+        
         stepElement.removeAllChildren();
         String stepName = step.getName();
         if (step.getType() != null && !"OTHER".equals(step.getType())) {

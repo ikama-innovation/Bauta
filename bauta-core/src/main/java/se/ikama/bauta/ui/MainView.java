@@ -19,6 +19,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.shared.ui.Transport;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -30,6 +31,7 @@ import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.access.annotation.Secured;
 
@@ -41,6 +43,7 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -68,6 +71,7 @@ import com.vaadin.flow.component.page.Viewport;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.HasDynamicTitle;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
@@ -97,7 +101,7 @@ import javax.swing.*;
 @Viewport("width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes, viewport-fit=cover")
 @DependsOn("bautaManager")
 @Secured({"ROLE_BATCH_VIEW", "ROLE_BATCH_EXECUTE", "ROLE_ADMIN"})
-public class MainView extends AppLayout implements JobEventListener {
+public class MainView extends AppLayout implements JobEventListener, HasDynamicTitle {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
     @Autowired
@@ -106,7 +110,12 @@ public class MainView extends AppLayout implements JobEventListener {
     @Autowired
     JobTriggerDao jobTriggerDao;
 
-    //private UI ui;
+    @Value("${bauta.confirmJobOperations}")
+    private String confirmJobOperations;
+
+    @Value("${bauta.application.title}")
+    private String pageTitle;
+
     Grid<String> serverInfoGrid = null;
     Span buildInfo = null;
     ArrayList<Button> actionButtons = new ArrayList<>();
@@ -168,6 +177,7 @@ public class MainView extends AppLayout implements JobEventListener {
             //grid.setItems(bautaManager.jobDetails());
             updateJobGrid(bautaManager.jobDetails());
             filterJobGrid();
+            
         } catch (Exception e) {
             log.warn("Failed to fetch job details", e);
             showErrorMessage("Failed to fetch job details");
@@ -255,6 +265,7 @@ public class MainView extends AppLayout implements JobEventListener {
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
             JobButtons jb = new JobButtons(job, this, bautaManager);
             jb.setRunEnabled(enabled);
+            jb.setConfirmJobEnabled(Boolean.parseBoolean(confirmJobOperations));
 
             jobNameToJobButtons.put(jobName, jb);
             Div cell3 = new Div(jb);
@@ -954,6 +965,11 @@ public class MainView extends AppLayout implements JobEventListener {
         notification.setPosition(Notification.Position.BOTTOM_START);
         notification.setDuration(10000);
         notification.open();
+    }
+
+    @Override
+    public String getPageTitle() {
+	return pageTitle;
     }
 
 }

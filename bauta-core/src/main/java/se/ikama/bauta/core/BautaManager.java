@@ -86,7 +86,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     JobTriggerDao jobTriggerDao;
 
     @Autowired
-    JobMetadataReader jobMetadataReader;
+    public JobMetadataReader jobMetadataReader;
 
     // Set to true after rebuild has been issued. To avoid multiple calls to the rebuild command
     private boolean rebuilding = false;
@@ -506,6 +506,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setSplitId(stepMetadata.getSplit() != null ? stepMetadata.getSplit().getId() : null);
                 stepInfo.setFlowId(stepMetadata.getFlow() != null ? stepMetadata.getFlow().getId() : null);
                 stepInfo.setNextId(stepMetadata.getNextId());
+                stepInfo.setScriptFiles(stepMetadata.getScripts());
+                stepInfo.setScriptParameters(stepMetadata.getScriptParameters());
+                stepInfo.setAction(stepMetadata.getAction());
                 jobInstanceInfo.appendStep(stepInfo);
             }
             jobInstanceInfo.updateCount();
@@ -539,6 +542,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 stepInfo.setNextId(stepMetadata.getNextId());
                 stepInfo.setFirstInSplit(stepMetadata.isFirstInSplit());
                 stepInfo.setLastInSplit(stepMetadata.isLastInSplit());
+                stepInfo.setScriptFiles(stepMetadata.getScripts());
+                stepInfo.setScriptParameters(stepMetadata.getScriptParameters());
+                stepInfo.setAction(stepMetadata.getAction());
                 jobInstanceInfo.appendStep(stepInfo);
                 idToStepInfo.put(stepMetadata.getId(), stepInfo);
             }
@@ -639,6 +645,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             rwi.setWriteSkipCount(se.getWriteSkipCount());
             si.setReadWriteInfo(rwi);
         }
+        
 
     }
 
