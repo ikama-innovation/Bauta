@@ -30,14 +30,34 @@ jobs:
       with:
         java-version: '11'
         distribution: 'adopt'
-        
+
     - name: Configure git
       run: |
         git config user.email "release-bot@ikama.se"
         git config user.name "release-bot"
+        
+# This is needed for the jar signing, which is a requirement to deploy to OSS repo
+# The key was exported using 
+# gpg --armor --export-secret-keys -a FFF67A8FD0226D6822201A19C4A251F79C4A8BB8 | xclip -sel clip
+# and copied to the secret
+    - name: Import GPG key
+      uses: crazy-max/ghaction-import-gpg@v3
+      with:
+        gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY}}
+        passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
 
-    - name: Start release script
-      run: source ./release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }} -p ${{ secrets.OSSRH_PASSPHRASE }}
+# Bump up version
+    - name: Pre-release script
+      run: source ./pre_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
+# Deploy to repo
+    - name: Deploy
+      run: mvn -s settings.xml clean deploy -X -P ossrh,release,production -f pom.xml
       env:
-        OSS_PASSWORD: ${{ secrets.OSSRH_PASSPHRASE }}
-        OSS_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        OSSRH_PGP_PASSPHRASE: ${{secrets.OSSRH_GPG_SECRET_KEY_PASSWORD}}    
+
+# Commit and push the pom version changes and bump up versions to new snapshot version   
+    - name: Post-release script
+      run: source ./post_release.sh -v ${{ github.event.inputs.releaseVersion }} -d ${{ github.event.inputs.developmentVersion }}
+

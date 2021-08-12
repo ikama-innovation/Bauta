@@ -3,27 +3,13 @@
     <servers>
         <server>
             <id>github</id>
-            <username>axelikama</username>
-            <password>Axel@ikama1</password>
         </server>
         <server>
             <id>ossrh</id>
-            <username>HrxlPrFm</username>
-            <password>RXqqZ91ZRKJ7e+MVG1ZPS0G/1Ht/Fems89wjkaYsu0Ev</password>
+            <username>${env.OSSRH_USERNAME}</username>
+            <password>${env.OSSRH_PASSWORD}</password>
         </server>
-        <!--<server>
-            <id>ossrh</id>
-            <username>mattias-arbin</username>
-            <password>HamnPuben1985!</password>
-        </server>-->
-        <server>
-            <id>gpg.passphrase</id>
-            <passphrase>BautaSten72</passphrase>
-        </server>
-        <server>
-            <id>A5D3CA87</id>
-            <passphrase>BautaSten72</passphrase>
-        </server>
+      
     </servers>
     <profiles>
         <profile>
@@ -33,8 +19,8 @@
             </activation>
             <properties>
                 <gpg.executable>gpg2</gpg.executable>
-                <gpg.passphrase>BautaSten72</gpg.passphrase>
-                <gpg.keyname>A5D3CA87</gpg.keyname>
+                <gpg.keyname>FFF67A8FD0226D6822201A19C4A251F79C4A8BB8</gpg.keyname>
+                <gpg.passphrase>${env.OSSRH_PGP_PASSPHRASE}</gpg.passphrase>
             </properties>
         </profile>
         <profile>
@@ -42,15 +28,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-        </profile>
-        <profile>
-            <id>ehm</id>
-            <repositories>
-                <repository>
-                    <id>nll-migrering</id>
-                    <url>http://vioxx/nexus2/content/groups/nll-migrering/</url>
-                </repository>
-            </repositories>
         </profile>
     </profiles>
 </settings>

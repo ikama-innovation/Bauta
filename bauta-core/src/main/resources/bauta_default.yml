@@ -7,6 +7,10 @@ server.servlet.session.timeout: 300
 
 bauta.version: '@project.version@'
 bauta.buildTime: '@bautabuildtimestamp@'
+bauta.application.name: Bauta
+bauta.application.title: ${bauta.application.name}
+bauta.confirmJobOperations: false
+
 bauta.build: 0
 # Efter an beforeJob, beforeStep, afterJob, afterStep event has been fired, let spring batch save the state before
 # fetching the state and send it to jobExecutionListeners

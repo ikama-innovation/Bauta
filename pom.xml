@@ -4,7 +4,7 @@
 
     <groupId>se.ikama</groupId>
     <artifactId>bauta</artifactId>
-    <version>0.0.60</version>
+    <version>0.0.65-SNAPSHOT</version>
     <name>bauta</name>
     <packaging>pom</packaging>
     <description>Bauta is a batch automation framework based on Spring Batch.</description>
@@ -24,17 +24,14 @@
         </license>
     </licenses>
     <scm>
-        <!--<url>https://github.com/ikama-innovation/Bauta</url>
+        <url>https://github.com/ikama-innovation/Bauta</url>
         <connection>
             scm:git:git://github.com/ikama-innovation/Bauta.git
-        </connection>-->
+        </connection>
         <developerConnection>
-            <!--scm:git:https://github.com/ikama-innovation/Bauta.git-->
-           <!-- scm:git:ssh://git@github.com:ikama-innovation/Bauta.git-->
-            scm:git:git://github.com/ikama-innovation/Bauta.git
+            scm:git:ssh://git@github.com:ikama-innovation/Bauta.git
         </developerConnection>
-        <tag>HEAD</tag>
-  </scm>
+    </scm>
     <developers>
         <developer>
             <name>mattias-arbin</name>
@@ -94,18 +91,13 @@
         </dependencies>
     </dependencyManagement>
     <distributionManagement>
-        <!--<snapshotRepository>
+        <snapshotRepository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>-->
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/ikama-innovation/Bauta</url>
         </repository>
     </distributionManagement>
     <build>
@@ -196,7 +188,10 @@
                                     </goals>
                                     <configuration>
                                         <keyname>${gpg.keyname}</keyname>
-                                        <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                                        <gpgArguments>
+                                          <arg>--pinentry-mode</arg>
+                                          <arg>loopback</arg>
+                                        </gpgArguments>
                                     </configuration>
                                 </execution>
                             </executions>
