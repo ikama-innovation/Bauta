@@ -10,11 +10,16 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Tag;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import se.ikama.bauta.core.BasicJobInstanceInfo;
 
 import se.ikama.bauta.core.BasicJobInstanceInfo;
 
 @Tag("div")
 public class JobInfo extends Component {
+    boolean expanded;
+
 
 	public JobInfo(BasicJobInstanceInfo job) {
 
@@ -24,6 +29,7 @@ public class JobInfo extends Component {
     public void update(BasicJobInstanceInfo job) {
 
         StringBuilder html = new StringBuilder("<ul style='list-style: none'>");
+
         if (job.getInstanceId() != null) html.append("<li>Instance/Execution: "+job.getInstanceId()+"/"+job.getLatestExecutionId());
         if (job.getExecutionCount() > 0 )  html.append("<li>Executions: " + job.getExecutionCount());
         if (job.getExecutionStatus() != null) html.append("<li>Status: <div class='batch_status batch_status_label' data-status="+job.getExecutionStatus()+">"+job.getExecutionStatus()+"</div>");
