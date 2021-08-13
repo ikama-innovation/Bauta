@@ -260,7 +260,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
             jobRow.getElement().setAttribute("data-job-endtime", job.getEndTime() != null ? Long.toString(job.getEndTime().getTime()) : "0");
             jobRow.getElement().setAttribute("data-job-startTime", job.getStartTime() != null ? Long.toString(job.getStartTime().getTime()) : "0");
             jobRow.getElement().setAttribute("data-execution-status", job.getExecutionStatus());
-
+            jobNameToJobRow.put(jobName, jobRow);
             Div cell2 = new Div(createStepComponent(job));
             cell2.addClassNames("job-grid-cell","job-grid-steps-cell");
             JobButtons jb = new JobButtons(job, this, bautaManager);
@@ -292,7 +292,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
                 cell1.addClassNames("job-grid-cell");
                 jobRow.add(cell0, cell1, cell2, cell3);
                 jobGrid.add(jobRow);
-            }else{
+            } else {
                 JobInfo jobInfo = new JobInfo(job);
                 jobNameToJobInfo.put(jobName, jobInfo);
                 Div jobNameDiv = new Div();
@@ -309,11 +309,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
                 jobRow.add(cell0, cell1, cell2, cell3);
                 jobGrid.add(jobRow);
             }
-
-
-            jobRow.add(cell0, cell1, cell2, cell3);
-            jobNameToJobRow.put(jobName, jobRow);
-            jobGrid.add(jobRow);
         }
         sortJobGrid();
     }
@@ -487,10 +482,10 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
             filterJobGrid();
         });
         tfJobFilter.setPlaceholder("Job filter");
-        tfJobFilter.setLabel("Search by name:");
+        tfJobFilter.setLabel("Name:");
 
         cbFilterOnStatus = new ComboBox<>();
-        cbFilterOnStatus.setLabel("Filter:");
+        cbFilterOnStatus.setLabel("Status:");
         cbFilterOnStatus.setItems("Running", "Completed", "Failed", "Stopped", "Unknown", "Scheduled");
         cbFilterOnStatus.setClearButtonVisible(true);
         cbFilterOnStatus.addValueChangeListener(event -> {
@@ -501,22 +496,10 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
            }
            filterJobGrid();
         });
-
-        cbSortingList = new ComboBox<>();
-        cbSortingList.setLabel("Sort By:");
-        cbSortingList.setItems("Job Name", "Start Time", "End Time");
-        cbSortingList.setClearButtonVisible(true);
-        cbSortingList.addValueChangeListener(event -> {
-           if (event.getValue() == null) {
-               sortingValue = "";
-           } else {
-               sortingValue = event.getValue();
-               sortJobGrid();
-           }
-        });
+        
 
         cbShowTimeList = new ComboBox<>();
-        cbShowTimeList.setLabel("Show:");
+        cbShowTimeList.setLabel("Time:");
         cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week", "Custom");
         cbShowTimeList.setClearButtonVisible(true);
         cbShowTimeList.setPreventInvalidInput(true);
@@ -546,14 +529,27 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
             }
             filterJobGrid();
         });
-        cbUnknownJobs = new Checkbox("Not started jobs");
+        cbUnknownJobs = new Checkbox("Show unstarted jobs");
         cbUnknownJobs.addValueChangeListener(event -> {
             showUnknownJobs = cbUnknownJobs.getValue();
             filterJobGrid();
             sortJobGrid();
         });
 
-        hl.add(tfJobFilter, cbFilterOnStatus, cbSortingList, cbShowTimeList, cbUnknownJobs);
+        cbSortingList = new ComboBox<>();
+        cbSortingList.setLabel("Sort By:");
+        cbSortingList.setItems("Job Name", "Start Time", "End Time");
+        cbSortingList.setClearButtonVisible(true);
+        cbSortingList.addValueChangeListener(event -> {
+           if (event.getValue() == null) {
+               sortingValue = "";
+           } else {
+               sortingValue = event.getValue();
+               sortJobGrid();
+           }
+        });
+        
+        hl.add(tfJobFilter, cbFilterOnStatus, cbShowTimeList, cbUnknownJobs, cbSortingList);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbFilterOnStatus);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
         hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbSortingList);
@@ -956,6 +952,12 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 
         Button applyButton = new Button("Apply", clickEvent -> {
             try {
+        	if (dateTimePickerFrom.getValue() == null)  {
+        	    dateTimePickerFrom.setValue(LocalDateTime.now().minusDays(90));
+        	}
+        	if (dateTimePickerTo.getValue() == null)  {
+        	    dateTimePickerTo.setValue(LocalDateTime.now());
+        	}
                 showJobsFrom = Date.from(dateTimePickerFrom.getValue().atZone(ZoneId.systemDefault()).toInstant());
                 showJobsTo = Date.from(dateTimePickerTo.getValue().atZone(ZoneId.systemDefault()).toInstant());
                 filterJobGrid();
