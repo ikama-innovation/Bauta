@@ -7,6 +7,12 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 
+/**
+ * Generic confirmation dialog
+ * @author maar16
+ *
+ * @param <T>
+ */
 public class ConfirmDialog <T> {
     ConfirmDialogListener<T> callback;
     T payload;

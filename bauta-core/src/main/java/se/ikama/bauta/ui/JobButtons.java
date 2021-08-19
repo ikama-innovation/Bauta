@@ -23,18 +23,18 @@ import java.util.Map;
 
 @Slf4j
 public class JobButtons extends FlexLayout {
+    private static final long serialVersionUID = 1L;
     private BautaManager bautaManager;
-    private MainView mainView;
-
+    
     BasicJobInstanceInfo jobInstanceInfo;
 
-    private boolean start = false;
-
+    
     private Button startButton, stopButton, restartButton, infoButton, abandonButton;
 
     boolean enabled;
 
     private boolean confirmJobOperations;
+    private MainView mainView;
 
     public JobButtons(BasicJobInstanceInfo jobInstanceInfo, MainView mainView, BautaManager bautaManager) {
         this.mainView = mainView;

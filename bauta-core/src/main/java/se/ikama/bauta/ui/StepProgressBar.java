@@ -3,12 +3,13 @@ package se.ikama.bauta.ui;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.dom.Element;
+
 import se.ikama.bauta.core.BasicJobInstanceInfo;
-import se.ikama.bauta.core.JobInstanceInfo;
 
 
 @Tag("div")
 public class StepProgressBar extends Component {
+    private static final long serialVersionUID = 1L;
     Element unknownSection = new Element("div");
     Element completedSection = new Element("div");
     Element failedSection = new Element("div");

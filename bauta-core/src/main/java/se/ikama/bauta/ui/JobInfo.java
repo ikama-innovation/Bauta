@@ -10,14 +10,12 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Tag;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import se.ikama.bauta.core.BasicJobInstanceInfo;
 
 import se.ikama.bauta.core.BasicJobInstanceInfo;
 
 @Tag("div")
 public class JobInfo extends Component {
+    private static final long serialVersionUID = 1L;
     boolean expanded;
 
     public JobInfo(BasicJobInstanceInfo job) {
@@ -48,6 +46,7 @@ public class JobInfo extends Component {
 	    html.append("<li>Exit status: <div class='batch_status batch_status_label' data-status=" + job.getExitStatus() + ">" + job.getExitStatus() + "</div>");
 	if (job.getJobParameters() != null && job.getJobParameters().size() > 0 && expanded)
 	    html.append("<li>Params: ").append(job.getJobParameters().toString());
+	html.append("</ul>");
 	this.getElement().removeAllChildren();
 	this.getElement().appendChild(new Html(html.toString()).getElement());
     }
@@ -61,5 +60,9 @@ public class JobInfo extends Component {
 	} else {
 	    return DateFormatUtils.format(date, "yyMMdd HH:mm:ss", Locale.US);
 	}
+    }
+    
+    public void setExpanded(boolean expanded) {
+	this.expanded = expanded;
     }
 }

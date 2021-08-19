@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,6 +33,8 @@ import se.ikama.bauta.core.StepInfo;
 
 @Tag("div")
 public class StepFlow extends Component {
+    private static final long serialVersionUID = 1L;
+
     HashMap<String, Element> stepToElement = new HashMap<>();
 
     String jobName = "";
