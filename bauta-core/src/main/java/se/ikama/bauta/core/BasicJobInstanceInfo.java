@@ -5,10 +5,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.batch.core.BatchStatus;
 
 @Getter
 @Setter
@@ -80,4 +80,14 @@ public class BasicJobInstanceInfo {
     public boolean isRunning() {
         return StringUtils.equalsAny(executionStatus, "STARTED","STARTING");
     }
+    public boolean isCompleted() {
+        return StringUtils.equalsAny(executionStatus, "COMPLETED");
+    }
+    public boolean isFailed() {
+        return StringUtils.equalsAny(executionStatus, "FAILED");
+    }
+    public boolean isUnknown() {
+        return StringUtils.equalsAny(executionStatus, "UNKNOWN");
+    }
+    
 }

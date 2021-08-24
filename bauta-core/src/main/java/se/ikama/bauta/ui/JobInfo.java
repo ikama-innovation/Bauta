@@ -17,6 +17,7 @@ import se.ikama.bauta.core.BasicJobInstanceInfo;
 public class JobInfo extends Component {
     private static final long serialVersionUID = 1L;
     boolean expanded;
+    String executionStatus;
 
     public JobInfo(BasicJobInstanceInfo job) {
 
@@ -25,8 +26,8 @@ public class JobInfo extends Component {
     }
 
     public void update(BasicJobInstanceInfo job) {
-
-	StringBuilder html = new StringBuilder("<ul style='list-style: none'>");
+	this.executionStatus = job.getExecutionStatus();
+	StringBuilder html = new StringBuilder("<ul style='list-style: none;padding-inline-start: 0'>");
 
 	if (job.getInstanceId() != null && expanded)
 	    html.append("<li>Instance/Execution: " + job.getInstanceId() + "/" + job.getLatestExecutionId());

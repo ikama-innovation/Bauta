@@ -194,6 +194,7 @@
     display: table-cell;
     border-bottom: 1px solid var(--lumo-tint-10pct);
     padding: 10px;
+    min-width: 190px;
 }
 .job-grid-steps-cell {
     min-width: 500px;
