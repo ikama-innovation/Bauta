@@ -24,6 +24,9 @@ public class StepInfo {
     private Date startTime;
     private Date endTime;
     private ReadWriteInfo readWriteInfo;
+    private List<String> scriptFiles;
+    private List<String> scriptParameters;
+    private String action;
 
     public StepInfo(String name) {
         this.name = name;
