@@ -1,0 +1,18 @@
+bauta:
+  jobBeansDir: ${bauta.homeDir}/jobs
+  scriptDir: ${bauta.homeDir}/scripts
+  reportDir: ${bauta.homeDir}/reports
+  logDir: ${bauta.homeDir}/logs
+  application:
+    name: "Bauta demo"
+    title: "Bauta demo"
+    description: "Bauta demonstration application"
+    build: 1
+
+# Profile-specific properties for the profile "dev"    
+spring:
+    config:
+        activate:
+            on-profile: dev
+
+bauta.application.description: "dev specific description"
