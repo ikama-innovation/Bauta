@@ -59,7 +59,7 @@ public class MailNotificationJobListener implements JobExecutionListener, StepEx
     @Value("${bauta.version}")
     String version;
 
-    @Value("${spring.profiles.active}")
+    @Value("${spring.profiles.active:-}")
     String profile;
 
     ExecutorService sendMailExecutor = Executors.newSingleThreadExecutor();
