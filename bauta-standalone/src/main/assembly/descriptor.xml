@@ -3,6 +3,7 @@
     <id>distribution</id>
     <formats>
         <format>zip</format>
+        <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
@@ -15,44 +16,20 @@
             <outputDirectory>/</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>src/main/assembly/examples/jobs</directory>
+            <directory>src/main/assembly/examples</directory>
             <lineEnding>keep</lineEnding>
             <includes>
-                <include>*</include>
+                <include>**</include>
             </includes>
-            <outputDirectory>/examples/jobs</outputDirectory>
+            <outputDirectory>/examples</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>src/main/assembly/examples/scripts</directory>
+            <directory>src/main/assembly/home</directory>
             <lineEnding>keep</lineEnding>
             <includes>
-                <include>*</include>
+                <include>**</include>
             </includes>
-            <outputDirectory>/examples/scripts</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>src/main/assembly/home/jobs</directory>
-            <lineEnding>keep</lineEnding>
-            <includes>
-                <include>*</include>
-            </includes>
-            <outputDirectory>/bin/home/jobs</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>src/main/assembly/home/logs</directory>
-            <lineEnding>keep</lineEnding>
-            <includes>
-                <include>*</include>
-            </includes>
-            <outputDirectory>/bin/home/logs</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>src/main/assembly/home/scripts</directory>
-            <lineEnding>keep</lineEnding>
-            <includes>
-                <include>*</include>
-            </includes>
-            <outputDirectory>/bin/home/scripts</outputDirectory>
+            <outputDirectory>/home</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>src/main/assembly/start-scripts</directory>
@@ -67,6 +44,7 @@
             <lineEnding>keep</lineEnding>
             <includes>
                 <include>*.jar</include>
+                <include>application.yml</include>
             </includes>
             <outputDirectory>/bin</outputDirectory>
         </fileSet>

@@ -9,7 +9,7 @@
         <relativePath></relativePath>
     </parent>
     <artifactId>bauta-standalone</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.60-SNAPSHOT</version>
     <name>bauta-standalone</name>
     <description>Standalone version for Bauta</description>
     <properties>
@@ -59,6 +59,7 @@
     </dependencies>
 
     <build>
+    	<finalName>bauta-standalone</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
