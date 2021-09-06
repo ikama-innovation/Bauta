@@ -3,7 +3,6 @@
     <id>distribution</id>
     <formats>
         <format>zip</format>
-        <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
@@ -35,7 +34,7 @@
             <directory>src/main/assembly/start-scripts</directory>
             <lineEnding>keep</lineEnding>
             <includes>
-                <include>*</include>
+                <include>**</include>
             </includes>
             <outputDirectory>/bin</outputDirectory>
         </fileSet>
@@ -44,7 +43,6 @@
             <lineEnding>keep</lineEnding>
             <includes>
                 <include>*.jar</include>
-                <include>application.yml</include>
             </includes>
             <outputDirectory>/bin</outputDirectory>
         </fileSet>
