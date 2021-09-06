@@ -1,23 +1,5 @@
 package se.ikama.bauta.batch.tasklet.javascript;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.StreamSupport;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -25,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
@@ -40,8 +21,14 @@ import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
-
 import se.ikama.bauta.batch.tasklet.ReportUtils;
+
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 public class JavascriptTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
 
@@ -186,7 +173,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
                     if (environmentParams.size() > 0) {
                         environmentParams.forEach((key, val) -> {
-                            log.info("key: {}, value: {}", key, val);
                             if (key.equals("addProperties") && val.equals("true")) {
                                 addProperties = true;
                             } else if (key.equals("propertyRegex")) {
@@ -208,7 +194,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
                     Map<String, String> env = pb.environment();
-                    log.info("env params: {}", environmentParams);
                     if (environmentParams != null){
                         env.putAll(environmentParams);
                     }
