@@ -15,14 +15,6 @@
             <outputDirectory>/</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>src/main/assembly/examples</directory>
-            <lineEnding>keep</lineEnding>
-            <includes>
-                <include>**</include>
-            </includes>
-            <outputDirectory>/examples</outputDirectory>
-        </fileSet>
-        <fileSet>
             <directory>src/main/assembly/home</directory>
             <lineEnding>keep</lineEnding>
             <includes>
