@@ -16,10 +16,11 @@ then
 fi
 
 if [ $# -eq 0 ]; then
-    bautaHome="$DIR/home"
-    echo "home is $bautaHome"
     cd $DIR
-    java -Dbauta.homeDir=$bautaHome -Dbauta.jobBeansDir=$bautaHome/jobs -Dbauta.logDir=$bautaHome/logs -Dbauta.scriptDir=$bautaHome/scripts -Dbauta.reportDir=$bautaHome/reports -Dspring.profiles.active=demo -jar bauta-standalone-0.0.1-SNAPSHOT.jar
+    DIR=${DIR%"/bin"}
+    bautaHome="$DIR/home"
+    java -Dbauta.homeDir=$bautaHome -Dbauta.jobBeansDir=$bautaHome/jobs -Dbauta.logDir=$bautaHome/logs -Dbauta.scriptDir=$bautaHome/scripts -Dbauta.reportDir=$bautaHome/reports -Dspring.profiles.active=demo -jar bauta-standalone.jar
+    exit 1
 fi
 
 if [ -d "${homedir}" ]; then
@@ -54,7 +55,13 @@ fi
 if [[ $rel == "relative" ]] ; 
    then
    bautaHome="$DIR/$homedir"
-   java -Dbauta.homeDir=$bautaHome -Dbauta.jobBeansDir=$bautaHome/jobs -Dbauta.logDir=$bautaHome/logs -Dbauta.scriptDir=$bautaHome/scripts -Dbauta.reportDir=$bautaHome/reports -Dspring.profiles.active=demo -jar bauta-standalone-0.0.1-SNAPSHOT.jar
+   echo $bautaHome
+   cd bin
+   java -Dbauta.homeDir=$bautaHome -Dbauta.jobBeansDir=$bautaHome/jobs -Dbauta.logDir=$bautaHome/logs -Dbauta.scriptDir=$bautaHome/scripts -Dbauta.reportDir=$bautaHome/reports -Dspring.profiles.active=demo -jar bauta-standalone.jar
+   exit 1
 else
-   java -Dbauta.homeDir=$homedir -Dbauta.jobBeansDir=$homedir/jobs -Dbauta.logDir=$homedir/logs -Dbauta.scriptDir=$homedir/scripts -Dbauta.reportDir=$homedir/reports -Dspring.profiles.active=demo -jar bauta-standalone-0.0.1-SNAPSHOT.jar
+   echo $homedir
+   cd bin
+   java -Dbauta.homeDir=$homedir -Dbauta.jobBeansDir=$homedir/jobs -Dbauta.logDir=$homedir/logs -Dbauta.scriptDir=$homedir/scripts -Dbauta.reportDir=$homedir/reports -Dspring.profiles.active=demo -jar bauta-standalone.jar
+   exit 1
 fi

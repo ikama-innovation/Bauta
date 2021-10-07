@@ -1,15 +1,18 @@
-package se.ikama.bauta.batch.tasklet.javascript;
+package se.ikama.bauta.batch.tasklet.python;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
+import org.springframework.batch.core.step.tasklet.SystemProcessExitCodeMapper;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,14 +33,15 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
-public class JavascriptTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
+
+public class PythonTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
 
 
-    private static final Logger log = LoggerFactory.getLogger(JavascriptTasklet.class);
+    private static final Logger log = LoggerFactory.getLogger(PythonTasklet.class);
 
     private List<String> scriptFiles = null;
 
-    private String executable = "node";
+    private String executable = "python3";
 
     private static final String SCRIPT_PARAMETER_PREFIX_JOBPARAM = "jobparam.";
     private static final String SCRIPT_PARAMETER_PREFIX_ENV = "env.";
@@ -53,19 +57,46 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
     private long checkInterval = 300;
 
+    /**
+     * In order to properly stop the running python process, we need to kill the process on the OS level using kill/pkill.
+     * If you for some reason need to disable this feature, set this to false.
+     */
     private boolean killProcessesOnStop = true;
 
+    /**
+     * Kill signal to use when the python process is killed.
+     * Defaults to 15 (SIGTERM)
+     */
     private String killSignal = "15";
 
-    private boolean setExplicitCodepage = true;
+    /**
+     *
+     */
+    private boolean setExplicitCodepage = false;
+
+    private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
 
     private long currentExecutionId = -1;
 
+    /**
+     *
+     */
+    private String logSuffix = "log";
+
+    /**
+     * The name of the generated report/log file. Without file suffix.
+     */
+    private String reportName = null;
+
+    /**
+     * A unique id for the group of processes that are started for each script. The uid is added to the command line
+     * to make it possible to find and kill all processes with a command line containing this uid.
+     */
     private String processUid;
 
-    private boolean addProperties;
+    private boolean addProperties = false;
 
     private String propertyRegex = "";
 
@@ -75,26 +106,37 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
     @Value("${bauta.reportDir}")
     protected String reportDir;
 
-
+    /**
+     * Execute system executable (python ..) and map its exit code to {@link ExitStatus}
+     * using {@link SystemProcessExitCodeMapper}.
+     */
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-        log.debug("execute..");
-        stopping = false;
-        String logFileName = "nodejs.log";
+        StringBuilder reportFileName = new StringBuilder();
+        if (reportName != null) {
+            reportFileName.append(reportName);
+        }
+        else {
+            reportFileName.append(contribution.getStepExecution().getStepName());
+        }
+        reportFileName.append(".").append(logSuffix);
+
         StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
-        File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, logFileName);
+        File logFile = ReportUtils.generateReportFile(reportDir, stepExecution, reportFileName.toString());
         if (stepExecution.getJobExecutionId() != currentExecutionId) {
-            this.currentExecutionId = stepExecution.getJobExecutionId();
+            currentExecutionId = stepExecution.getJobExecutionId();
             log.debug("Setting up log urls");
             FileUtils.forceMkdirParent(logFile);
             // Delete file if it exists. Could happen if this is a re-run.
             FileUtils.deleteQuietly(logFile);
             List<String> urls = new ArrayList<>();
-            urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
+            urls.add(ReportUtils.generateReportUrl(stepExecution, reportFileName.toString()));
             chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
             log.debug("Setting log urls in execution context {}", urls);
             return RepeatStatus.CONTINUABLE;
         }
+
+        stopping = false;
 
         log.debug("scriptParameters: {}", scriptParameters);
         ArrayList<String> scriptParameterValues = new ArrayList<>();
@@ -126,13 +168,14 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
         for (String scriptFile : scriptFiles) {
             log.debug("Handling {}", scriptFile);
-            try (PrintWriter pw = new PrintWriter(new FileWriter(logFile, true))) {
-                String line = StringUtils.repeat("-", scriptFile.length());
-                pw.println(line);
-                pw.println(scriptFile + ":");
-                pw.println(line);
-                pw.flush();
-
+            if (StringUtils.equals(logSuffix, "log")) {
+                try (PrintWriter pw = new PrintWriter(new FileWriter(logFile, true))) {
+                    String line = StringUtils.repeat("-", scriptFile.length());
+                    pw.println(line);
+                    pw.println(scriptFile + ":");
+                    pw.println(line);
+                    pw.flush();
+                }
             }
             FutureTask<Integer> systemCommandTask = new FutureTask<Integer>(new Callable<Integer>() {
 
@@ -140,7 +183,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|"+executable+" " + scriptFile+" "+scriptParams;
+                    String cmd = "exit|"+executable+" "+scriptFile+" "+scriptParams;
                     if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -193,11 +236,19 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     log.debug("Command is: " + StringUtils.join(commands, ","));
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
+                    String jobInstanceId = Long.toString(contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
+                    String jobExecutionId = Long.toString(contribution.getStepExecution().getJobExecution().getId());
+                    String jobName = contribution.getStepExecution().getJobExecution().getJobInstance().getJobName();
+                    String stepName = contribution.getStepExecution().getStepName();
                     Map<String, String> env = pb.environment();
+                    env.put("BAUTA_JOB_INSTANCE_ID", jobInstanceId);
+                    env.put("BAUTA_JOB_EXECUTION_ID", jobExecutionId);
+                    env.put("BAUTA_STEP_NAME", stepName);
+                    env.put("BAUTA_JOB_NAME", jobName);
                     if (environmentParams != null){
                         env.putAll(environmentParams);
+                        log.debug("environmentParams: {}", environmentParams);
                     }
-                    log.debug("environmentParams: {}", environmentParams);
                     log.debug("Environment: {}", pb.environment());
 
                     pb.directory(scriptDir);
@@ -208,10 +259,11 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     Process process = pb.start();
                     log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
                     try {
+                        log.warn("Process exit code: {}", process.waitFor());
                         return process.waitFor();
                     }
                     catch(InterruptedException ie) {
-                        log.debug("Interrupted. Trying to close Javascript process..");
+                        log.debug("Interrupted. Trying to close python process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
@@ -242,7 +294,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     checkForErrorsInLog(logFile);
 
                     if (exitCode != 0) {
-                        throw new JobExecutionException("Javascript exited with code " + exitCode);
+                        throw new JobExecutionException("python exited with code " + exitCode);
                     }
                     break;
                 } else if (System.currentTimeMillis() - t0 > timeout) {
@@ -250,7 +302,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                 } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
                     kill (systemCommandTask, "terminateOnly");
                 } else if (stopping) {
-                    // We are in the middle of executing a Javascript script.
+                    // We are in the middle of executing a python script.
                     // Only thing we can do is to terminate the processes that have been started.
                     stopping = false;
                     kill(systemCommandTask, "stop");
@@ -264,11 +316,19 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         return System.getProperty("os.name").toLowerCase().contains("win");
     }
 
+    /**
+     * Checks the log file for errors that should result in a step failure.
+     *
+     * @param logFile
+     * @throws JobExecutionException If errors are found in the log file.
+     */
     private void checkForErrorsInLog(File logFile) throws JobExecutionException {
         try (LineNumberReader reader = new LineNumberReader(new InputStreamReader(new FileInputStream(logFile)))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
-                log.debug("line in log: {}", line);
+                //if (line.startsWith("Error")) {
+                //    throw new JobExecutionException("There were python errors: " + line);
+                //}
 
             }
         } catch (IOException ioe) {
@@ -276,14 +336,23 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         }
     }
 
+    /**
+     * @param executable executable to be executed in a separate system process
+     */
     public void setExecutable(String executable) {
         this.executable = executable;
     }
 
+    /**
+     * @param envp environment parameter values, inherited from parent process when not set (or set to null).
+     */
     public void setEnvironmentParams(Map<String, String> envp) {
         this.environmentParams = envp;
     }
 
+    /**
+     * @param dir working directory of the spawned process, inherited from parent process when not set (or set to null).
+     */
     public void setScriptDir(String dir) {
         if (dir == null) {
             this.scriptDir = null;
@@ -304,15 +373,33 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    
+    public void setJobExplorer(JobExplorer jobExplorer) {
+        this.jobExplorer = jobExplorer;
+    }
+
+    /**
+     * Timeout in milliseconds.
+     *
+     * @param timeout upper limit for how long the execution of the external program is allowed to last.
+     */
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
 
+    /**
+     * The time interval how often the tasklet will check for termination status.
+     *
+     * @param checkInterval time interval in milliseconds (1 second by default).
+     */
     public void setTerminationCheckInterval(long checkInterval) {
         this.checkInterval = checkInterval;
     }
 
+    /**
+     * Will try to interrupt the thread executing the system executable.
+     *
+     * @see StoppableTasklet#stop()
+     */
     @Override
     public void stop() {
         log.debug("Stop executable received");
@@ -352,6 +439,10 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         }
     }
 
+    /**
+     * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
+     * convenient in the Spring configuration.
+     */
     public void setScriptFile(String scriptFile) {
         if (this.scriptFiles == null) {
             ArrayList<String> scriptFiles = new ArrayList<>();
@@ -366,28 +457,35 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         this.scriptFiles = scriptFiles;
     }
 
+
+    /**
+     * A list of script parameters to be passed to the script. Equivalent to "python myscript.py param1 param2".
+     *
+     * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
+     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
+     */
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;
     }
 
-    /**
-     * Add Spring properties as environment variables when executing the script. 
-     * If you dont want to add all properties, see {@link #setPropertyRegex(String)}
-     * @param addProperties
-     */
-	public void setAddProperties(boolean addProperties) {
-		this.addProperties = addProperties;
-	}
 
-	/**
-	 * If {@link #addProperties} is set to true, only Spring properties matching the provided regexp will be added as environment variables.
-	 * @param propertyRegex
-	 */
-	public void setPropertyRegex(String propertyRegex) {
-		this.propertyRegex = propertyRegex;
-	}
-    
-    
+    public void setKillProcessesOnStop(boolean killProcessesOnStop) {
+        this.killProcessesOnStop = killProcessesOnStop;
+    }
 
+    public void setKillSignal(String killSignal) {
+        this.killSignal = killSignal;
+    }
 
+    public void setSetExplicitCodepage(boolean setExplicitCodepage) {
+        this.setExplicitCodepage = setExplicitCodepage;
+    }
+
+    public void setLogSuffix(String logSuffix) {
+        this.logSuffix = logSuffix;
+    }
+
+    public void setReportName(String reportName) {
+        this.reportName = reportName;
+    }
 }
