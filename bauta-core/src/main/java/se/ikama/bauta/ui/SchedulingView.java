@@ -76,7 +76,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
     private Set<JobTrigger> selectedJobTriggers;
 
-    Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, exportButton, importButton;
+    Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, exportButton, importButton, graphButton;
     Label lAdminInfo;
     Anchor exportLink;
 
@@ -156,6 +156,10 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	exportLink.add(new Button("Export", new Icon(VaadinIcon.DOWNLOAD_ALT)));
 	buttons.add(exportLink);
 
+	graphButton = new Button("Show graph", clickEvent -> {
+	    showGraph();
+	});
+	buttons.add(graphButton);
 	add(buttons);
 	lAdminInfo = new Label("You need to be ADMIN in order to edit triggers");
 	lAdminInfo.getStyle().set("color", "var(--lumo-primary-text-color)");
@@ -557,5 +561,12 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	logs = jobTriggerDao.loadLog(100);
 	logGrid.setItems(logs);
 	updateButtonState();
+    }
+    private void showGraph() {
+	Dialog dialog = new Dialog(new SchedulingGraphView());
+	dialog.setWidth("1300px");
+	dialog.setHeight("500px");
+	dialog.open();
+	
     }
 }

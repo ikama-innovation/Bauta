@@ -81,7 +81,12 @@
                     <artifactId>vaadin-core</artifactId></exclusion>
             </exclusions>
         </dependency>
-        <dependency>
+		<dependency>
+			<groupId>com.github.martinprause.cytoscape</groupId>
+			<artifactId>cytoscape-addon</artifactId>
+			<version>0.0.9</version>
+		</dependency>
+		<dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <optional>true</optional>
