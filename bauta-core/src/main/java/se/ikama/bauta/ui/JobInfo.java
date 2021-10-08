@@ -18,35 +18,40 @@ public class JobInfo extends Component {
     private static final long serialVersionUID = 1L;
     boolean expanded;
     String executionStatus;
+    BasicJobInstanceInfo jobInstanceInfo;
 
     public JobInfo(BasicJobInstanceInfo job) {
-
+	this.jobInstanceInfo = job;
 	getElement().setAttribute("class", "job-info");
-	update(job);
+	update();
     }
 
-    public void update(BasicJobInstanceInfo job) {
-	this.executionStatus = job.getExecutionStatus();
+    public void update(BasicJobInstanceInfo job)  {
+	this.jobInstanceInfo = job;
+	update();
+    }
+    public void update() {
+	this.executionStatus = jobInstanceInfo.getExecutionStatus();
 	StringBuilder html = new StringBuilder("<ul style='list-style: none;padding-inline-start: 0'>");
 
-	if (job.getInstanceId() != null && expanded)
-	    html.append("<li>Instance/Execution: " + job.getInstanceId() + "/" + job.getLatestExecutionId());
-	if (job.getExecutionCount() > 0 && expanded)
-	    html.append("<li>Executions: " + job.getExecutionCount());
-	if (job.getExecutionStatus() != null)
-	    html.append("<li>Status: <div class='batch_status batch_status_label' data-status=" + job.getExecutionStatus() + ">" + job.getExecutionStatus() + "</div>");
-	if (job.getStartTime() != null)
-	    html.append("<li>Started: ").append(formatDate(job.getStartTime()));
-	if (job.getEndTime() != null)
-	    html.append("<li>Ended: ").append(formatDate(job.getEndTime()));
-	if (job.getLatestDuration() > 0 && expanded)
-	    html.append("<li>Latest Duration: ").append(DurationFormatUtils.formatDuration(job.getLatestDuration(), "HH:mm:ss"));
-	if (job.getDuration() > 0 && expanded)
-	    html.append("<li>Total Duration: ").append(DurationFormatUtils.formatDuration(job.getDuration(), "HH:mm:ss"));
-	if (job.getExitStatus() != null && !"UNKNOWN".equals(job.getExitStatus()) && expanded)
-	    html.append("<li>Exit status: <div class='batch_status batch_status_label' data-status=" + job.getExitStatus() + ">" + job.getExitStatus() + "</div>");
-	if (job.getJobParameters() != null && job.getJobParameters().size() > 0 && expanded)
-	    html.append("<li>Params: ").append(job.getJobParameters().toString());
+	if (jobInstanceInfo.getInstanceId() != null && expanded)
+	    html.append("<li>Instance/Execution: " + jobInstanceInfo.getInstanceId() + "/" + jobInstanceInfo.getLatestExecutionId());
+	if (jobInstanceInfo.getExecutionCount() > 0 && expanded)
+	    html.append("<li>Executions: " + jobInstanceInfo.getExecutionCount());
+	if (jobInstanceInfo.getExecutionStatus() != null)
+	    html.append("<li>Status: <div class='batch_status batch_status_label' data-status=" + jobInstanceInfo.getExecutionStatus() + ">" + jobInstanceInfo.getExecutionStatus() + "</div>");
+	if (jobInstanceInfo.getStartTime() != null)
+	    html.append("<li>Started: ").append(formatDate(jobInstanceInfo.getStartTime()));
+	if (jobInstanceInfo.getEndTime() != null)
+	    html.append("<li>Ended: ").append(formatDate(jobInstanceInfo.getEndTime()));
+	if (jobInstanceInfo.getLatestDuration() > 0 && expanded)
+	    html.append("<li>Latest Duration: ").append(DurationFormatUtils.formatDuration(jobInstanceInfo.getLatestDuration(), "HH:mm:ss"));
+	if (jobInstanceInfo.getDuration() > 0 && expanded)
+	    html.append("<li>Total Duration: ").append(DurationFormatUtils.formatDuration(jobInstanceInfo.getDuration(), "HH:mm:ss"));
+	if (jobInstanceInfo.getExitStatus() != null && !"UNKNOWN".equals(jobInstanceInfo.getExitStatus()) && expanded)
+	    html.append("<li>Exit status: <div class='batch_status batch_status_label' data-status=" + jobInstanceInfo.getExitStatus() + ">" + jobInstanceInfo.getExitStatus() + "</div>");
+	if (jobInstanceInfo.getJobParameters() != null && jobInstanceInfo.getJobParameters().size() > 0 && expanded)
+	    html.append("<li>Params: ").append(jobInstanceInfo.getJobParameters().toString());
 	html.append("</ul>");
 	this.getElement().removeAllChildren();
 	this.getElement().appendChild(new Html(html.toString()).getElement());
