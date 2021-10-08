@@ -25,6 +25,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -76,11 +77,22 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
     private Set<JobTrigger> selectedJobTriggers;
 
-    Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, exportButton, importButton;
+    Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton,importButton;
+    Checkbox enabledCheckbox;
     Label lAdminInfo;
     Anchor exportLink;
+    
+    private boolean schedulingEnabled = false;
 
     public SchedulingView() {
+	enabledCheckbox = new Checkbox("Scheduling enabled", valueChangedEvent -> {
+	    Boolean newValue = valueChangedEvent.getValue();
+	    if (newValue != null) {
+		schedulingEnabled = bautaManager.setSchedulingEnabled(newValue);
+		update();
+	    }
+	});
+	add(enabledCheckbox);
 	triggerGrid = new Grid<>();
 	triggerGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
 	Grid.Column<JobTrigger> jobNameColumn = triggerGrid.addColumn(JobTrigger::getJobName).setHeader("Job Name").setSortable(true);
@@ -129,9 +141,9 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	buttons.add(addJobCompletionOrFailureButton);
 	MemoryBuffer buffer = new MemoryBuffer();
 	Upload upload = new Upload(buffer);
-	Button uploadButton = new Button("Import");
-	uploadButton.setIcon(VaadinIcon.UPLOAD_ALT.create());
-	upload.setUploadButton(uploadButton);
+	importButton = new Button("Import");
+	importButton.setIcon(VaadinIcon.UPLOAD_ALT.create());
+	upload.setUploadButton(importButton);
 	upload.setDropAllowed(false);
 	upload.setMaxFiles(1);
 
@@ -196,7 +208,14 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
+	this.schedulingEnabled = bautaManager.isSchedulingEnabled();
+	this.enabledCheckbox.setValue(this.schedulingEnabled);
 	update();
+    }
+    
+    @PostConstruct
+    private void init() {
+	this.schedulingEnabled = bautaManager.isSchedulingEnabled();
     }
 
     private com.vaadin.flow.component.Component createTimestampColumn(Date timestamp) {
@@ -253,11 +272,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
     }
 
-    @PostConstruct
-    public void init() {
-	update();
-    }
-
+    
     @Override
     public void selectionChange(SelectionEvent<Grid<JobTrigger>, JobTrigger> selectionEvent) {
 	updateButtonState();
@@ -266,20 +281,24 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
     private void updateButtonState() {
 	if (SecurityUtils.isUserInRole("ADMIN")) {
 	    selectedJobTriggers = triggerGrid.getSelectionModel().getSelectedItems();
-	    removeButton.setEnabled(selectedJobTriggers.size() > 0);
-	    editButton.setEnabled(selectedJobTriggers.size() == 1);
-	    addCronButton.setEnabled(true);
-	    addJobCompletionButton.setEnabled(true);
-	    addJobCompletionOrFailureButton.setEnabled(true);
-
+	    removeButton.setEnabled(selectedJobTriggers.size() > 0 && this.schedulingEnabled);
+	    editButton.setEnabled(selectedJobTriggers.size() == 1 && this.schedulingEnabled);
+	    addCronButton.setEnabled(this.schedulingEnabled);
+	    addJobCompletionButton.setEnabled(this.schedulingEnabled);
+	    addJobCompletionOrFailureButton.setEnabled(this.schedulingEnabled);
+	    importButton.setEnabled(this.schedulingEnabled);
+	    exportLink.setEnabled(this.schedulingEnabled);
+	    
 	    lAdminInfo.setVisible(false);
 	} else {
-	    lAdminInfo.setVisible(true);
+	    lAdminInfo.setVisible(this.schedulingEnabled);
 	    removeButton.setEnabled(false);
 	    editButton.setEnabled(false);
 	    addCronButton.setEnabled(false);
 	    addJobCompletionButton.setEnabled(false);
 	    addJobCompletionOrFailureButton.setEnabled(false);
+	    importButton.setEnabled(false);
+	    exportLink.setEnabled(false);
 	}
     }
 
@@ -556,6 +575,11 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	triggerGrid.setItems(triggers);
 	logs = jobTriggerDao.loadLog(100);
 	logGrid.setItems(logs);
+	updateEnabledState();
+    }
+    private void updateEnabledState() {
+	triggerGrid.setEnabled(this.schedulingEnabled);
+	logGrid.setEnabled(this.schedulingEnabled);
 	updateButtonState();
     }
 }
