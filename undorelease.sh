@@ -26,3 +26,6 @@ cd ..
 cd bauta-starter
 sed -i "s/${releaseVersion}/${releaseVersion}-SNAPSHOT/g" pom.xml
 cd ..
+cd bauta-standalone
+sed -i "s/${releaseVersion}/${releaseVersion}-SNAPSHOT/g" pom.xml
+cd ..
