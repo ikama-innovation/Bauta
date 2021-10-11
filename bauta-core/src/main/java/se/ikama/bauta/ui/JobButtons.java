@@ -18,6 +18,7 @@ import org.springframework.batch.core.launch.NoSuchJobException;
 import se.ikama.bauta.core.BasicJobInstanceInfo;
 import se.ikama.bauta.core.BautaManager;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,8 +44,11 @@ public class JobButtons extends FlexLayout {
         this.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
         FlexLayout hl = new FlexLayout();
         startButton = new Button("", clickEvent -> {
-            if (confirmJobOperations)
-                openConfirmDialog("start", this.jobInstanceInfo, this::doStartJob);
+            if (bautaManager.isSchedulingEnabled() && mainView.jobTriggerDao.hasTriggers(jobInstanceInfo.getName())) {
+        	openConfirmDialog("Scheduling is enabled and job " +jobInstanceInfo.getName()+ " triggers other jobs. Sure you want to start?", this.jobInstanceInfo, this::doStartJob);
+            }
+            else if (confirmJobOperations)
+        	openConfirmDialog("Are you sure you want to start job " +jobInstanceInfo.getName()+ "?", this.jobInstanceInfo, this::doStartJob);
             else
                 doStartJob(this.jobInstanceInfo);
         });
@@ -55,7 +59,7 @@ public class JobButtons extends FlexLayout {
 
         stopButton = new Button("", clickEvent -> {
             if (confirmJobOperations)
-                openConfirmDialog("stop",  this.jobInstanceInfo, this::doStopJob);
+                openConfirmDialog("Are you sure you want to stop job " +jobInstanceInfo.getName()+ "?",  this.jobInstanceInfo, this::doStopJob);
             else
                 doStopJob(this.jobInstanceInfo);
         });
@@ -67,7 +71,7 @@ public class JobButtons extends FlexLayout {
 
         restartButton = new Button("", clickEvent -> {
             if (confirmJobOperations)
-                openConfirmDialog("restart", this.jobInstanceInfo, this::doRestartJob);
+                openConfirmDialog("Are you sure you want to restart job " +jobInstanceInfo.getName()+ "?", this.jobInstanceInfo, this::doRestartJob);
             else
                 doRestartJob(this.jobInstanceInfo);
         });
@@ -79,7 +83,7 @@ public class JobButtons extends FlexLayout {
 
         abandonButton = new Button("", clickEvent -> {
             if (confirmJobOperations)
-                openConfirmDialog("abandon", this.jobInstanceInfo, this::doAbandonJob);
+                openConfirmDialog("Are you sure you want to abandon job " +jobInstanceInfo.getName()+ "?", this.jobInstanceInfo, this::doAbandonJob);
             else
                 doAbandonJob(this.jobInstanceInfo);
         });
@@ -267,7 +271,9 @@ public class JobButtons extends FlexLayout {
     }
 
     private void openConfirmDialog(String text, BasicJobInstanceInfo item, ConfirmDialog.ConfirmDialogListener<BasicJobInstanceInfo> function) {
-        ConfirmDialog<BasicJobInstanceInfo> dialog = new ConfirmDialog<>("Are you sure you want to " + text + " job " +item.getName()+ "?", item, function);
+        ConfirmDialog<BasicJobInstanceInfo> dialog = new ConfirmDialog<>(text, item, function);
         dialog.open();
     }
+    
+    
 }

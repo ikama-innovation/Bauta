@@ -70,6 +70,11 @@ public class JobTriggerDao implements RowMapper<JobTrigger> {
         List<JobTrigger> out = template.query("select ID,JOB_NAME, TRIGGER_TYPE,TRIGGERING_JOB_NAME, CRON, JOB_PARAMETERS from SCHEDULING_TRIGGER  where TRIGGERING_JOB_NAME=?", args, this);
         return out;
     }
+    
+    public boolean hasTriggers(String jobName) {
+	List<JobTrigger> triggers = getJobCompletionTriggersFor(jobName);
+	return triggers != null &&  triggers.size() > 0;
+    }
 
     public void logSuccess(JobTrigger jt) {
         log(jt, "SUCCESS", null);
