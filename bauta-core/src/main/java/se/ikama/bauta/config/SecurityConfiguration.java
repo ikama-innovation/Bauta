@@ -141,7 +141,6 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 "/webjars/**",
 
                 // (development mode) H2 debugging console
-                "/reports/**",
                 "/static/**",
 
                 // (production mode) static resources
