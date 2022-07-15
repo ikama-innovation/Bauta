@@ -16,6 +16,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import se.ikama.bauta.batch.JobParametersProvider;
+import se.ikama.bauta.core.dao.AppSettingsDao;
 import se.ikama.bauta.core.metadata.JobMetadata;
 import se.ikama.bauta.core.metadata.JobMetadataReader;
 import se.ikama.bauta.core.metadata.StepMetadata;
@@ -84,7 +85,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
     @Autowired
     JobTriggerDao jobTriggerDao;
-
+    
+    @Autowired 
+    AppSettingsDao appSettingsDao;
+    
     @Autowired
     public JobMetadataReader jobMetadataReader;
 
@@ -344,6 +348,10 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     }
 
     private void handleJobCompletionTriggers(String completedJobName, BatchStatus batchStatus) {
+	if (!this.isSchedulingEnabled()) {
+	    log.debug("Scheduling is disabled. No triggering");
+	    return;
+	}
         log.debug("Handling jobCompletionTriggers for {}, {}", completedJobName, batchStatus);
         List<JobTrigger> jobTriggers = jobTriggerDao.getJobCompletionTriggersFor(completedJobName);
         log.debug("Found {} job triggers for {} ", jobTriggers.size(), completedJobName);
@@ -843,5 +851,13 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             sb.append(" ").append(env.getProperty("bauta.application.version"));
         }
         return  sb.toString();
+    }
+    
+    public boolean isSchedulingEnabled() {
+	return this.appSettingsDao.getBooleanSetting("schedulingEnabled");
+    }
+    public boolean setSchedulingEnabled(boolean enabled) {
+	this.appSettingsDao.setBooleanSetting("schedulingEnabled", enabled);
+	return enabled;
     }
 }

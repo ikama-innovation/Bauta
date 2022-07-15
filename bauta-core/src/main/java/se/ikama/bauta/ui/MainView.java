@@ -135,8 +135,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     private ComboBox<String> cbSortingList;
     private ComboBox<String> cbShowTimeList;
     private String sortingValue = "";
-    private static Date showJobsFrom = new Date(0);
-    private static Date showJobsTo = new Date();
+    private static Date showJobsFrom = null;
+    private static Date showJobsTo = null;
     private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
     private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
     private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
@@ -215,6 +215,9 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     }
 
     private void filterJobGrid() {
+	if (showJobsFrom == null) showJobsFrom = new Date(0);
+	if (showJobsTo == null) showJobsFrom = new Date();
+	
 	jobGrid.getChildren().forEach(component -> {
 	    String jobName = component.getElement().getAttribute("data-job-name");
 	    String jobStatus = component.getElement().getAttribute("data-execution-status");
@@ -501,7 +504,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    }
 	    filterJobGrid();
 	});
-
+	showJobsTo = new Date();
 	cbShowTimeList = new ComboBox<>();
 	cbShowTimeList.setLabel("Time:");
 	cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week", "Custom");
@@ -646,13 +649,13 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    if (expandedJobs.remove(item.getName())) {
 		stepFlow.setVisible(false);
 		jobInfo.setExpanded(false);
-		jobInfo.update(item);
+		jobInfo.update();
 		bExpand.setIcon(new Icon(VaadinIcon.ANGLE_DOWN));
 	    } else {
 		expandedJobs.add(item.getName());
 		stepFlow.setVisible(true);
 		jobInfo.setExpanded(true);
-		jobInfo.update(item);
+		jobInfo.update();
 		bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
 	    }
 	    // A trick to force the grid to resize

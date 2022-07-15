@@ -34,6 +34,9 @@ cd ..
 cd bauta-starter
 sed -i "s/${releaseVersion}/${developmentVersion}-SNAPSHOT/g" pom.xml
 cd ..
+cd bauta-standalone
+sed -i "s/${releaseVersion}/${developmentVersion}-SNAPSHOT/g" pom.xml
+cd ..
 
 git add .
 git commit -m "Bumped to snapshot version"

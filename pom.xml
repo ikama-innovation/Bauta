@@ -4,7 +4,7 @@
 
     <groupId>se.ikama</groupId>
     <artifactId>bauta</artifactId>
-    <version>0.0.68-SNAPSHOT</version>
+    <version>0.0.69-SNAPSHOT</version>
     <name>bauta</name>
     <packaging>pom</packaging>
     <description>Bauta is a batch automation framework based on Spring Batch.</description>
@@ -211,6 +211,7 @@
                                 <serverId>ossrh</serverId>
                                 <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                                 <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                                <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                             </configuration>
                         </plugin>
                     </plugins>
