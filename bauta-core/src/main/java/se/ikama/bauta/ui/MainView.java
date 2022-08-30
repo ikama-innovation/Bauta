@@ -1,41 +1,5 @@
 package se.ikama.bauta.ui;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
-import org.springframework.batch.core.launch.NoSuchJobException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.security.access.annotation.Secured;
-
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -52,14 +16,7 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H4;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.html.ListItem;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -81,15 +38,35 @@ import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.shared.communication.PushMode;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
-
-import se.ikama.bauta.core.BasicJobInstanceInfo;
-import se.ikama.bauta.core.BautaManager;
-import se.ikama.bauta.core.JobEventListener;
-import se.ikama.bauta.core.JobInstanceInfo;
-import se.ikama.bauta.core.StepInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
+import org.springframework.batch.core.launch.NoSuchJobException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.security.access.annotation.Secured;
+import se.ikama.bauta.core.*;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.security.SecurityUtils;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Push(value = PushMode.MANUAL)
 @Route("")
@@ -145,6 +122,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     private HashSet<String> runningJobs = new HashSet<>();
     private HashSet<String> scheduledJobs = new HashSet<>();
     private Div jobCountBar;
+    private Div componentDiv;
+    private GanttChart vegaPoc;
     
     public MainView(@Autowired SchedulingView schedulingView) {
 	log.debug("Constructing main view. Hashcode: {}", this.hashCode());
@@ -155,6 +134,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     protected void onAttach(AttachEvent attachEvent) {
 	String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
 	String address = attachEvent.getSession().getBrowser().getAddress();
+	this.vegaPoc.setBautaManager(bautaManager);
 	if (SecurityUtils.isSecurityEnabled()) {
 	    miUser.setText("" + SecurityUtils.currentUser());
 	    miUser.addComponentAsFirst(VaadinIcon.USER.create());
@@ -347,15 +327,23 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	// Scheduling
 	Tab schedulingTab = new Tab("Scheduling");
 
+	//web-component
+	Tab componentTab = new Tab("Gantt-chart");
+	this.vegaPoc = new GanttChart();
+	Component componentPage = createComponentView(this.vegaPoc);
+	componentPage.setVisible(false);
+	componentTab.setVisible(true);
+
 	tabsToPages.put(jobTab, jobPage);
 	tabsToPages.put(aboutTab, aboutPage);
 	tabsToPages.put(schedulingTab, schedulingView);
+	tabsToPages.put(componentTab, componentPage);
 	schedulingView.setVisible(false);
 
-	Tabs tabs = new Tabs(jobTab, schedulingTab, aboutTab);
+	Tabs tabs = new Tabs(jobTab, schedulingTab, aboutTab, componentTab);
 	tabs.setSelectedTab(jobTab);
 	tabs.setOrientation(Tabs.Orientation.VERTICAL);
-	Div pages = new Div(jobPage, schedulingView, aboutPage);
+	Div pages = new Div(jobPage, schedulingView, aboutPage, componentPage);
 	pages.setHeightFull();
 	Set<Component> pagesShown = Stream.of(jobPage).collect(Collectors.toSet());
 	tabs.addSelectedChangeListener(event -> {
@@ -366,6 +354,9 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    selectedPage.setVisible(true);
 
 	    pagesShown.add(selectedPage);
+	    if (selectedPage == componentPage) {
+	    	this.vegaPoc.renderGraph();
+		}
 	});
 	this.addToDrawer(tabs);
 	try {
@@ -447,7 +438,22 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 
     }
 
-    private Component createUserMenu() {
+	private Component createComponentView(GanttChart poc) {
+		VerticalLayout vl = new VerticalLayout();
+		HorizontalLayout hl = new HorizontalLayout();
+		hl.setPadding(false);
+		hl.setMargin(false);
+		hl.setSpacing(true);
+		hl.setHeightFull();
+		vl.setWidthFull();
+		vl.add(hl);
+		componentDiv = poc;
+		componentDiv.addClassNames("component-div");
+		vl.add(componentDiv);
+		return vl;
+	}
+
+	private Component createUserMenu() {
 	Label lSignout = new Label("Logout");
 	lSignout.addComponentAsFirst(VaadinIcon.SIGN_OUT.create());
 	Anchor logout = new Anchor("../logout", lSignout);
