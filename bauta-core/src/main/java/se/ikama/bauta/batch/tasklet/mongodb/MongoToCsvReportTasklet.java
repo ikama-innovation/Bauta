@@ -5,11 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
-import java.sql.ResultSet;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -41,6 +37,7 @@ import se.ikama.bauta.batch.tasklet.ReportTasklet;
 public class MongoToCsvReportTasklet extends ReportTasklet implements ReportGenerator, InitializingBean {
 	private String collectionName;
 	private String jsonQuery;
+	private String fields = null;
 	private String reportName;
 	private String reportFilename;
 
@@ -76,7 +73,7 @@ public class MongoToCsvReportTasklet extends ReportTasklet implements ReportGene
 
 		try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile),
 				Charset.forName(encoding).newEncoder()); CSVPrinter csvPrinter = new CSVPrinter(writer, format)) {
-			Query query = new BasicQuery(jsonQuery);
+			Query query = new BasicQuery(jsonQuery, fields);
 			Meta meta = new Meta();
 			meta.setMaxTime(Duration.ofMillis(queryTimeout));
 			meta.setCursorBatchSize(cursorBatchSize);

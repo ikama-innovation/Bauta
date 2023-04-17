@@ -19,73 +19,51 @@ import com.vaadin.flow.spring.SpringServlet;
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
 
-    @Autowired
-    ApplicationContext applicationContext;
-    
-    @Value("${bauta.reportDir}")
-    String reportDir;
+	@Autowired
+	ApplicationContext applicationContext;
 
-    Logger log = LoggerFactory.getLogger(this.getClass().getName());
+	@Value("${bauta.reportDir}")
+	String reportDir;
 
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Giving access to report files
-        String reportURI = reportDir.startsWith("/") ? ("file://" + reportDir) : ("file:///" + reportDir);
-        if (!reportURI.endsWith("/")) {
-            reportURI = reportURI + "/";
-        }
-        log.info("Mapping /reports/** to '{}'", reportURI);
-        registry.addResourceHandler("/reports/**").addResourceLocations(reportURI);
-        registry.addResourceHandler("/static/images/**").addResourceLocations("classpath:/static/images/");
-        registry.addResourceHandler("/static/css/**").addResourceLocations("classpath:/static/css/");
+	Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
+	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		// Giving access to report files
+		String reportURI = reportDir.startsWith("/") ? ("file://" + reportDir) : ("file:///" + reportDir);
+		if (!reportURI.endsWith("/")) {
+			reportURI = reportURI + "/";
+		}
+		log.info("Mapping /reports/** to '{}'", reportURI);
+		registry.addResourceHandler("/reports/**").addResourceLocations(reportURI);
+		registry.addResourceHandler("/static/images/**").addResourceLocations("classpath:/static/images/");
+		registry.addResourceHandler("/static/css/**").addResourceLocations("classpath:/static/css/");
 
-    }
+	}
 
-    @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE-1)
-    public ServletRegistrationBean<SpringServlet> vaadinServletBean() {
+	@Bean
+	@Order(Ordered.LOWEST_PRECEDENCE - 1)
+	public ServletRegistrationBean<SpringServlet> vaadinServletBean() {
 
+		SpringServlet springServlet = new SpringServlet(applicationContext, true);
+		ServletRegistrationBean<SpringServlet> bean = new ServletRegistrationBean<>(springServlet, "/vaadin/*");
+		bean.setAsyncSupported(true);
+		bean.setName("springServlet");
+		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads", "10");
+		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads", "10");
 
-        SpringServlet springServlet = new SpringServlet(applicationContext, true);
-        ServletRegistrationBean<SpringServlet> bean = new ServletRegistrationBean<>(
-                springServlet, "/vaadin/*");
-        bean.setAsyncSupported(true);
-        bean.setName("springServlet");
-        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads","10");
-        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads","10");
+		return bean;
+	}
 
+	@Bean
+	@Order(Ordered.LOWEST_PRECEDENCE)
+	public ServletRegistrationBean<VaadinServlet> vaadinResourcesServletBean() {
+		VaadinServlet vaadinServlet = new VaadinServlet();
+		ServletRegistrationBean<VaadinServlet> bean = new ServletRegistrationBean<>(vaadinServlet, "/frontend/*");
+		bean.setName("frontendServlet");
+		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads", "10");
+		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads", "10");
 
-        return bean;
-    }
-
-    @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE)
-    public ServletRegistrationBean<VaadinServlet> vaadinResourcesServletBean() {
-        VaadinServlet vaadinServlet = new VaadinServlet();
-        ServletRegistrationBean<VaadinServlet> bean = new ServletRegistrationBean<>(
-                vaadinServlet, "/frontend/*");
-        bean.setName("frontendServlet");
-        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads","10");
-        bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads","10");
-
-        return bean;
-    }
-/*
-    @Bean
-    public ServletRegistrationBean frontendServletBean() {
-        ServletRegistrationBean bean = new ServletRegistrationBean<>(new VaadinServlet() {
-            @Override
-            protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-                if (!serveStaticOrWebJarRequest(req, resp)) {
-                    resp.sendError(405);
-                }
-            }
-        }, "/frontend/*");
-        bean.setLoadOnStartup(1);
-        return bean;
-    }
-    */
-
-   
+		return bean;
+	}
 
 }

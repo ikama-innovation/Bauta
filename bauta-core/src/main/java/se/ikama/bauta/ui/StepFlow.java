@@ -141,7 +141,6 @@ public class StepFlow extends Component {
         }
     }
     private void update(StepInfo step, Element stepElement) {
-        //System.out.println("job: "+this.jobName);
         stepElement.setAttribute("data-status", step.getExecutionStatus());
         StringBuilder title = new StringBuilder();
         title.append(step.getName());
@@ -195,7 +194,6 @@ public class StepFlow extends Component {
                 Pre l = new Pre(step.getExitDescription());
                 l.getStyle().set("font-size", "0.6em").set("font-family", "monospace").set("background-color","inherit");
                 l.setWidthFull();
-                //l.setHeightFull();
                 infoLayout.add(new H3(step.getName()));
                 infoLayout.add(l);
                 infoDialog.add(infoLayout);
@@ -203,8 +201,6 @@ public class StepFlow extends Component {
                 infoDialog.setHeight("300px");
                 infoDialog.open();
             });
-            //icon.setSize("1.2em");
-
             descriptionButton.setIcon(icon);
             descriptionButton.getStyle().set("font-size", "0.8em").set("color","#eeeeee").set("margin-left","5px");
             descriptionButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);

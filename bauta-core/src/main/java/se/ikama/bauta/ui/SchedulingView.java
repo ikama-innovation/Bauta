@@ -77,11 +77,11 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
     private Set<JobTrigger> selectedJobTriggers;
 
-    Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton,importButton;
+    Button removeButton, editButton, addCronButton, addJobCompletionButton, addJobCompletionOrFailureButton, importButton;
     Checkbox enabledCheckbox;
     Label lAdminInfo;
     Anchor exportLink;
-    
+
     private boolean schedulingEnabled = false;
 
     public SchedulingView() {
@@ -185,19 +185,12 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 
 	Grid.Column<JobTriggerLog> logTypeColumn = logGrid.addComponentColumn(item -> createTypeComponent(item.getTriggerType(), true)).setHeader("Type").setAutoWidth(true);
 	logGrid.addComponentColumn(item -> createCronComponent(item.getCron())).setHeader("CRON").setAutoWidth(true);
-	;
 	Grid.Column<JobTriggerLog> logTriggeringJobColumn = logGrid.addComponentColumn(item -> createLogColumn(item.getTriggeringJobName())).setHeader("Triggered by").setAutoWidth(true);
 	logGrid.setSelectionMode(Grid.SelectionMode.NONE);
 	logGrid.setMaxHeight("300px");
 	logGrid.getColumns().forEach(c -> c.setClassNameGenerator(item -> "log_cell"));
 
 	add(logGrid);
-	/*
-	 * Div div = new Div(); div.add("one<br>two");
-	 * div.getStyle().set("font-size","0.5em");
-	 * div.getStyle().set("font-family","monospace"); add(div);
-	 */
-
     }
 
     @Override
@@ -212,7 +205,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	this.enabledCheckbox.setValue(this.schedulingEnabled);
 	update();
     }
-    
+
     @PostConstruct
     private void init() {
 	this.schedulingEnabled = bautaManager.isSchedulingEnabled();
@@ -272,7 +265,6 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
     }
 
-    
     @Override
     public void selectionChange(SelectionEvent<Grid<JobTrigger>, JobTrigger> selectionEvent) {
 	updateButtonState();
@@ -288,7 +280,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	    addJobCompletionOrFailureButton.setEnabled(this.schedulingEnabled);
 	    importButton.setEnabled(this.schedulingEnabled);
 	    exportLink.setEnabled(this.schedulingEnabled);
-	    
+
 	    lAdminInfo.setVisible(false);
 	} else {
 	    lAdminInfo.setVisible(this.schedulingEnabled);
@@ -577,6 +569,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	logGrid.setItems(logs);
 	updateEnabledState();
     }
+
     private void updateEnabledState() {
 	triggerGrid.setEnabled(this.schedulingEnabled);
 	logGrid.setEnabled(this.schedulingEnabled);

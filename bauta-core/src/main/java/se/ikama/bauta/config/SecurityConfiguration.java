@@ -44,68 +44,65 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
      */
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        if (!securityEnabled) {
-            log.info("Security is disabled");
-            http.authorizeRequests().anyRequest().permitAll();
-            return;
-        }
-        // Not using Spring CSRF here to be able to use plain HTML for the login page
-        http.csrf().disable()
+	if (!securityEnabled) {
+	    log.info("Security is disabled");
+	    http.authorizeRequests().anyRequest().permitAll();
+	    return;
+	}
+	// Not using Spring CSRF here to be able to use plain HTML for the login page
+	http.csrf().disable()
 
-                // Register our CustomRequestCache, that saves unauthorized access attempts, so
-                // the user is redirected after login.
-                .requestCache().requestCache(new CustomRequestCache())
+		// Register our CustomRequestCache, that saves unauthorized access attempts, so
+		// the user is redirected after login.
+		.requestCache().requestCache(new CustomRequestCache())
 
-                // Restrict access to our application.
-                .and().authorizeRequests()
+		// Restrict access to our application.
+		.and().authorizeRequests()
 
-                // Allow all flow internal requests.
-                .requestMatchers(SecurityUtils::isFrameworkInternalRequest).permitAll()
+		// Allow all flow internal requests.
+		.requestMatchers(SecurityUtils::isFrameworkInternalRequest).permitAll()
 
-                // Allow all requests by logged in users.
-                .anyRequest().authenticated()
+		// Allow all requests by logged in users.
+		.anyRequest().authenticated()
 
-                // Configure the login page.
-                .and().formLogin().loginPage(LOGIN_URL).permitAll().loginProcessingUrl(LOGIN_PROCESSING_URL).failureUrl(LOGIN_FAILURE_URL).defaultSuccessUrl(LOGIN_SUCCESS_URL)
+		// Configure the login page.
+		.and().formLogin().loginPage(LOGIN_URL).permitAll().loginProcessingUrl(LOGIN_PROCESSING_URL).failureUrl(LOGIN_FAILURE_URL).defaultSuccessUrl(LOGIN_SUCCESS_URL)
 
-                // Configure logout
-                .and().logout().logoutSuccessUrl(LOGOUT_SUCCESS_URL);
+		// Configure logout
+		.and().logout().logoutSuccessUrl(LOGOUT_SUCCESS_URL);
     }
 
     @Override
     protected void configure(AuthenticationManagerBuilder builder) throws Exception {
-        if (!securityEnabled) return;
-        builder.userDetailsService(userDetailsService());
+	if (!securityEnabled)
+	    return;
+	builder.userDetailsService(userDetailsService());
 
     }
-
 
     @Bean
     @Override
     public UserDetailsService userDetailsService() {
-        if (securityEnabled && StringUtils.isNotEmpty(securityConfigFilePath)) {
-            File file = new File(securityConfigFilePath);
-            if (!file.exists()) {
-                throw new RuntimeException("bauta.security.configFilePath points to a file that does not exist: " + securityConfigFilePath);
-            }
-            else {
-                try {
-                    ObjectMapper om = new ObjectMapper();
-                    SecurityConfig securityConfig = om.readValue(file, SecurityConfig.class);
-                    InMemoryUserDetailsManager udm = new InMemoryUserDetailsManager();
-                    for (se.ikama.bauta.security.User user : securityConfig.getUsers()) {
-                        udm.createUser(User.withUsername(user.getUsername()).password(user.getPassword()).roles(user.getRoles()).build());
-                    }
-                    return udm;
-                }
-                catch(Exception e) {
-                    throw new RuntimeException("Failed to read security config file", e);
-                }
-            }
-        }
-        else {
-            return new InMemoryUserDetailsManager();
-        }
+	if (securityEnabled && StringUtils.isNotEmpty(securityConfigFilePath)) {
+	    File file = new File(securityConfigFilePath);
+	    if (!file.exists()) {
+		throw new RuntimeException("bauta.security.configFilePath points to a file that does not exist: " + securityConfigFilePath);
+	    } else {
+		try {
+		    ObjectMapper om = new ObjectMapper();
+		    SecurityConfig securityConfig = om.readValue(file, SecurityConfig.class);
+		    InMemoryUserDetailsManager udm = new InMemoryUserDetailsManager();
+		    for (se.ikama.bauta.security.User user : securityConfig.getUsers()) {
+			udm.createUser(User.withUsername(user.getUsername()).password(user.getPassword()).roles(user.getRoles()).build());
+		    }
+		    return udm;
+		} catch (Exception e) {
+		    throw new RuntimeException("Failed to read security config file", e);
+		}
+	    }
+	} else {
+	    return new InMemoryUserDetailsManager();
+	}
     }
 
     /**
@@ -113,38 +110,38 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
      */
     @Override
     public void configure(WebSecurity web) {
-        if (!securityEnabled) {
-            web.ignoring().anyRequest();
-            return;
-        };
-        web.ignoring().antMatchers(
-                // Vaadin Flow static resources
-                "/ui/VAADIN/**",
-                "/VAADIN/**",
+	if (!securityEnabled) {
+	    web.ignoring().anyRequest();
+	    return;
+	}
+	;
+	web.ignoring().antMatchers(
+		// Vaadin Flow static resources
+		"/ui/VAADIN/**", "/VAADIN/**",
 
-                // the standard favicon URI
-                "/favicon.ico",
+		// the standard favicon URI
+		"/favicon.ico",
 
-                // the robots exclusion standard
-                "/robots.txt",
+		// the robots exclusion standard
+		"/robots.txt",
 
-                // web application manifest
-                "/manifest.webmanifest", "/sw.js", "/offline-page.html",
+		// web application manifest
+		"/manifest.webmanifest", "/sw.js", "/offline-page.html",
 
-                // icons and images
-                "/icons/**", "/images/**",
+		// icons and images
+		"/icons/**", "/images/**",
 
-                // (development mode) static resources
-                "**/frontend/**",
+		// (development mode) static resources
+		"**/frontend/**",
 
-                // (development mode) webjars
-                "/webjars/**",
+		// (development mode) webjars
+		"/webjars/**",
 
-                // (development mode) H2 debugging console
-                "/static/**",
+		// (development mode) H2 debugging console
+		"/static/**",
 
-                // (production mode) static resources
-                "/frontend-es5/**", "/frontend-es6/**");
+		// (production mode) static resources
+		"/frontend-es5/**", "/frontend-es6/**");
     }
 
 }
@@ -160,10 +157,9 @@ class CustomRequestCache extends HttpSessionRequestCache {
      */
     @Override
     public void saveRequest(HttpServletRequest request, HttpServletResponse response) {
-        if (!SecurityUtils.isFrameworkInternalRequest(request)) {
-            super.saveRequest(request, response);
-        }
+	if (!SecurityUtils.isFrameworkInternalRequest(request)) {
+	    super.saveRequest(request, response);
+	}
     }
 
 }
-

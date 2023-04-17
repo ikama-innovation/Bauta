@@ -145,7 +145,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     private HashSet<String> runningJobs = new HashSet<>();
     private HashSet<String> scheduledJobs = new HashSet<>();
     private Div jobCountBar;
-    
+
     public MainView(@Autowired SchedulingView schedulingView) {
 	log.debug("Constructing main view. Hashcode: {}", this.hashCode());
 	createMainView(schedulingView);
@@ -174,7 +174,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	try {
 	    serverInfoGrid.setItems(bautaManager.getServerInfo());
 	    buildInfo.setText(bautaManager.getShortServerInfo());
-	    // grid.setItems(bautaManager.jobDetails());
 	    updateJobGrid(bautaManager.jobDetails());
 	    filterJobGrid();
 
@@ -215,9 +214,11 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     }
 
     private void filterJobGrid() {
-	if (showJobsFrom == null) showJobsFrom = new Date(0);
-	if (showJobsTo == null) showJobsFrom = new Date();
-	
+	if (showJobsFrom == null)
+	    showJobsFrom = new Date(0);
+	if (showJobsTo == null)
+	    showJobsFrom = new Date();
+
 	jobGrid.getChildren().forEach(component -> {
 	    String jobName = component.getElement().getAttribute("data-job-name");
 	    String jobStatus = component.getElement().getAttribute("data-execution-status");
@@ -249,6 +250,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 
     /**
      * Rebuilds entire job grid. This is a costly operation and should be avoided.
+     * 
      * @param jobs
      */
     private void updateJobGrid(List<JobInstanceInfo> jobs) {
@@ -259,16 +261,14 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
 	log.debug("Run enabled: " + enabled);
 	findScheduledJobs();
-	
+
 	for (JobInstanceInfo job : jobs) {
 	    String jobName = job.getName();
 	    if (job.isRunning()) {
 		runningJobs.add(jobName);
-	    }
-	    else
+	    } else
 		runningJobs.remove(jobName);
-	    
-	    
+
 	    if (!tfJobFilter.isEmpty() && jobName.matches(tfJobFilter.getValue()))
 		continue;
 	    Div jobRow = new Div();
@@ -278,7 +278,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    jobRow.getElement().setAttribute("data-job-startTime", job.getStartTime() != null ? Long.toString(job.getStartTime().getTime()) : "0");
 	    jobRow.getElement().setAttribute("data-execution-status", job.getExecutionStatus());
 	    jobNameToJobRow.put(jobName, jobRow);
-	    
+
 	    // Cell 0, the job name
 	    Div cell0 = new Div();
 	    cell0.addClassNames("job-grid-cell");
@@ -287,7 +287,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    cell0.add(jobNameDiv);
 	    if (job.getDescription() != null) {
 		Div jobDescriptionDiv = new Div();
-		jobDescriptionDiv.getStyle().set("font-size", "0.7em").set("max-width","300px");
+		jobDescriptionDiv.getStyle().set("font-size", "0.7em").set("max-width", "300px");
 		jobDescriptionDiv.setText(job.getDescription());
 		cell0.add(jobDescriptionDiv);
 	    }
@@ -296,17 +296,17 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    jobInfo.setExpanded(expandedJobs.contains(jobName));
 	    jobInfo.update(job);
 	    jobNameToJobInfo.put(jobName, jobInfo);
-	    
+
 	    Div cell1 = new Div(jobInfo);
 	    cell1.addClassNames("job-grid-cell");
 
 	    // Cell 2. The steps
 	    Div cell2 = new Div(createStepComponent(job, jobInfo));
 	    cell2.addClassNames("job-grid-cell", "job-grid-steps-cell");
-	    	    
+
 	    // Cell 3. Job operation buttons
 	    JobButtons jb = new JobButtons(job, this, bautaManager);
-	    jb.setRunEnabled(enabled);	
+	    jb.setRunEnabled(enabled);
 	    jb.setConfirmJobEnabled(Boolean.parseBoolean(confirmJobOperations));
 
 	    jobNameToJobButtons.put(jobName, jb);
@@ -325,7 +325,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     protected void onDetach(DetachEvent detachEvent) {
 	log.debug("Detach {}", hashCode());
 	bautaManager.unregisterJobChangeListener(this);
-	// grid.setItems(Collections.emptyList());
     }
 
     private void createMainView(SchedulingView schedulingView) {
@@ -378,7 +377,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	rightPanel.setMargin(false);
 	rightPanel.setSpacing(false);
 	rightPanel.setAlignItems(FlexComponent.Alignment.CENTER);
-	// rightPanel.setAlignSelf(FlexComponent.Alignment.END);
 	rightPanel.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
 	bUpgradeInstance = new Button("", clickEvent -> {
@@ -408,8 +406,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	bRefreshInstance.setIcon(VaadinIcon.REFRESH.create());
 	bRefreshInstance.getStyle().set("margin-right", "5px");
 
-	// upgradeInstanceButton.getStyle().set("margin-right", "5px");
-
 	buildInfo = new Span();
 	buildInfo.setClassName("build-info");
 	// Job report
@@ -423,14 +419,14 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    }
 
 	}), "");
-	//buildInfo.getStyle().set("margin-right", "10px");
 	download.getElement().setAttribute("download", true);
 	download.add(new Button(new Icon(VaadinIcon.DOWNLOAD_ALT)));
 	download.getElement().setProperty("title", "Job report with execution durations");
 	download.getStyle().set("margin-right", "5px");
 
 	jobCountBar = new Div();
-	jobCountBar.getElement().getStyle().set("margin-left", "5px").set("font-size","0.75em").set("margin-right", "10px");;
+	jobCountBar.getElement().getStyle().set("margin-left", "5px").set("font-size", "0.75em").set("margin-right", "10px");
+	;
 	rightPanel.add(buildInfo);
 	rightPanel.add(jobCountBar);
 	rightPanel.add(download);
@@ -441,7 +437,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	}
 
 	rightPanel.getStyle().set("margin-left", "auto").set("text-alight", "right").set("flex-grow", "1").set("margin-top", "4px").set("margin-bottom", "4px").set("padding-right", "20px");
-	
+
 	this.addToNavbar(rightPanel);
 	log.debug("createMainView.end");
 
@@ -455,11 +451,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 
 	MenuBar mbUser = new MenuBar();
 	miUser = mbUser.addItem("replace_me_with_username");
-	// miUser.getElement().getStyle().set("color", "#0099ff");
 	miUser.addComponentAsFirst(VaadinIcon.USER.create());
 	miUser.getSubMenu().add(logout);
-	// mbUser.setMinWidth("300px");
-	// mbUser.getStyle().set("margin-right", "20px");
 	return mbUser;
     }
 
@@ -552,20 +545,20 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	    }
 	});
 
-	
 	hl.add(tfJobFilter, cbFilterOnStatus, cbShowTimeList, cbUnknownJobs, cbSortingList);
 	hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbFilterOnStatus);
 	hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, tfJobFilter);
 	hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbSortingList);
 	hl.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, cbShowTimeList);
 	hl.setVerticalComponentAlignment(FlexComponent.Alignment.END, cbUnknownJobs);
-	
+
 	vl.add(hl);
 	jobGrid = new Div();
 	jobGrid.addClassNames("job-grid");
 	vl.add(jobGrid);
 	return vl;
     }
+
     private void updateJobCountBar() {
 	int nRunning = 0;
 	int nFailed = 0;
@@ -574,58 +567,52 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	for (JobInfo jobInfo : jobNameToJobInfo.values()) {
 	    if ("FAILED".equals(jobInfo.executionStatus)) {
 		nFailed++;
-	    }
-	    else if ("COMPLETED".equals(jobInfo.executionStatus)) {
+	    } else if ("COMPLETED".equals(jobInfo.executionStatus)) {
 		nCompleted++;
-	    }
-	    else if ("STARTED".equals(jobInfo.executionStatus) || "STARTING".equals(jobInfo.executionStatus) ) {
+	    } else if ("STARTED".equals(jobInfo.executionStatus) || "STARTING".equals(jobInfo.executionStatus)) {
 		nRunning++;
-	    }
-	    else if ("UNKNOWN".equals(jobInfo.executionStatus) ) {
+	    } else if ("UNKNOWN".equals(jobInfo.executionStatus)) {
 		nUnknown++;
 	    }
 	}
 	jobCountBar.removeAll();
-	
+
 	Span running = new Span(Integer.toString(nRunning));
 	running.setTitle("STARTED jobs");
 	running.addClassName("batch_status");
 	if (nRunning > 0) {
 	    // Blinking
 	    running.getElement().setAttribute("data-status", "STARTED");
-	}
-	else {
+	} else {
 	    // Not blinking
 	    running.getElement().setAttribute("data-status", "STARTING");
 	}
-	running.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius","var(--lumo-border-radius-m)");
-	
+	running.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius", "var(--lumo-border-radius-m)");
+
 	jobCountBar.add(running);
-	//jobCountLayout.add(new Span(", Successful: "));
 	Span completed = new Span(Integer.toString(nCompleted));
 	completed.setTitle("COMPLETED jobs");
 	completed.addClassName("batch_status");
 	completed.getElement().setAttribute("data-status", "COMPLETED");
-	completed.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius","var(--lumo-border-radius-m)");
+	completed.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius", "var(--lumo-border-radius-m)");
 	jobCountBar.add(new Span(" "));
 	jobCountBar.add(completed);
 	Span failed = new Span(Integer.toString(nFailed));
 	failed.setTitle("FAILED jobs");
 	failed.addClassName("batch_status");
 	failed.getElement().setAttribute("data-status", "FAILED");
-	failed.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius","var(--lumo-border-radius-m)");
+	failed.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius", "var(--lumo-border-radius-m)");
 	jobCountBar.add(new Span(" "));
 	jobCountBar.add(failed);
 	Span unknown = new Span(Integer.toString(nUnknown));
 	unknown.setTitle("UNKNOWN (Unstarted)");
 	unknown.addClassName("batch_status");
 	unknown.getElement().setAttribute("data-status", "UNKNOWN");
-	unknown.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius","var(--lumo-border-radius-m)");
+	unknown.getStyle().set("padding-left", "4px").set("padding-right", "4px").set("border-radius", "var(--lumo-border-radius-m)");
 	jobCountBar.add(new Span(" "));
 	jobCountBar.add(unknown);
-	
+
     }
-    
 
     private Component createStepComponent(JobInstanceInfo item, JobInfo jobInfo) {
 	StepProgressBar progressBar = new StepProgressBar();
@@ -658,8 +645,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		jobInfo.update();
 		bExpand.setIcon(new Icon(VaadinIcon.ANGLE_UP));
 	    }
-	    // A trick to force the grid to resize
-	    // grid.getElement().executeJs("this.notifyResize()");
+	    
 	});
 	FlexLayout barAndButtonLayout = new FlexLayout(progressBar, bExpand);
 	barAndButtonLayout.setWidthFull();
@@ -926,18 +912,16 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     @Override
     public void onJobChange(JobInstanceInfo jobInstanceInfo) {
 	log.debug("{}, onJobChange {} ", hashCode(), jobInstanceInfo);
-	
+
 	if (jobInstanceInfo.isRunning()) {
 	    runningJobs.add(jobInstanceInfo.getName());
-	}
-	else
+	} else
 	    runningJobs.remove(jobInstanceInfo.getName());
-	
-	UI ui = this.getUI().get();
-	if (ui != null) {
+
+	if (this.getUI().isPresent()) {
+	    UI ui = this.getUI().get();
 	    ui.access(() -> {
 		showJobsTo = new Date();
-		// grid.getDataProvider().refreshItem();
 		String jobName = jobInstanceInfo.getName();
 		JobButtons jobButtons = jobNameToJobButtons.get(jobName);
 		jobButtons.setJobInstanceInfo(jobInstanceInfo);
@@ -964,8 +948,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
     @Override
     public void onStepChange(BasicJobInstanceInfo basicJobInstanceInfo, StepInfo stepInfo) {
 	log.debug("{}, onstepChange {} ", hashCode(), stepInfo);
-	UI ui = this.getUI().get();
-	if (ui != null) {
+	if (this.getUI().isPresent()) {
+	    UI ui = this.getUI().get();
 	    ui.access(() -> {
 		StepFlow stepFlow = jobNameToStepFLow.get(basicJobInstanceInfo.getName());
 		stepFlow.update(stepInfo);
@@ -974,7 +958,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		ui.push();
 	    });
 	}
-
     }
 
     public void openDateTimeDialog(ComboBox cbShowTimeList) {

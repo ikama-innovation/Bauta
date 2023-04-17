@@ -8,6 +8,4 @@ public class BautaConfigParams {
     public static final String JOB_BEANS_DIR = "jobBeansDir";
     public static final String REBUILD_SERVER_COMMAND = "rebuildServerCommand";
 
-
-
 }
