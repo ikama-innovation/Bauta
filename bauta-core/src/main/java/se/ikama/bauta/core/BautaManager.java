@@ -22,6 +22,7 @@ import se.ikama.bauta.core.metadata.JobMetadataReader;
 import se.ikama.bauta.core.metadata.StepMetadata;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
+import se.ikama.bauta.security.SecurityUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -227,6 +228,8 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
         StringBuilder paramsStr = new StringBuilder();
         paramsStr.append("start=").append(dtf.format(LocalDateTime.now()));
+        String user = SecurityUtils.currentUser();
+        paramsStr.append(",user=").append(user);
         if (env.containsProperty("bauta.application.git.commit.id.abbrev")) {
             paramsStr.append(",revision=");
             paramsStr.append(env.getProperty("bauta.application.git.commit.id.abbrev","?"));
