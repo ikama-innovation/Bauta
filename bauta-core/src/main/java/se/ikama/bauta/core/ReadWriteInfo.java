@@ -4,14 +4,14 @@ import lombok.Data;
 
 @Data
 public class ReadWriteInfo {
-    private int readCount;
-    private int writeCount;
-    private int commitCount;
-    private int rollbackCount;
-    private int readSkipCount;
-    private int processSkipCount;
-    private int writeSkipCount;
-    private int filterCount;
+    private long readCount;
+    private long writeCount;
+    private long commitCount;
+    private long rollbackCount;
+    private long readSkipCount;
+    private long processSkipCount;
+    private long writeSkipCount;
+    private long filterCount;
 
     public String toRWSString() {
         return "" + readCount + "/" + writeCount + "/" + (readSkipCount + writeSkipCount + processSkipCount);

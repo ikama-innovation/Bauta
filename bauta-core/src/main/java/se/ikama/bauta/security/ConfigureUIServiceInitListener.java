@@ -11,7 +11,7 @@ import org.apache.commons.lang3.LocaleUtils;
 import org.springframework.stereotype.Component;
 import se.ikama.bauta.ui.LoginView;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 import java.util.Arrays;
 import java.util.Locale;
 

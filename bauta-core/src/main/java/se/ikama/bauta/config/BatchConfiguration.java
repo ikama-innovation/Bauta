@@ -2,6 +2,7 @@ package se.ikama.bauta.config;
 
 import com.vaadin.flow.spring.annotation.EnableVaadin;
 
+import jakarta.annotation.PostConstruct;
 import se.ikama.bauta.batch.listeners.MailNotificationJobListener;
 
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -15,14 +16,14 @@ import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.JobOperator;
-import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobOperator;
+import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
@@ -37,6 +38,9 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.time.Duration;
+import java.time.chrono.ChronoPeriod;
+import java.time.temporal.ChronoUnit;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -44,10 +48,11 @@ import javax.sql.DataSource;
 @PropertySource("bauta_default.yml")
 @Configuration()
 @ImportResource({
-        "classpath:spring_beans/job_common.xml","file://${bauta.jobBeansDir}/*.xml","file://${bauta.jobBeansDir2}/*.xml","file://${bauta.jobBeansDir3}/*.xml"
+        "classpath:spring_beans/job_common.xml", "file://${bauta.jobBeansDir}/*.xml",
+        "file://${bauta.jobBeansDir2}/*.xml", "file://${bauta.jobBeansDir3}/*.xml"
 })
-//@EnableBatchProcessing()
 @EnableVaadin("se.ikama.bauta.ui")
+@EnableConfigurationProperties
 public class BatchConfiguration {
 
     private Logger log = LoggerFactory.getLogger(this.getClass().getName());
@@ -55,7 +60,6 @@ public class BatchConfiguration {
     @Autowired
     Environment env;
 
-    
     @Value("${bauta.homeDir}")
     String homeDir;
 
@@ -77,16 +81,20 @@ public class BatchConfiguration {
     @Value(value = "${bauta.batchDataSource.url:jdbc:hsqldb:file:${bauta.homeDir}/db/data;hsqldb.tx=mvcc}")
     String batchDataSourceUrl;
 
-    @Value(value = "${bauta.batch.executor.maxThreads:50}")
+    @Value("${bauta.batch.executor.maxThreads:50}")
     int multiThreadExecutorMaxPoolSize;
-    @Value(value = "${bauta.batch.executor.coreThreads:10}")
+
+    @Value("${bauta.batch.executor.coreThreads:10}")
     int multiThreadExecutorCorePoolSize;
-    @Value(value = "${bauta.batch.executor.queueCapacity:9999999}")
+
+    @Value("${bauta.batch.executor.queueCapacity:999999}")
     int multiThreadExecutorQueueCapacity;
 
     /**
-     * Semicolon-separated list of extra properties to pass to the DataSource upon creation.
-     * Typically not needed. One use-case is when using Oracle Wallet for authentication. Then you
+     * Semicolon-separated list of extra properties to pass to the DataSource upon
+     * creation.
+     * Typically not needed. One use-case is when using Oracle Wallet for
+     * authentication. Then you
      * must provide connection properties here, e.g.
      * oracle.net.wallet_location=(source=(method=file)(method_data=(directory=/opt/oracle/mywallet)))
      */
@@ -96,6 +104,10 @@ public class BatchConfiguration {
     @Value(value = "${bauta.stagingDB.connectionPool.maxTotal:20}")
     int stagingDbMaxTotal;
 
+    @PostConstruct
+    public void init() {
+        log.info("BatchConfiguration init");
+    }
 
     @Bean()
     @Primary
@@ -107,8 +119,8 @@ public class BatchConfiguration {
         dataSource.setUrl(batchDataSourceUrl);
         dataSource.setUsername("sa");
         dataSource.setPassword("");
-        dataSource.setMaxWaitMillis(10000);
-        dataSource.setMaxConnLifetimeMillis(1000*60*10);
+        dataSource.setMaxWait(Duration.ofSeconds(10));
+        dataSource.setMaxConn(Duration.ofMinutes(10));
         dataSource.setLogExpiredConnections(false);
 
         try {
@@ -116,18 +128,17 @@ public class BatchConfiguration {
             log.info("Driver is {}", dataSource.getConnection().getMetaData().getDriverName());
             log.info("TX isolation {}", dataSource.getConnection().getMetaData().getDefaultTransactionIsolation());
             log.info("DB Product name {}", dataSource.getConnection().getMetaData().getDatabaseProductName());
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
 
         }
-        //dataSource.setConnectionProperties(hsqldbProperties);
+        // dataSource.setConnectionProperties(hsqldbProperties);
         log.info("Creating batch datasource {}", dataSource);
         return dataSource;
     }
 
-
     @Bean
     public DataSourceInitializer dataSourceInitializer() {
+        log.info("Setting up datasource initializer");
         final DataSourceInitializer initializer = new DataSourceInitializer();
         initializer.setDataSource(dataSource());
         initializer.setDatabasePopulator(databasePopulator());
@@ -142,15 +153,12 @@ public class BatchConfiguration {
         return populator;
     }
 
-
     @Bean
     @Primary
     PlatformTransactionManager transactionManager() {
 
         return new DataSourceTransactionManager(dataSource());
     }
-
-
 
     @Bean
     JobRepository jobRepository() throws Exception {
@@ -172,6 +180,7 @@ public class BatchConfiguration {
         JobExplorerFactoryBean jobExplorer = new JobExplorerFactoryBean();
         jobExplorer.setDataSource(dataSource());
         jobExplorer.setTablePrefix("BATCH_");
+        jobExplorer.setTransactionManager(transactionManager());
         jobExplorer.afterPropertiesSet();
         return jobExplorer.getObject();
 
@@ -179,13 +188,12 @@ public class BatchConfiguration {
 
     @Bean
     public JobLauncher jobLauncher() throws Exception {
-        SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
+        TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
         jobLauncher.setJobRepository(jobRepository());
         jobLauncher.setTaskExecutor(taskExecutor());
         jobLauncher.afterPropertiesSet();
         return jobLauncher;
     }
-
 
     @Bean()
     JobOperator jobOperator() throws Exception {
@@ -200,7 +208,7 @@ public class BatchConfiguration {
 
     @Bean
     @Primary
-    public JobRegistry jobRegistry()  {
+    public JobRegistry jobRegistry() {
         return new MapJobRegistry();
     }
 
@@ -221,22 +229,23 @@ public class BatchConfiguration {
         log.info("Password is {}", stagingDbPassword != null ? "********" : null);
 
         BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setMaxWaitMillis(10000);
+        dataSource.setMaxWait(Duration.ofSeconds(10));
+        dataSource.setMaxConn(Duration.ofMinutes(10));
         dataSource.setMaxTotal(stagingDbMaxTotal);
-        dataSource.setMaxConnLifetimeMillis(1000*60*10);
         dataSource.setLogExpiredConnections(false);
-
 
         dataSource.setDriverClassName(stagingDbDriverClassName);
         dataSource.setUrl(stagingDbUrl);
 
-        // username + password will typically be required, but may be left out when using something like Oracle Wallet
+        // username + password will typically be required, but may be left out when
+        // using something like Oracle Wallet
         if (StringUtils.isNotEmpty(stagingDbUsername) && StringUtils.isNotEmpty(stagingDbPassword)) {
             dataSource.setUsername(stagingDbUsername);
             dataSource.setPassword(stagingDbPassword);
         }
         if (StringUtils.isNotEmpty(stagingDbConnectionProperties)) {
-            //Properties props = PropertiesUtils.fromCommaSeparatedString(stagingDbConnectionProperties);
+            // Properties props =
+            // PropertiesUtils.fromCommaSeparatedString(stagingDbConnectionProperties);
             dataSource.setConnectionProperties(stagingDbConnectionProperties);
             log.info("Properties: {}", stagingDbConnectionProperties);
         }
@@ -259,9 +268,11 @@ public class BatchConfiguration {
 
         return executor;
     }
-    @Bean (name = "multiTaskExecutor")
+
+    @Bean(name = "multiTaskExecutor")
     TaskExecutor multiTaskExecutor() {
-        log.info("Setting up multi-task-executor. core/max/queue: {}/{}/{}", multiThreadExecutorCorePoolSize, multiThreadExecutorMaxPoolSize, multiThreadExecutorQueueCapacity);
+        log.info("Setting up multi-task-executor. core/max/queue: {}/{}/{}", multiThreadExecutorCorePoolSize,
+                multiThreadExecutorMaxPoolSize, multiThreadExecutorQueueCapacity);
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setThreadNamePrefix("bautam-");
         executor.setCorePoolSize(multiThreadExecutorCorePoolSize);
@@ -270,7 +281,7 @@ public class BatchConfiguration {
         executor.setWaitForTasksToCompleteOnShutdown(false);
         return executor;
     }
-    
+
     @Bean
     @ConditionalOnProperty("bauta.mail.host")
     public JavaMailSender javaMailSender() {
@@ -296,12 +307,11 @@ public class BatchConfiguration {
         properties.setProperty("mail.smtp.from", env.getProperty("bauta.mail.from"));
         return properties;
     }
-    
+
     @Bean
     public MailNotificationJobListener mailNotificationJobListener() {
-    	MailNotificationJobListener listener = new MailNotificationJobListener();			
-    	return listener;
+        MailNotificationJobListener listener = new MailNotificationJobListener();
+        return listener;
     }
-    
 
 }

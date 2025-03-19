@@ -14,7 +14,7 @@ import java.util.Date;
 /**
  * A tasklet that waits a given amount of time.
  */
-public class WaitTasklet implements StoppableTasklet, Tasklet {
+public class WaitTasklet implements StoppableTasklet {
 
     private static final Logger log = LoggerFactory.getLogger(WaitTasklet.class);
 

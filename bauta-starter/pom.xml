@@ -30,12 +30,6 @@
 
         <dependency>
             <groupId>se.ikama</groupId>
-            <artifactId>bauta-autoconfigure</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>se.ikama</groupId>
             <artifactId>bauta-core</artifactId>
             <version>${project.version}</version>
         </dependency>

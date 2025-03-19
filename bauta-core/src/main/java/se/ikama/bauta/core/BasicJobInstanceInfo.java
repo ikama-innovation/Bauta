@@ -1,6 +1,6 @@
 package se.ikama.bauta.core;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -20,8 +20,8 @@ public class BasicJobInstanceInfo {
     private String exitStatus = "UNKNOWN";
     private Long latestExecutionId;
     private Long instanceId;
-    private Date startTime;
-    private Date endTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private long duration;
     private long latestDuration;
     private Properties jobParameters;

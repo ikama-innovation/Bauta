@@ -2,6 +2,8 @@ package se.ikama.bauta.core;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -21,8 +23,8 @@ public class StepInfo {
     private boolean firstInSplit;
     private boolean lastInSplit;
     private String nextId;
-    private Date startTime;
-    private Date endTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private ReadWriteInfo readWriteInfo;
     private List<String> scriptFiles;
     private List<String> scriptParameters;
@@ -47,11 +49,11 @@ public class StepInfo {
 
     public long getDuration() {
         if (endTime != null && startTime != null) {
-            long duration = endTime.getTime() - startTime.getTime();
+            long duration = ChronoUnit.MILLIS.between(startTime, endTime);
             return duration;
         }
         else if (startTime != null){
-            long duration = new Date().getTime() - startTime.getTime();
+            long duration = ChronoUnit.MILLIS.between(startTime, LocalDateTime.now());
             return duration;
         }
         else {

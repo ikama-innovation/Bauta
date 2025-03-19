@@ -1,2 +1,16 @@
 /.classpath
 /.project
+src/main/frontend/generated/
+package-lock.json
+package.json
+node_modules
+tsconfig.json
+vite.config.ts
+vite.generated.ts
+webpack.generated.ts
+types.d.ts
+frontend/generated
+frontend/index.html
+src/main/bundles
+
+

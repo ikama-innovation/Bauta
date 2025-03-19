@@ -1,16 +1,15 @@
 package se.ikama.bauta.ui;
 
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import com.vaadin.flow.component.Component;
@@ -144,7 +143,7 @@ public class StepFlow extends Component {
         stepElement.setAttribute("data-status", step.getExecutionStatus());
         StringBuilder title = new StringBuilder();
         title.append(step.getName());
-        title.append(", start time: ").append((step.getStartTime() != null ? DateFormatUtils.format(step.getStartTime(), "yyMMdd HH:mm:ss", Locale.US) : ""));
+        title.append(", start time: ").append((step.getStartTime() != null ? step.getStartTime().format(DateTimeFormatter.ofPattern("yyMMdd HH:mm:ss")) : ""));
         title.append(", duration: " ).append(DurationFormatUtils.formatDuration(step.getDuration(), "HH:mm:ss"));
         if (step.getScriptFiles() != null && step.getScriptFiles().size() > 0) title.append(", scriptFiles: ").append(StringUtils.join(step.getScriptFiles()));
         if (step.getScriptParameters() != null && step.getScriptParameters().size() > 0) title.append(", scriptParameters: ").append(StringUtils.join(step.getScriptParameters()));
