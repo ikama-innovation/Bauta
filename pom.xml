@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>se.ikama</groupId>
@@ -133,7 +135,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-compiler-plugin</artifactId>
-                            <version>3.8.1</version>
+                            <version>3.14.0</version>
                             <configuration>
                                 <source>${java.version}</source>
                                 <target>${java.version}</target>
@@ -142,7 +144,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-source-plugin</artifactId>
-                            <version>3.1.0</version>
+                            <version>3.3.1</version>
                             <executions>
                                 <execution>
                                     <id>attach-sources</id>
@@ -155,7 +157,7 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-javadoc-plugin</artifactId>
-                            <version>3.1.0</version>
+                            <version>3.11.2</version>
                             <executions>
                                 <execution>
                                     <id>attach-javadocs</id>
@@ -164,20 +166,11 @@
                                     </goals>
                                 </execution>
                             </executions>
-                            <configuration>
-                                <source>1.8</source>
-                                <detectJavaApiLink>false</detectJavaApiLink>
-                                <detectLinks>false</detectLinks>
-                                <minmemory>128m</minmemory>
-                                <maxmemory>1g</maxmemory>
-                                <!-- Multiple problems when using the JDK 11 javadoc-->
-                                <!--<javadocExecutable>/usr/lib/jvm/jdk1.8.0_211/bin/javadoc</javadocExecutable>-->
-                            </configuration>
                         </plugin>
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-gpg-plugin</artifactId>
-                            <version>1.6</version>
+                            <version>3.2.7</version>
                             <executions>
                                 <execution>
                                     <id>sign-artifacts</id>
@@ -187,9 +180,10 @@
                                     </goals>
                                     <configuration>
                                         <keyname>${gpg.keyname}</keyname>
+                                        <passphrase>${gpg.passphrase}</passphrase>
                                         <gpgArguments>
-                                          <arg>--pinentry-mode</arg>
-                                          <arg>loopback</arg>
+                                            <arg>--pinentry-mode</arg>
+                                            <arg>loopback</arg>
                                         </gpgArguments>
                                     </configuration>
                                 </execution>
@@ -198,13 +192,13 @@
                         <plugin>
                             <groupId>org.apache.maven.plugins</groupId>
                             <artifactId>maven-jar-plugin</artifactId>
-                            <version>3.1.2</version>
+                            <version>3.4.2</version>
                         </plugin>
 
                         <plugin>
                             <groupId>org.sonatype.plugins</groupId>
                             <artifactId>nexus-staging-maven-plugin</artifactId>
-                            <version>1.6.8</version>
+                            <version>1.6.14</version>
                             <extensions>true</extensions>
                             <configuration>
                                 <serverId>ossrh</serverId>
