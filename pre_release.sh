@@ -11,9 +11,6 @@ done
 
 #ta bort SNAPSHOT taggen
 sed -i "s/${releaseVersion}-SNAPSHOT/${releaseVersion}/g" pom.xml
-cd bauta-autoconfigure
-sed -i "s/${releaseVersion}-SNAPSHOT/${releaseVersion}/g" pom.xml
-cd ..
 cd bauta-core
 sed -i "s/${releaseVersion}-SNAPSHOT/${releaseVersion}/g" pom.xml
 cd ..
