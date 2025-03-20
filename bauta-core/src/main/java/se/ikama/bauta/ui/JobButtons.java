@@ -4,7 +4,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H4;
-import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -18,7 +18,6 @@ import org.springframework.batch.core.launch.NoSuchJobException;
 import se.ikama.bauta.core.BasicJobInstanceInfo;
 import se.ikama.bauta.core.BautaManager;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,10 +25,9 @@ import java.util.Map;
 public class JobButtons extends FlexLayout {
     private static final long serialVersionUID = 1L;
     private BautaManager bautaManager;
-    
+
     BasicJobInstanceInfo jobInstanceInfo;
 
-    
     private Button startButton, stopButton, restartButton, infoButton, abandonButton;
 
     boolean enabled;
@@ -45,10 +43,13 @@ public class JobButtons extends FlexLayout {
         FlexLayout hl = new FlexLayout();
         startButton = new Button("", clickEvent -> {
             if (bautaManager.isSchedulingEnabled() && mainView.jobTriggerDao.hasTriggers(jobInstanceInfo.getName())) {
-        	openConfirmDialog("Scheduling is enabled and job " +jobInstanceInfo.getName()+ " triggers other jobs. Sure you want to start?", this.jobInstanceInfo, this::doStartJob);
-            }
-            else if (confirmJobOperations)
-        	openConfirmDialog("Are you sure you want to start job " +jobInstanceInfo.getName()+ "?", this.jobInstanceInfo, this::doStartJob);
+                openConfirmDialog(
+                        "Scheduling is enabled and job " + jobInstanceInfo.getName()
+                                + " triggers other jobs. Sure you want to start?",
+                        this.jobInstanceInfo, this::doStartJob);
+            } else if (confirmJobOperations)
+                openConfirmDialog("Are you sure you want to start job " + jobInstanceInfo.getName() + "?",
+                        this.jobInstanceInfo, this::doStartJob);
             else
                 doStartJob(this.jobInstanceInfo);
         });
@@ -59,7 +60,8 @@ public class JobButtons extends FlexLayout {
 
         stopButton = new Button("", clickEvent -> {
             if (confirmJobOperations)
-                openConfirmDialog("Are you sure you want to stop job " +jobInstanceInfo.getName()+ "?",  this.jobInstanceInfo, this::doStopJob);
+                openConfirmDialog("Are you sure you want to stop job " + jobInstanceInfo.getName() + "?",
+                        this.jobInstanceInfo, this::doStopJob);
             else
                 doStopJob(this.jobInstanceInfo);
         });
@@ -71,23 +73,27 @@ public class JobButtons extends FlexLayout {
 
         restartButton = new Button("", clickEvent -> {
             if (confirmJobOperations)
-                openConfirmDialog("Are you sure you want to restart job " +jobInstanceInfo.getName()+ "?", this.jobInstanceInfo, this::doRestartJob);
+                openConfirmDialog("Are you sure you want to restart job " + jobInstanceInfo.getName() + "?",
+                        this.jobInstanceInfo, this::doRestartJob);
             else
                 doRestartJob(this.jobInstanceInfo);
         });
         restartButton.setIcon(VaadinIcon.ROTATE_LEFT.create());
         restartButton.addClassName("margin-left");
-        restartButton.getElement().setProperty("title", "Restart a failed or interrupted job. Will pick up where it left off.");
+        restartButton.getElement().setProperty("title",
+                "Restart a failed or interrupted job. Will pick up where it left off.");
 
         hl.add(restartButton);
 
         abandonButton = new Button("", clickEvent -> {
             if (confirmJobOperations)
-                openConfirmDialog("Are you sure you want to abandon job " +jobInstanceInfo.getName()+ "?", this.jobInstanceInfo, this::doAbandonJob);
+                openConfirmDialog("Are you sure you want to abandon job " + jobInstanceInfo.getName() + "?",
+                        this.jobInstanceInfo, this::doAbandonJob);
             else
                 doAbandonJob(this.jobInstanceInfo);
         });
-        abandonButton.getElement().setProperty("title", "Abandons a job. Useful when the process was killed while a job was running and is now stuck in running state.");
+        abandonButton.getElement().setProperty("title",
+                "Abandons a job. Useful when the process was killed while a job was running and is now stuck in running state.");
         abandonButton.setIcon(VaadinIcon.TRASH.create());
 
         abandonButton.addClassName("margin-left");
@@ -112,13 +118,17 @@ public class JobButtons extends FlexLayout {
 
         this.add(hl);
 
-        if (this.jobInstanceInfo.getOptionalJobParamKeys() != null && this.jobInstanceInfo.getOptionalJobParamKeys().size() > 0) {
-            Label l = new Label("Optional params: " + StringUtils.join(this.jobInstanceInfo.getOptionalJobParamKeys(),","));
+        if (this.jobInstanceInfo.getOptionalJobParamKeys() != null
+                && this.jobInstanceInfo.getOptionalJobParamKeys().size() > 0) {
+            var l = new Span(
+                    "Optional params: " + StringUtils.join(this.jobInstanceInfo.getOptionalJobParamKeys(), ","));
             l.getStyle().set("font-size", "0.8em");
             this.add(l);
         }
-        if (this.jobInstanceInfo.getRequiredJobParamKeys() != null && this.jobInstanceInfo.getRequiredJobParamKeys().size() > 0) {
-            Label l = new Label("Required params: " + StringUtils.join(this.jobInstanceInfo.getRequiredJobParamKeys(),","));
+        if (this.jobInstanceInfo.getRequiredJobParamKeys() != null
+                && this.jobInstanceInfo.getRequiredJobParamKeys().size() > 0) {
+            var l = new Span(
+                    "Required params: " + StringUtils.join(this.jobInstanceInfo.getRequiredJobParamKeys(), ","));
             l.getStyle().set("font-size", "0.8em");
             this.add(l);
         }
@@ -150,8 +160,7 @@ public class JobButtons extends FlexLayout {
                 startButton.setEnabled(true);
                 restartButton.setEnabled(jobInstanceInfo.isRestartable());
             }
-        }
-        else {
+        } else {
             stopButton.setEnabled(false);
             startButton.setEnabled(false);
             restartButton.setEnabled(false);
@@ -171,8 +180,7 @@ public class JobButtons extends FlexLayout {
     private void doStartJob(BasicJobInstanceInfo item, Map<String, String> params) {
         try {
             bautaManager.startJob(item.getName(), params);
-        }
-        catch(JobParametersInvalidException e) {
+        } catch (JobParametersInvalidException e) {
             UIUtils.showErrorMessage(e.getMessage());
         } catch (JobInstanceAlreadyExistsException e) {
             UIUtils.showErrorMessage("This job is already running");
@@ -184,8 +192,7 @@ public class JobButtons extends FlexLayout {
     private void doStopJob(BasicJobInstanceInfo jobInstanceInfo) {
         try {
             bautaManager.stopJob(jobInstanceInfo.getName());
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             UIUtils.showErrorMessage(e.getMessage());
         }
     }
@@ -223,7 +230,7 @@ public class JobButtons extends FlexLayout {
                 TextField paramField = new TextField();
                 paramField.setLabel(key);
                 paramField.setRequired(true);
-                //paramField.setRequiredIndicatorVisible(true);
+                // paramField.setRequiredIndicatorVisible(true);
                 paramField.setWidthFull();
                 formLayout.add(paramField);
                 requiredTextFields.put(key, paramField);
@@ -242,13 +249,13 @@ public class JobButtons extends FlexLayout {
 
         Button startButton = new Button("Start", clickEvent -> {
             HashMap<String, String> params = new HashMap<>();
-            for (Map.Entry<String, TextField> field:requiredTextFields.entrySet()) {
+            for (Map.Entry<String, TextField> field : requiredTextFields.entrySet()) {
                 if (StringUtils.isNotEmpty(field.getValue().getValue())) {
                     params.put(field.getKey(), field.getValue().getValue());
                 }
                 // TODO: Add early validation of required fields
             }
-            for (Map.Entry<String, TextField> field:optionalTextFields.entrySet()) {
+            for (Map.Entry<String, TextField> field : optionalTextFields.entrySet()) {
                 if (StringUtils.isNotEmpty(field.getValue().getValue())) {
                     params.put(field.getKey(), field.getValue().getValue());
                 }
@@ -270,10 +277,10 @@ public class JobButtons extends FlexLayout {
         return dialog;
     }
 
-    private void openConfirmDialog(String text, BasicJobInstanceInfo item, ConfirmDialog.ConfirmDialogListener<BasicJobInstanceInfo> function) {
+    private void openConfirmDialog(String text, BasicJobInstanceInfo item,
+            ConfirmDialog.ConfirmDialogListener<BasicJobInstanceInfo> function) {
         ConfirmDialog<BasicJobInstanceInfo> dialog = new ConfirmDialog<>(text, item, function);
         dialog.open();
     }
-    
-    
+
 }

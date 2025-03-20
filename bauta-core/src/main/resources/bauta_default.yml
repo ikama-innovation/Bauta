@@ -1,7 +1,8 @@
-# Default properties
+# In order to serve resources at /reports/*, the following configuration is needed
 vaadin.urlMapping: /ui/*
 vaadin.heartbeatInterval: 30
 vaadin.closeIdleConnections: true
+vaadin.pushMode=AUTOMATIC
 
 server.servlet.session.timeout: 300
 
@@ -15,9 +16,13 @@ bauta.build: 0
 # Efter an beforeJob, beforeStep, afterJob, afterStep event has been fired, let spring batch save the state before
 # fetching the state and send it to jobExecutionListeners
 bauta.updateThreadSleepBeforeUpdate: 300
+
+bauta.batch.executor.maxThreads: 50
+
 # Additional job bean directories
 bauta.jobBeansDir2: replaceme
 bauta.jobBeansDir3: replaceme
 
 hsqldb.tx: mvcc
 bauta.jobRepository.isolationLevelForCreate: ISOLATION_READ_COMMITTED
+spring.jpa.defer-datasource-initialization: true

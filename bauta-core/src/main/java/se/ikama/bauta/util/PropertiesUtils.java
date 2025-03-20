@@ -1,6 +1,9 @@
 package se.ikama.bauta.util;
 
+import java.util.Map;
 import java.util.Properties;
+
+import org.springframework.batch.core.JobParameter;
 
 public class PropertiesUtils {
     public static Properties fromCommaSeparatedString(String s) {
@@ -20,5 +23,15 @@ public class PropertiesUtils {
             }
         }
         return properties;
+    }
+
+    public static Properties fromMap(Map<String, JobParameter<?>> jp) {
+        Properties p = new Properties();
+        for (var entry : jp.entrySet()) {
+            // TODO: Proper string conversion. Or better: rework usage of strings/properties 
+            String stringValue = entry.getValue().getValue().toString();
+            p.setProperty(entry.getKey(), stringValue);
+        }
+        return p;
     }
 }

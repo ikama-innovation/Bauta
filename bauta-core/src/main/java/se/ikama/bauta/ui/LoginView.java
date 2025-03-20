@@ -1,6 +1,5 @@
 package se.ikama.bauta.ui;
 
-import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.login.LoginI18n;
 import com.vaadin.flow.component.login.LoginOverlay;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -21,7 +20,6 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver, Ha
     @Value("${bauta.version}")
     private String buildNumber;
 
-
     public LoginView() {
         login.setAction("login");
         login.setOpened(true);
@@ -30,13 +28,11 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver, Ha
         getElement().appendChild(login.getElement());
     }
 
-
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         log.debug("beforeEnter: {}", event);
         login.setDescription("Build " + buildNumber);
     }
-
 
     @Override
     public void setParameter(BeforeEvent event, @OptionalParameter String parameter) {
@@ -48,7 +44,8 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver, Ha
             i18n.setErrorMessage(em);
             login.setError(true);
             login.setI18n(i18n);
-        } else if (StringUtils.contains(parameter, "error") || event.getLocation().getQueryParameters().getParameters().containsKey("error")) {
+        } else if (StringUtils.contains(parameter, "error")
+                || event.getLocation().getQueryParameters().getParameters().containsKey("error")) {
             login.setI18n(LoginI18n.createDefault());
             login.setError(true);
         } else {

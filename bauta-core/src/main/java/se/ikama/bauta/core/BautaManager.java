@@ -12,9 +12,12 @@ import org.springframework.batch.core.launch.*;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.stereotype.Component;
+
 import se.ikama.bauta.batch.JobParametersProvider;
 import se.ikama.bauta.core.dao.AppSettingsDao;
 import se.ikama.bauta.core.metadata.JobMetadata;
@@ -23,23 +26,25 @@ import se.ikama.bauta.core.metadata.StepMetadata;
 import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.security.SecurityUtils;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import se.ikama.bauta.util.PropertiesUtils;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Component
+@DependsOn("dataSourceInitializer")
 public class BautaManager implements StepExecutionListener, JobExecutionListener {
 
     Logger log = LoggerFactory.getLogger(this.getClass().getName());
-    private Date startTime = new Date();
-    private BautaConfig bautaConfig;
-
+    private LocalDateTime startTime = LocalDateTime.now();
+    
     JobRepository jobRepository;
 
     JobOperator jobOperator;
@@ -80,6 +85,9 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
     @Value("${bauta.refreshServerCommand:}")
     private String refreshServerCommand;
 
+    @Value("${bauta.homeDir}")
+    private String homeDir;
+
     @Autowired
     Environment env;
 
@@ -98,13 +106,11 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 
 
 
-    public BautaManager(BautaConfig bautaConfig, JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
-        this.bautaConfig = bautaConfig;
+    public BautaManager(JobOperator jobOperator, JobRepository jobRepository, JobExplorer jobExplorer, JobRegistry jobRegistry) {
         this.jobRepository = jobRepository;
         this.jobOperator = jobOperator;
         this.jobExplorer = jobExplorer;
         this.jobRegistry = jobRegistry;
-
     }
 
 
@@ -116,7 +122,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         threadPoolTaskScheduler.setThreadNamePrefix(
                 "JobTriggerScheduler");
         threadPoolTaskScheduler.setAwaitTerminationSeconds(5);
-        log.info("Home is {}", bautaConfig.getProperty(BautaConfigParams.HOME_DIR));
+        log.info("Home is {}", homeDir);
         log.info("properties: {}", getServerInfo().toArray());
         initializeScheduling(false);
         TimerTask cleanupTimerTask = new TimerTask() {
@@ -156,16 +162,16 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             try {
                 for (Long executionId : jobOperator.getRunningExecutions(jobName)) {
                     JobExecution je = jobExplorer.getJobExecution(executionId);
-                    if (startTime.after(je.getStartTime())) {
+                    if (startTime.isAfter(je.getStartTime())) {
                         log.warn("Job {}, executionId {} is stored as running, but startTime is before (re)start. Changing to FAILED", jobName, executionId);
-                        je.setEndTime(new Date());
+                        je.setEndTime(LocalDateTime.now());
                         je.setStatus(BatchStatus.FAILED);
                         je.setExitStatus(ExitStatus.FAILED);
                         for(StepExecution se : je.getStepExecutions()) {
                             if (se.getExitStatus().isRunning()) {
                                 log.warn("Step {} is stored as running. Changing to FAILED", se.getStepName());
                                 se.setStatus(BatchStatus.FAILED);
-                                se.setEndTime(new Date());
+                                se.setEndTime(LocalDateTime.now());
                                 se.setExitStatus(ExitStatus.FAILED);
                                 jobRepository.update(se);
                             }
@@ -180,7 +186,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             }
         }
     }
-    public  void initializeScheduling(boolean refresh) {
+    public void initializeScheduling(boolean refresh) {
         log.debug("Initializing scheduling");
         if (refresh) {
             log.debug("Shutting down taskScheduler");
@@ -241,13 +247,15 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             paramsStr.append(","+jobParams);
         }
         log.debug("Starting job {} with jobParams: {}", jobName, paramsStr);
-        return jobOperator.start(jobName, paramsStr.toString());
+        Properties jobProperties = PropertiesUtils.fromCommaSeparatedString(paramsStr.toString());
+        // TODO: Verify conversion. Rework jobParams as string
+        return jobOperator.start(jobName, jobProperties);
     }
     public Long startJob(String jobName, Map<String, String> params) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
         StringBuilder paramsStr = new StringBuilder();
         boolean first = true;
         if (params != null && params.size() > 0) {
-            for(Map.Entry param : params.entrySet()) {
+            for(var param : params.entrySet()) {
                 if (!first) {
                     paramsStr.append(",");
                 }
@@ -573,13 +581,14 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         jobInstanceInfo.setLatestExecutionId(je.getId());
         jobInstanceInfo.setStartTime(je.getStartTime());
         jobInstanceInfo.setEndTime(je.getEndTime());
-        Properties jp = je.getJobParameters().toProperties();
-        jp.remove("start");
-        jobInstanceInfo.setJobParameters(jp);
+        var jp = je.getJobParameters().getParameters();
+        // TODO: WHy did we remove start
+        // jp.remove("start");
+        jobInstanceInfo.setJobParameters(PropertiesUtils.fromMap(jp));
         long totalDuration = 0;
         int executionCount = 1;
         if (je.getEndTime() != null) {
-            totalDuration += je.getEndTime().getTime() - je.getStartTime().getTime();
+            totalDuration += ChronoUnit.MILLIS.between(je.getStartTime(), je.getEndTime());
             jobInstanceInfo.setLatestDuration(totalDuration);
         }
         for (StepExecution se : je.getStepExecutions()) {
@@ -610,7 +619,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
                 executionCount++;
                 JobExecution jeh = jobExplorer.getJobExecution(executionId);
                 if (jeh.getEndTime() != null) {
-                    totalDuration += jeh.getEndTime().getTime() - jeh.getStartTime().getTime();
+                    totalDuration += ChronoUnit.MILLIS.between(jeh.getStartTime(), jeh.getEndTime());
                 }
                 for (StepExecution seh : jeh.getStepExecutions()) {
                     StepInfo si = idToStepInfo.get(seh.getStepName());
@@ -863,4 +872,6 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 	this.appSettingsDao.setBooleanSetting("schedulingEnabled", enabled);
 	return enabled;
     }
+
+
 }

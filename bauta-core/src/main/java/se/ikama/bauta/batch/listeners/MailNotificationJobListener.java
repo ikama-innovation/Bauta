@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMessage;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +20,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-
-import net.bytebuddy.asm.Advice.This;
 
 /**
  * Sends email notifications when jobs finish.
@@ -111,7 +109,7 @@ public class MailNotificationJobListener implements JobExecutionListener, StepEx
             ctx.setVariable("jobExecution", jobExecution);
             ctx.setVariable("profile", profile);
             ctx.setVariable("version", version);
-            ctx.setVariable("jobParameters", jobExecution.getJobParameters().toProperties().toString());
+            ctx.setVariable("jobParameters", jobExecution.getJobParameters().getParameters().toString());
 
             // Prepare message using a Spring helper
             final MimeMessage mimeMessage = this.javaMailSender.createMimeMessage();

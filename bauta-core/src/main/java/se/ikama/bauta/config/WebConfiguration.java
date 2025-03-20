@@ -40,30 +40,6 @@ public class WebConfiguration implements WebMvcConfigurer {
 
 	}
 
-	@Bean
-	@Order(Ordered.LOWEST_PRECEDENCE - 1)
-	public ServletRegistrationBean<SpringServlet> vaadinServletBean() {
-
-		SpringServlet springServlet = new SpringServlet(applicationContext, true);
-		ServletRegistrationBean<SpringServlet> bean = new ServletRegistrationBean<>(springServlet, "/vaadin/*");
-		bean.setAsyncSupported(true);
-		bean.setName("springServlet");
-		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads", "10");
-		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads", "10");
-
-		return bean;
-	}
-
-	@Bean
-	@Order(Ordered.LOWEST_PRECEDENCE)
-	public ServletRegistrationBean<VaadinServlet> vaadinResourcesServletBean() {
-		VaadinServlet vaadinServlet = new VaadinServlet();
-		ServletRegistrationBean<VaadinServlet> bean = new ServletRegistrationBean<>(vaadinServlet, "/frontend/*");
-		bean.setName("frontendServlet");
-		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxProcessingThreads", "10");
-		bean.addInitParameter("org.atmosphere.cpr.broadcaster.maxAsyncWriteThreads", "10");
-
-		return bean;
-	}
+	
 
 }

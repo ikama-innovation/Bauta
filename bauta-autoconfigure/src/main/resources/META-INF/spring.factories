@@ -1,3 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-se.ikama.bauta.autoconfigure.BautaAutoConfiguration
-org.springframework.boot.env.EnvironmentPostProcessor=se.ikama.bauta.autoconfigure.BautaAutoConfiguration

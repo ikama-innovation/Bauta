@@ -24,7 +24,7 @@
     border-radius: var(--lumo-border-radius-m);
 }
 .batch_status {
-    background-color: var(--lumo-contrast-30pct);
+    background-color: pink;
 }
 .batch_status[data-status="COMPLETED"] {
     background-color: var(--lumo-success-color);
