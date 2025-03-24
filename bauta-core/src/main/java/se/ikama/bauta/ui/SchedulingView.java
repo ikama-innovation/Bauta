@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Set;
 
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
-import org.jline.utils.Log;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronTrigger;
@@ -33,7 +33,6 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.html.UnorderedList;
@@ -57,6 +56,7 @@ import se.ikama.bauta.scheduling.JobTriggerLog;
 import se.ikama.bauta.security.SecurityUtils;
 
 @Component
+@Slf4j
 @UIScope
 public class SchedulingView extends VerticalLayout implements SelectionListener<Grid<JobTrigger>, JobTrigger> {
 	private static final long serialVersionUID = 1L;
@@ -160,7 +160,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 				save(imported);
 				Notification.show("Imported " + imported.length + " triggers");
 			} catch (Exception e) {
-				Log.error("Failed to import triggers", e);
+				log.error("Failed to import triggers", e);
 				Notification.show("Failed to import triggers: " + e.getMessage());
 			}
 		});
