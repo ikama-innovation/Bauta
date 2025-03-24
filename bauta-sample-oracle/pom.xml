@@ -2,11 +2,11 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>bauta-sample-oracle</artifactId>
     <name>bauta-sample-oracle</name>
-    <version>2.0.0</version>
+    <version>2.0.3</version>
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>2.0.0</version>
+        <version>2.0.3</version>
     </parent>
     <properties>
         <bautainstancebuildtime>${maven.build.timestamp}</bautainstancebuildtime>
@@ -16,24 +16,13 @@
         <dependency>
             <groupId>se.ikama</groupId>
             <artifactId>bauta-starter</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Oracle JDBC driver. Not available in any public repo.
-        Either install it manually in your local repo, or use the maven-install-plugin. See example below .
-        To install manually, do something like
-        mvn install:install-file -Dfile={Path/to/your/ojdbc.jar} -DgroupId=com.oracle.driver -DartifactId=ojdbc8 -Dversion=19.3 -Dpackaging=jar
-        <dependency>
-            <groupId>com.oracle.driver</groupId>
-            <artifactId>ojdbc8</artifactId>
-            <version>19.3</version>
-            <scope>runtime</scope>
-        </dependency>
--->
 
 
     </dependencies>
@@ -95,7 +84,7 @@
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
-                <version>3.0.1</version>
+                <version>4.9.10</version>
                 <executions>
                     <execution>
                         <id>get-the-git-infos</id>
