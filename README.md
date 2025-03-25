@@ -1,5 +1,5 @@
 # Bauta
-Bauta is a batch automation framework based on [Spring Batch](https://spring.io/projects/spring-batch) and [Spring Boot](https://spring.io/projects/spring-boot). It adds a user interface in which you can start/stop/restart jobs, monitor step/job status. Also provides some add-ons to jobs and steps, such as report/log generation, job parameter handling etc. 
+Bauta is a batch automation and script orchestration framework based on [Spring Batch](https://spring.io/projects/spring-batch) and [Spring Boot](https://spring.io/projects/spring-boot). It adds a user interface in which you can start/stop/restart jobs, monitor step/job status. Also provides some add-ons to jobs and steps, such as report/log generation, job parameter handling etc. 
 
 You can run your jobs locally on your personal computer or on a server to support team collaboration. It can be setup to automatically stop, install latest batch jobs/scripts etc from GIT and restart. This makes it convenient for teams to develop and deploy their batch jobs.
 
@@ -13,6 +13,7 @@ You can run your jobs locally on your personal computer or on a server to suppor
 - A convenient way to get started with Spring Batch
 - Start/stop/restart jobs via a web-based user interface
 - Watch job/step progress and status.
+- A step may be Java Tasklets or script executions (javascript, python, php etc)
 - Steps can generate output that can be displayed in the UI. Typically reports, script logs, stack traces etc.
 - Provides "starter" and example projects for different usage scenarios
 - Supports "DevOps" way of developing your Jobs/Steps in a collaborative, automated fashion
@@ -20,6 +21,7 @@ You can run your jobs locally on your personal computer or on a server to suppor
 ## Use cases
 - Data migration/ETL
 - Batch processing
+- ML/AI data export/transformation pipelines
 
 ### Scheduling
 Bauta lets you schedule jobs to start at times specified by a CRON expression. This is useful for starting import jobs, running your daily integration dry-runs during development etc.
