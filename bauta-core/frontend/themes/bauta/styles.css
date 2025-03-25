@@ -1,3 +1,42 @@
+.login-view {
+}
+.login-overlay {
+    max-width: 400em;
+    /*background-color: var(--lumo-base-color);*/
+    border-radius: var(--lumo-border-radius-m);
+    box-shadow: var(--lumo-box-shadow-m);
+    margin-top: 100px;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    .login-header {
+        margin: 0;
+        background-image: linear-gradient(135deg,var(--lumo-shade-10pct),var(--lumo-shade-90pct));
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        height: 200px;
+    }
+    img {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 50px;
+        width: 60%;
+    }
+    a {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        width: 60%;
+        text-align: center;
+    }
+    p {
+        text-align: center;
+        width: 90%;
+    }
+}
 .step-label {
     font-size: 0.8em;
     margin-left: 4px;
@@ -207,3 +246,33 @@
 .margin-right {
     margin-right: 6px;
 }
+
+@import url('./main-layout.css');    html {
+    --lumo-font-size: 1rem;
+    --lumo-font-size-xxxl: 1.75rem;
+    --lumo-font-size-xxl: 1.375rem;
+    --lumo-font-size-xl: 1.125rem;
+    --lumo-font-size-l: 1rem;
+    --lumo-font-size-m: 0.875rem;
+    --lumo-font-size-s: 0.8125rem;
+    --lumo-font-size-xs: 0.75rem;
+    --lumo-font-size-xxs: 0.6875rem;
+    --lumo-line-height-m: 1.4;
+    --lumo-line-height-s: 1.2;
+    --lumo-line-height-xs: 1.1;
+    --lumo-size-xl: 3rem;
+    --lumo-size-l: 2.5rem;
+    --lumo-size-m: 2rem;
+    --lumo-size-s: 1.75rem;
+    --lumo-size-xs: 1.5rem;
+    --lumo-space-xl: 1.875rem;
+    --lumo-space-l: 1.25rem;
+    --lumo-space-m: 0.625rem;
+    --lumo-space-s: 0.3125rem;
+    --lumo-space-xs: 0.1875rem;
+
+  }
+
+  [theme~="dark"] {
+
+  }

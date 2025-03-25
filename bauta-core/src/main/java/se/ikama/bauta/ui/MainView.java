@@ -5,18 +5,14 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -25,8 +21,6 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +30,6 @@ import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.security.access.annotation.Secured;
-
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -50,7 +42,6 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
-import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -72,20 +63,14 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.page.Push;
-import com.vaadin.flow.component.page.Viewport;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.dom.ThemeList;
 import com.vaadin.flow.router.HasDynamicTitle;
-import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.shared.communication.PushMode;
 import com.vaadin.flow.spring.security.AuthenticationContext;
-import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 
 import jakarta.annotation.security.RolesAllowed;
@@ -100,11 +85,6 @@ import se.ikama.bauta.security.SecurityUtils;
 
 @Route("")
 @PreserveOnRefresh()
-// @Theme(variant = Lumo.DARK)
-//@CssImport(value = "./styles/job-grid-theme.css", themeFor = "vaadin-grid")
-//@CssImport(value = "./styles/bauta-styles.css")
-// @Viewport("width=device-width, minimum-scale=1, initial-scale=1,
-// user-scalable=yes, viewport-fit=cover")
 @JsModule("@vaadin/vaadin-lumo-styles/presets/compact.js")
 @DependsOn("bautaManager")
 @RolesAllowed("ROLE_BATCH_VIEW")
@@ -146,8 +126,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	private ComboBox<String> cbSortingList;
 	private ComboBox<String> cbShowTimeList;
 	private String sortingValue = "";
-	private static Date showJobsFrom = null;
-	private static Date showJobsTo = null;
+	private static LocalDateTime showJobsFrom = null;
+	private static LocalDateTime showJobsTo = null;
 	private TreeMap<String, StepFlow> jobNameToStepFLow = new TreeMap<>();
 	private TreeMap<String, JobButtons> jobNameToJobButtons = new TreeMap<>();
 	private TreeMap<String, JobInfo> jobNameToJobInfo = new TreeMap<>();
@@ -161,9 +141,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		setTheme(true);
 		log.debug("Constructing main view. Hashcode: {}", this.hashCode());
 		createMainView(schedulingView);
-
-
 	}
+	// A hack to enabled the dark theme. As suggested here: https://stackoverflow.com/questions/75770940/vaadin-24-not-using-specified-theme		
 	private void setTheme(boolean dark) {
         var js = "document.documentElement.setAttribute('theme', $0)";
 
@@ -172,6 +151,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 
 	@Override
 	protected void onAttach(AttachEvent attachEvent) {
+		setTheme(true);
 		// Toggle dark theme
 		/* 
 		ThemeList themeList = getElement().getThemeList();
@@ -245,20 +225,23 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 
 	private void filterJobGrid() {
 		if (showJobsFrom == null)
-			showJobsFrom = new Date(0);
+			showJobsFrom = LocalDateTime.MIN;
 		if (showJobsTo == null)
-			showJobsFrom = new Date();
+			showJobsFrom = LocalDateTime.now();
 
 		jobGrid.getChildren().forEach(component -> {
 			String jobName = component.getElement().getAttribute("data-job-name");
 			String jobStatus = component.getElement().getAttribute("data-execution-status");
 			Long startTime = Long.valueOf(component.getElement().getAttribute("data-job-startTime"));
 			Long endTime = Long.valueOf(component.getElement().getAttribute("data-job-endtime"));
-			log.debug("showJobsFrom: {}, showJobsTo: {}, startTime: {}, endTime: {}", showJobsFrom.getTime(), showJobsTo.getTime(),
+			Long showJobsFromSeconds = showJobsFrom.toEpochSecond(ZoneOffset.UTC);
+			Long showJobsToSeconds = showJobsTo.toEpochSecond(ZoneOffset.UTC);
+			
+			log.debug("showJobsFrom: {}, showJobsTo: {}, startTime: {}, endTime: {}", showJobsFromSeconds, showJobsToSeconds,
 					startTime, endTime);
 			
-			boolean show = (showJobsFrom.getTime() <= startTime && showJobsTo.getTime() >= startTime)
-					|| showJobsFrom.getTime() <= endTime && showJobsTo.getTime() >= endTime
+			boolean show = (showJobsFromSeconds <= startTime && showJobsToSeconds >= startTime)
+					|| showJobsFromSeconds <= endTime && showJobsToSeconds >= endTime
 					|| runningJobs.contains(jobName);
 
 			if (!tfJobFilter.isEmpty() && !StringUtils.containsIgnoreCase(jobName, tfJobFilter.getValue()))
@@ -309,9 +292,9 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 			jobRow.addClassNames("job-grid-row");
 			jobRow.getElement().setAttribute("data-job-name", jobName);
 			jobRow.getElement().setAttribute("data-job-endtime",
-					job.getEndTime() != null ? Long.toString(job.getEndTime().toEpochSecond(ZoneOffset.UTC)*1000) : "0");
+					job.getEndTime() != null ? Long.toString(job.getEndTime().toEpochSecond(ZoneOffset.UTC)) : "0");
 			jobRow.getElement().setAttribute("data-job-startTime",
-					job.getStartTime() != null ? Long.toString(job.getStartTime().toEpochSecond(ZoneOffset.UTC)*1000) : "0");
+					job.getStartTime() != null ? Long.toString(job.getStartTime().toEpochSecond(ZoneOffset.UTC)) : "0");
 			jobRow.getElement().setAttribute("data-execution-status", job.getExecutionStatus());
 			jobNameToJobRow.put(jobName, jobRow);
 
@@ -487,7 +470,9 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		MenuBar mbUser = new MenuBar();
 		miUser = mbUser.addItem("replace_me_with_username");
 		miUser.addComponentAsFirst(VaadinIcon.USER.create());
-		miUser.getSubMenu().addItem("Logout", e -> {
+		var subMenu = miUser.getSubMenu();
+		subMenu.addItem("Roles: " + StringUtils.join(SecurityUtils.currentUserRoles(), ", "));
+		subMenu.addItem("Logout", e -> {
 			authenticationContext.logout();
 		});
 		return mbUser;
@@ -535,34 +520,38 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 			}
 			filterJobGrid();
 		});
-		showJobsTo = new Date();
+		showJobsTo = LocalDateTime.now();
 		cbShowTimeList = new ComboBox<>();
 		cbShowTimeList.setLabel("Time:");
 		cbShowTimeList.setItems("Today", "Last 24h", "Last 48h", "Last Week", "Custom");
 		cbShowTimeList.setClearButtonVisible(true);
 		// TODO: Fixme
 		// cbShowTimeList.setPreventInvalidInput(true);
+		
 		cbShowTimeList.addValueChangeListener(event -> {
+			LocalDateTime now = LocalDateTime.now();
 			cbShowTimeList.setHelperText("");
 			if (event.getValue() == null) {
-				showJobsTo = new Date();
-				showJobsFrom = new Date(0);
+				showJobsTo = LocalDateTime.now();
+				showJobsFrom = LocalDateTime.MIN;
 			} else if (event.getValue().equals("Custom")) {
 				openDateTimeDialog(cbShowTimeList);
 			} else if (event.getValue().equals("Today")) {
-				showJobsFrom = Date
-						.from(LocalDateTime.now().with(LocalTime.MIDNIGHT).atZone(ZoneId.systemDefault()).toInstant());
-				showJobsTo = new Date();
+				// From midnight to now
+				showJobsFrom = LocalDateTime.of(now.getYear(), now.getMonthValue(), now.getDayOfMonth(), 0, 0);
+				showJobsTo = now;
 			} else if (event.getValue().equals("Last 24h")) {
-				showJobsFrom = DateUtils.addHours(new Date(), -24);
-				showJobsTo = new Date();
+				showJobsFrom = now.minusHours(24);
+				showJobsTo = now;
 			} else if (event.getValue().equals("Last 48h")) {
-				showJobsFrom = DateUtils.addHours(new Date(), -48);
-				showJobsTo = new Date();
+				showJobsFrom = now.minusHours(48);
+				showJobsTo = now;
 			} else if (event.getValue().equals("Last Week")) {
-				showJobsFrom = DateUtils.addWeeks(new Date(), -1);
-				showJobsTo = new Date();
+				showJobsFrom = now.minusDays(7);
+				showJobsTo = now;
 			}
+			log.debug("showJobsFrom: {}", showJobsFrom);
+			log.debug("showJobsTo: {}", showJobsTo);
 			filterJobGrid();
 		});
 		cbUnknownJobs = new Checkbox("Show unstarted jobs");
@@ -1001,7 +990,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		if (this.getUI().isPresent()) {
 			UI ui = this.getUI().get();
 			ui.access(() -> {
-				showJobsTo = new Date();
+				showJobsTo = LocalDateTime.now();
 				String jobName = jobInstanceInfo.getName();
 				JobButtons jobButtons = jobNameToJobButtons.get(jobName);
 				jobButtons.setJobInstanceInfo(jobInstanceInfo);
@@ -1015,11 +1004,11 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 				Div jobRow = jobNameToJobRow.get(jobName);
 				jobRow.getElement().setAttribute("data-job-endtime",
 						jobInstanceInfo.getEndTime() != null
-								? Long.toString(jobInstanceInfo.getEndTime().toEpochSecond(ZoneOffset.UTC)*1000)
+								? Long.toString(jobInstanceInfo.getEndTime().toEpochSecond(ZoneOffset.UTC))
 								: "0");
 				jobRow.getElement().setAttribute("data-job-startTime",
 						jobInstanceInfo.getStartTime() != null
-								? Long.toString(jobInstanceInfo.getStartTime().toEpochSecond(ZoneOffset.UTC)*1000)
+								? Long.toString(jobInstanceInfo.getStartTime().toEpochSecond(ZoneOffset.UTC))
 								: "0");
 				jobRow.getElement().setAttribute("data-execution-status", jobInstanceInfo.getExecutionStatus());
 				filterJobGrid();
@@ -1076,8 +1065,8 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 				if (dateTimePickerTo.getValue() == null) {
 					dateTimePickerTo.setValue(LocalDateTime.now());
 				}
-				showJobsFrom = Date.from(dateTimePickerFrom.getValue().atZone(ZoneId.systemDefault()).toInstant());
-				showJobsTo = Date.from(dateTimePickerTo.getValue().atZone(ZoneId.systemDefault()).toInstant());
+				showJobsFrom = dateTimePickerFrom.getValue();
+				showJobsTo = dateTimePickerTo.getValue();
 				filterJobGrid();
 				dialog.close();
 				SimpleDateFormat formatter = new SimpleDateFormat("EEE, yyyy-MM-dd HH.mm");

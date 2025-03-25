@@ -2,9 +2,12 @@ package se.ikama.bauta.security;
 
 import com.vaadin.flow.server.HandlerHelper;
 import com.vaadin.flow.shared.ApplicationConstants;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,8 +19,11 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class SecurityUtils {
@@ -86,7 +92,20 @@ public final class SecurityUtils {
         else return null;
     }
 
+    public static Collection<String> currentUserRoles() {
+		try {
+			Set<String> roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+				     .map(r -> r.getAuthority()).collect(Collectors.toSet());
+			return roles;
+			
+		}
+		catch(Exception e) {
+			return null;
+		}
+	}
+
     public static boolean isSecurityEnabled() {
-        return SecurityContextHolder.getContext().getAuthentication() != null;
+        return currentUser() != null && !"anonymousUser".equals(currentUser());
+            
     }
 }

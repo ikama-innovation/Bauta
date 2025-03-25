@@ -4,17 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import com.vaadin.flow.server.VaadinServlet;
-import com.vaadin.flow.spring.SpringServlet;
 
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
@@ -39,7 +32,4 @@ public class WebConfiguration implements WebMvcConfigurer {
 		registry.addResourceHandler("/static/css/**").addResourceLocations("classpath:/static/css/");
 
 	}
-
-	
-
 }

@@ -43,7 +43,7 @@ This enables you to automate complete chains of job executions and to control th
 
 ### Try out sample applications
 1. Clone one of the bauta-sample modules to get started.
-2. You need Java SDK 1.8 or later and Maven to build and run the application. To build: mvn clean install
+2. You need Java SDK 21 later and Maven to build and run the application. To build: mvn clean install
 3. Create a home directory for logs, job configuration files, reports etc. Set bauta.homeDir.
 4. If you will use a Staging DB, setup url, username etc in the configuration
 5. Create job configurations and put them in bauta.jobDir
