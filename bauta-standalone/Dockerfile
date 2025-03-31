@@ -1,4 +1,4 @@
-FROM openjdk:11.0.12-jre-slim
+FROM openjdk:21-jdk-alpine
 RUN mkdir -p /opt/bauta
 COPY target/bauta.zip /opt/bauta/bauta.zip
 RUN apt-get update \
