@@ -8,6 +8,7 @@ import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -34,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 
-public class PythonTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
+public class PythonTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
 
 
     private static final Logger log = LoggerFactory.getLogger(PythonTasklet.class);
