@@ -873,5 +873,4 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
 	return enabled;
     }
 
-
 }

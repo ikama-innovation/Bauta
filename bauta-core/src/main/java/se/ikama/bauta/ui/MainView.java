@@ -74,6 +74,7 @@ import com.vaadin.flow.spring.security.AuthenticationContext;
 import com.vaadin.flow.theme.lumo.Lumo;
 
 import jakarta.annotation.security.RolesAllowed;
+import lombok.extern.slf4j.Slf4j;
 import se.ikama.bauta.core.BasicJobInstanceInfo;
 import se.ikama.bauta.core.BautaManager;
 import se.ikama.bauta.core.JobEventListener;
@@ -83,6 +84,7 @@ import se.ikama.bauta.scheduling.JobTrigger;
 import se.ikama.bauta.scheduling.JobTriggerDao;
 import se.ikama.bauta.security.SecurityUtils;
 
+@Slf4j
 @Route("")
 @PreserveOnRefresh()
 @JsModule("@vaadin/vaadin-lumo-styles/presets/compact.js")
@@ -91,7 +93,7 @@ import se.ikama.bauta.security.SecurityUtils;
 public class MainView extends AppLayout implements JobEventListener, HasDynamicTitle {
 
 	private static final long serialVersionUID = 1L;
-	Logger log = LoggerFactory.getLogger(this.getClass());
+	
 	@Autowired
 	BautaManager bautaManager;
 
