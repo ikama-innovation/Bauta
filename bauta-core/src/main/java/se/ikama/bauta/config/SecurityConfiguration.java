@@ -67,8 +67,9 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         http.authorizeHttpRequests(
                 authorize -> authorize.requestMatchers(new AntPathRequestMatcher("/reports/**/*")).permitAll());
 
+        http.logout(logout -> logout.logoutSuccessUrl("{baseUrl}/ui/login").clearAuthentication(true));
         super.configure(http);
-        setOAuth2LoginPage(http, idpAuthLoginPage);
+        setOAuth2LoginPage(http, idpAuthLoginPage, "{baseUrl}/ui/login");
 
         /*
          * http.logout(logout -> logout
