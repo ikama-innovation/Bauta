@@ -14,14 +14,13 @@
         background-image: linear-gradient(135deg,var(--lumo-shade-10pct),var(--lumo-shade-90pct));
         background-repeat: no-repeat;
         background-size: 100% 100%;
-        height: 200px;
+        height: 240px;
+        overflow: hidden;
     }
     img {
         display: block;
-        margin-left: auto;
-        margin-right: auto;
-        margin-top: 50px;
-        width: 60%;
+        
+        width: 100%;
     }
     a {
         display: block;
@@ -35,6 +34,26 @@
     p {
         text-align: center;
         width: 90%;
+    }
+    .login-body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+
+        .server-info {
+            margin-top: 4;
+            margin-left: 8px;
+            margin-bottom: 50px;
+            width: 100%;
+            text-align: left;
+            font-size: 0.8em;
+        }
+        p {
+            margin-top: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        
     }
 }
 .step-label {
