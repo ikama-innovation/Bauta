@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 public class SecurityConfiguration extends VaadinWebSecurity {
 
 
+
     @Value("${bauta.security.configFilePath:}")
     private String securityConfigFilePath;
 
@@ -67,7 +68,9 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         http.authorizeHttpRequests(
                 authorize -> authorize.requestMatchers(new AntPathRequestMatcher("/reports/**/*")).permitAll());
 
-        http.logout(logout -> logout.logoutSuccessUrl("{baseUrl}/ui/login").clearAuthentication(true));
+        http.logout(logout -> logout.logoutSuccessUrl("{baseUrl}/ui/login").clearAuthentication(true)
+                .invalidateHttpSession(true).deleteCookies("JSESSIONID"));
+        http.csrf(csrf -> csrf.disable());
         super.configure(http);
         setOAuth2LoginPage(http, idpAuthLoginPage, "{baseUrl}/ui/login");
 
@@ -98,8 +101,9 @@ public class SecurityConfiguration extends VaadinWebSecurity {
                     log.debug("Id token: {}", idToken.getClaims());
 
                     if (userInfo.hasClaim("realm_access")) {
-                        var realmAccess = userInfo.getClaimAsMap("realm_access");
-                        var roles = (Collection<String>) realmAccess.get("roles");
+                        Map<String, Object> realmAccess = userInfo.getClaimAsMap("realm_access");
+                        @SuppressWarnings("unchecked")
+                        Collection<String> roles = (Collection<String>) realmAccess.get("roles");
                         mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                     }
                 } else if (authority instanceof SimpleGrantedAuthority) {
@@ -112,12 +116,17 @@ public class SecurityConfiguration extends VaadinWebSecurity {
                     Map<String, Object> userAttributes = oauth2UserAuthority.getAttributes();
                     // Keyckloak style
                     if (userAttributes.containsKey("realm_access")) {
+                        @SuppressWarnings("unchecked")
                         var realmAccess = (Map<String, Object>) userAttributes.get("realm_access");
-                        var roles = (Collection<String>) realmAccess.get("roles");
-                        mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
+                        if (realmAccess.containsKey("roles")) {
+                            @SuppressWarnings("unchecked")
+                            var roles = (Collection<String>) realmAccess.get("roles");
+                            mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
+                        }
                     }
                     // Ping federate style
                     if (userAttributes.containsKey("roles")) {
+                        @SuppressWarnings("unchecked")
                         var roles = (Collection<String>) userAttributes.get("roles");
                         mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                     }

@@ -8,8 +8,7 @@ import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.listener.StepExecutionListenerSupport;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
 import org.springframework.batch.core.step.tasklet.SystemProcessExitCodeMapper;
@@ -19,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
@@ -33,11 +31,10 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Runs  SQL/PLSQL scripts using Oracle SQLcl.
+ * Runs SQL/PLSQL scripts using Oracle SQLcl.
  * SQLcl must be installed on the host system.
  */
-public class SqlClTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
-
+public class SqlClTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(SqlClTasklet.class);
 
@@ -64,26 +61,28 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     private long checkInterval = 300;
 
     /**
-     * In order to properly stop the running sqlcl process, we need to kill the process on the OS level using kill/pkill.
+     * In order to properly stop the running sqlcl process, we need to kill the
+     * process on the OS level using kill/pkill.
      * If you for some reason need to disable this feature, set this to false.
      */
     private boolean killProcessesOnStop = true;
 
     /**
-     * If you use UTF-8-encoded script files in a windows environment, we need to call "chcp 65001" before calling sqlcl.
+     * If you use UTF-8-encoded script files in a windows environment, we need to
+     * call "chcp 65001" before calling sqlcl.
      * If you want to disable this call, set this to false
      */
     private boolean setExplicitCodepage = true;
-
-    private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
 
     private long currentExecutionId = -1;
 
     /**
-     * A unique id for the group of processes that are started for each script. The uid is added to the command line
-     * to make it possible to find and kill all processes with a command line containing this uid.
+     * A unique id for the group of processes that are started for each script. The
+     * uid is added to the command line
+     * to make it possible to find and kill all processes with a command line
+     * containing this uid.
      */
     private String processUid;
 
@@ -94,7 +93,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     protected String reportDir;
 
     /**
-     * Execute system executable (sql ..) and map its exit code to {@link ExitStatus}
+     * Execute system executable (sql ..) and map its exit code to
+     * {@link ExitStatus}
      * using {@link SystemProcessExitCodeMapper}.
      */
     @Override
@@ -162,7 +162,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|"+executable+" "+easyConnectionIdentifier+ " @"+scriptFile+" "+scriptParams;
+                    String cmd = "exit|" + executable + " " + easyConnectionIdentifier + " @" + scriptFile + " "
+                            + scriptParams;
                     if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -171,8 +172,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                             cmd = "chcp 65001|" + cmd;
                         }
                         commands.add(cmd);
-                    }
-                    else {
+                    } else {
                         commands.add("/bin/sh");
                         commands.add("-c");
                         // Add the processUid as the last script parameter
@@ -199,20 +199,18 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
 
                     Process process = pb.start();
-                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
+                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().threadId());
                     try {
                         return process.waitFor();
-                    }
-                    catch(InterruptedException ie) {
+                    } catch (InterruptedException ie) {
                         log.debug("Interrupted. Trying to close sqlcl process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
-                    }
-                    finally {
+                    } finally {
                         try {
                             process.getOutputStream().flush();
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             log.warn("Failed to flush process output stream");
                         }
                     }
@@ -220,36 +218,37 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
             });
 
             long t0 = System.currentTimeMillis();
-            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName());
-            taskExecutor.execute(systemCommandTask);
+            try (SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName())) {
+                taskExecutor.execute(systemCommandTask);
 
-            while (true) {
-                Thread.sleep(checkInterval);
+                while (true) {
+                    Thread.sleep(checkInterval);
 
-                if (systemCommandTask.isDone()) {
+                    if (systemCommandTask.isDone()) {
 
-                    int exitCode = systemCommandTask.get();
+                        int exitCode = systemCommandTask.get();
 
-                    log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
-                    // Not all errors in SQLcl leads to an error code being returned.
-                    // The log file must be checked for errors.
+                        log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
+                        // Not all errors in SQLcl leads to an error code being returned.
+                        // The log file must be checked for errors.
 
-                    checkForErrorsInLog(logFile);
+                        checkForErrorsInLog(logFile);
 
-                    if (exitCode != 0) {
+                        if (exitCode != 0) {
 
-                        throw new JobExecutionException("SQLcl exited with code " + exitCode);
+                            throw new JobExecutionException("SQLcl exited with code " + exitCode);
+                        }
+                        break;
+                    } else if (System.currentTimeMillis() - t0 > timeout) {
+                        kill(systemCommandTask, "timeout");
+                    } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
+                        kill(systemCommandTask, "terminateOnly");
+                    } else if (stopping) {
+                        // We are in the middle of executing a SQL script.
+                        // Only thing we can do is to terminate the processes that have been started.
+                        stopping = false;
+                        kill(systemCommandTask, "stop");
                     }
-                    break;
-                } else if (System.currentTimeMillis() - t0 > timeout) {
-                    kill (systemCommandTask, "timeout");
-                } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                    kill (systemCommandTask, "terminateOnly");
-                } else if (stopping) {
-                    // We are in the middle of executing a SQL script.
-                    // Only thing we can do is to terminate the processes that have been started.
-                    stopping = false;
-                    kill(systemCommandTask, "stop");
                 }
             }
         }
@@ -276,8 +275,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                     throw new JobExecutionException("There were errors: " + line);
                 } else if (line.startsWith("Errors: check compiler log")) {
                     throw new JobExecutionException("There were compilation errors: " + line);
-                }
-                else if (line.startsWith("Error starting at line") || line.startsWith("Error report") || line.startsWith("ERROR at line")) {
+                } else if (line.startsWith("Error starting at line") || line.startsWith("Error report")
+                        || line.startsWith("ERROR at line")) {
                     throw new JobExecutionException("There were errors: " + line);
                 }
 
@@ -295,14 +294,16 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     }
 
     /**
-     * @param envp environment parameter values, inherited from parent process when not set (or set to null).
+     * @param envp environment parameter values, inherited from parent process when
+     *             not set (or set to null).
      */
     public void setEnvironmentParams(Map<String, String> envp) {
         this.environmentParams = envp;
     }
 
     /**
-     * @param dir working directory of the spawned process, inherited from parent process when not set (or set to null).
+     * @param dir working directory of the spawned process, inherited from parent
+     *            process when not set (or set to null).
      */
     public void setScriptDir(String dir) {
         if (dir == null) {
@@ -325,14 +326,11 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    public void setJobExplorer(JobExplorer jobExplorer) {
-        this.jobExplorer = jobExplorer;
-    }
-
     /**
      * Timeout in milliseconds.
      *
-     * @param timeout upper limit for how long the execution of the external program is allowed to last.
+     * @param timeout upper limit for how long the execution of the external program
+     *                is allowed to last.
      */
     public void setTimeout(long timeout) {
         this.timeout = timeout;
@@ -358,7 +356,7 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
         stopping = true;
     }
 
-    private void kill(FutureTask task, String reason) throws JobExecutionException {
+    private void kill(FutureTask<Integer> task, String reason) throws JobExecutionException {
         if (killProcessesOnStop) {
             if (processUid == null) {
                 // This should not happen.
@@ -366,8 +364,10 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
                 return;
             }
             if (!runsOnWindows()) {
-                // On linux, there will be several sub-processes and there is no way to get access to the PIDs of these.
-                // Instead, we have added the processUid to the end of the command and we can now use the pkill command to
+                // On linux, there will be several sub-processes and there is no way to get
+                // access to the PIDs of these.
+                // Instead, we have added the processUid to the end of the command and we can
+                // now use the pkill command to
                 // kill all process with that UID.
                 ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", "2", "-f", processUid);
                 try {
@@ -379,11 +379,10 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
 
                 }
             } else {
-                //TODO: Handle in windows
+                // TODO: Handle in windows
                 log.warn("Killing processes is not implemented for windows OS");
             }
-        }
-        else {
+        } else {
             // Only think we can do here is to cancel the task
             task.cancel(true);
             // .. and throw an excecption to make the step as failed
@@ -392,7 +391,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     }
 
     /**
-     * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
+     * For convenience and for backward compatibility, if you have only one single
+     * script file, you can use this method. Makes it a bit more
      * convenient in the Spring configuration.
      */
     public void setScriptFile(String scriptFile) {
@@ -401,7 +401,8 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
             scriptFiles.add(scriptFile);
             this.scriptFiles = scriptFiles;
         } else {
-            throw new IllegalArgumentException("Properties scriptFile and scriptFiles can not both have values. Only one can be used");
+            throw new IllegalArgumentException(
+                    "Properties scriptFile and scriptFiles can not both have values. Only one can be used");
         }
     }
 
@@ -417,15 +418,17 @@ public class SqlClTasklet extends StepExecutionListenerSupport implements Stoppa
     }
 
     /**
-     * A list of script parameters to be passed to the script. Equivalent to "sql @myscript.sql param1 param2".
+     * A list of script parameters to be passed to the script. Equivalent to
+     * "sql @myscript.sql param1 param2".
      *
-     * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
-     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
+     * @param scriptParameters A list of identifiers for either a job-parameter or a
+     *                         spring property. A job parameter is identified by
+     *                         jobparam.[job-param-key]. A spring property is
+     *                         identified by env.[spring-property-key]
      */
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;
     }
-
 
     public void setKillProcessesOnStop(boolean killProcessesOnStop) {
         this.killProcessesOnStop = killProcessesOnStop;

@@ -39,8 +39,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
-import java.time.chrono.ChronoPeriod;
-import java.time.temporal.ChronoUnit;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -212,6 +210,10 @@ public class BatchConfiguration {
         return new MapJobRegistry();
     }
 
+    /**
+     * TODO: Replace with JobRegistrySmartInitializingSingleton
+     * @return
+     */
     @Bean
     public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor() {
         JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();

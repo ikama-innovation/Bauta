@@ -10,7 +10,6 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
@@ -29,8 +28,6 @@ public class LoginView extends Div implements BeforeEnterObserver {
     
     @Value("${bauta.application.title}")
 	private String applicationTitle;
-
-    private boolean loggedOut = false;
 
     private Paragraph loggedOutMessage = new Paragraph();
     private Span serverInfo = new Span();
@@ -104,18 +101,18 @@ public class LoginView extends Div implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         if (SecurityUtils.isUserLoggedIn()) {
-            //log.debug("User is logged in. Redirecting to /");
-            //event.forwardTo("/");
+            log.debug("User is logged in. Redirecting to /");
+            event.forwardTo("/");
             return;
         }
         var logoutPresent = event.getLocation().getQueryParameters().getSingleParameter("logout");
         if (logoutPresent.isPresent()) {
             log.debug("Logged out");
-                loggedOutMessage.setVisible(loggedOut = true);
+                loggedOutMessage.setVisible(true);
         }
         else {
             log.debug("Not logged out");
-            loggedOutMessage.setVisible(loggedOut = false);
+            loggedOutMessage.setVisible(false);
         }
             
     }

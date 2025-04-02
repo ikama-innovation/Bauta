@@ -129,6 +129,7 @@ public class MailNotificationJobListener implements JobExecutionListener, StepEx
             try {
                 for (StepExecution se : jobExecution.getStepExecutions()) {
                     if (se.getExitStatus().compareTo(ExitStatus.FAILED) == 0) {
+                        @SuppressWarnings("unchecked")
                         List<String> reportUrls = (List<String>) se.getExecutionContext().get("reportUrls");
                         if (reportUrls != null) {
                             for (String reportUrl : reportUrls) {

@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +71,9 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	@Autowired
 	BautaManager bautaManager;
 
+	@Autowired
+	Environment environment;
+
 	Grid<JobTrigger> triggerGrid;
 	List<JobTrigger> triggers = new ArrayList<>();
 
@@ -97,18 +101,18 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		add(enabledCheckbox);
 		triggerGrid = new Grid<>();
 		triggerGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
-		Grid.Column<JobTrigger> jobNameColumn = triggerGrid.addColumn(JobTrigger::getJobName).setHeader("Job Name")
+		triggerGrid.addColumn(JobTrigger::getJobName).setHeader("Job Name")
 				.setSortable(true);
-		Grid.Column<JobTrigger> jobTypeColumn = triggerGrid
+		triggerGrid
 				.addComponentColumn(item -> createTypeComponent(item.getTriggerType(), false)).setHeader("Type");
 		triggerGrid.addComponentColumn(item -> createCronComponent(item.getCron())).setHeader("CRON");
-		Grid.Column<JobTrigger> triggeringJobColumn = triggerGrid.addColumn(JobTrigger::getTriggeringJobName)
+		triggerGrid.addColumn(JobTrigger::getTriggeringJobName)
 				.setHeader("Triggered by").setSortable(true);
 		Grid.Column<JobTrigger> idColumn = triggerGrid.addColumn(JobTrigger::getId).setHeader("ID").setSortable(true);
 		idColumn.setVisible(false);
-		Grid.Column<JobTrigger> jobParamsColumn = triggerGrid.addColumn(JobTrigger::getJobParameters)
+		triggerGrid.addColumn(JobTrigger::getJobParameters)
 				.setHeader("Job Parameters").setSortable(true);
-		triggerGrid.getColumns().forEach(c -> c.setClassNameGenerator(item -> "scheduler_cell"));
+		triggerGrid.getColumns().forEach(c -> c.setPartNameGenerator(item -> "scheduler_cell"));
 
 		triggerGrid.setSelectionMode(Grid.SelectionMode.MULTI);
 		triggerGrid.addSelectionListener(this);
@@ -183,27 +187,27 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 		logGrid = new Grid<>();
 		logGrid.addClassName("loggrid");
 		logGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT, GridVariant.LUMO_COMPACT);
-		Grid.Column<JobTriggerLog> logTstampColumn = logGrid
+		logGrid
 				.addComponentColumn(item -> createTimestampColumn(item.getTstamp())).setHeader("Timestamp")
 				.setAutoWidth(true);
-		Grid.Column<JobTriggerLog> logStatus = logGrid.addComponentColumn(item -> createStatusColumn(item.getStatus()))
+		logGrid.addComponentColumn(item -> createStatusColumn(item.getStatus()))
 				.setHeader("Status").setAutoWidth(true);
 
-		Grid.Column<JobTriggerLog> logJobNameColumn = logGrid
+		logGrid
 				.addComponentColumn(item -> createLogColumn(item.getJobName())).setHeader("JobName").setAutoWidth(true);
-		Grid.Column<JobTriggerLog> logErrorMsg = logGrid.addComponentColumn(item -> createLogColumn(item.getErrorMsg()))
+		logGrid.addComponentColumn(item -> createLogColumn(item.getErrorMsg()))
 				.setHeader("Error").setAutoWidth(true);
 
-		Grid.Column<JobTriggerLog> logTypeColumn = logGrid
+		logGrid
 				.addComponentColumn(item -> createTypeComponent(item.getTriggerType(), true)).setHeader("Type")
 				.setAutoWidth(true);
 		logGrid.addComponentColumn(item -> createCronComponent(item.getCron())).setHeader("CRON").setAutoWidth(true);
-		Grid.Column<JobTriggerLog> logTriggeringJobColumn = logGrid
+		logGrid
 				.addComponentColumn(item -> createLogColumn(item.getTriggeringJobName())).setHeader("Triggered by")
 				.setAutoWidth(true);
 		logGrid.setSelectionMode(Grid.SelectionMode.NONE);
 		logGrid.setMaxHeight("300px");
-		logGrid.getColumns().forEach(c -> c.setClassNameGenerator(item -> "log_cell"));
+		logGrid.getColumns().forEach(c -> c.setPartNameGenerator(item -> "log_cell"));
 
 		add(logGrid);
 	}
@@ -286,7 +290,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 	}
 
 	private void updateButtonState() {
-		if (SecurityUtils.isUserInRole("ADMIN")) {
+		if (SecurityUtils.isUserInRole("ADMIN") || SecurityUtils.isDevMode(environment)) {
 			selectedJobTriggers = triggerGrid.getSelectionModel().getSelectedItems();
 			removeButton.setEnabled(selectedJobTriggers.size() > 0 && this.schedulingEnabled);
 			editButton.setEnabled(selectedJobTriggers.size() == 1 && this.schedulingEnabled);
@@ -484,7 +488,7 @@ public class SchedulingView extends VerticalLayout implements SelectionListener<
 			return "You don't want to trigger a job every second!";
 		}
 		try {
-			CronTrigger cronTrigger = new CronTrigger(cron);
+			new CronTrigger(cron);
 		} catch (IllegalArgumentException e) {
 			return e.getMessage();
 		}

@@ -9,8 +9,6 @@ import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
-import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
 import org.springframework.batch.core.step.tasklet.SystemProcessExitCodeMapper;
@@ -23,8 +21,9 @@ import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
+
+import lombok.Setter;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
 import java.io.*;
@@ -34,40 +33,45 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
-
 public class PythonTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
-
 
     private static final Logger log = LoggerFactory.getLogger(PythonTasklet.class);
 
+    @Setter
     private List<String> scriptFiles = null;
 
+    @Setter
     private String executable = "python3";
 
     private static final String SCRIPT_PARAMETER_PREFIX_JOBPARAM = "jobparam.";
     private static final String SCRIPT_PARAMETER_PREFIX_ENV = "env.";
 
-
     private Map<String, String> environmentParams = null;
 
+    @Setter
     private List<String> scriptParameters = null;
 
     private File scriptDir = null;
 
+    @Setter
     private long timeout = 0;
 
+    @Setter
     private long checkInterval = 300;
 
     /**
-     * In order to properly stop the running python process, we need to kill the process on the OS level using kill/pkill.
+     * In order to properly stop the running python process, we need to kill the
+     * process on the OS level using kill/pkill.
      * If you for some reason need to disable this feature, set this to false.
      */
+    @Setter
     private boolean killProcessesOnStop = true;
 
     /**
      * Kill signal to use when the python process is killed.
      * Defaults to 15 (SIGTERM)
      */
+    @Setter
     private String killSignal = "15";
 
     /**
@@ -75,7 +79,6 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
      */
     private boolean setExplicitCodepage = false;
 
-    private JobExplorer jobExplorer;
 
     private volatile boolean stopping = true;
 
@@ -84,16 +87,20 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
     /**
      *
      */
+    @Setter
     private String logSuffix = "log";
 
     /**
      * The name of the generated report/log file. Without file suffix.
      */
+    @Setter
     private String reportName = null;
 
     /**
-     * A unique id for the group of processes that are started for each script. The uid is added to the command line
-     * to make it possible to find and kill all processes with a command line containing this uid.
+     * A unique id for the group of processes that are started for each script. The
+     * uid is added to the command line
+     * to make it possible to find and kill all processes with a command line
+     * containing this uid.
      */
     private String processUid;
 
@@ -108,7 +115,8 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
     protected String reportDir;
 
     /**
-     * Execute system executable (python ..) and map its exit code to {@link ExitStatus}
+     * Execute system executable (python ..) and map its exit code to
+     * {@link ExitStatus}
      * using {@link SystemProcessExitCodeMapper}.
      */
     @Override
@@ -116,8 +124,7 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
         StringBuilder reportFileName = new StringBuilder();
         if (reportName != null) {
             reportFileName.append(reportName);
-        }
-        else {
+        } else {
             reportFileName.append(contribution.getStepExecution().getStepName());
         }
         reportFileName.append(".").append(logSuffix);
@@ -180,11 +187,12 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
             }
             FutureTask<Integer> systemCommandTask = new FutureTask<Integer>(new Callable<Integer>() {
 
+                @SuppressWarnings("unchecked")
                 @Override
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|"+executable+" "+scriptFile+" "+scriptParams;
+                    String cmd = "exit|" + executable + " " + scriptFile + " " + scriptParams;
                     if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -193,8 +201,7 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                             cmd = "chcp 65001|" + cmd;
                         }
                         commands.add(cmd);
-                    }
-                    else {
+                    } else {
                         commands.add("/bin/sh");
                         commands.add("-c");
                         // Add the processUid as the last script parameter
@@ -211,7 +218,7 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                     MutablePropertySources propSrcs = ((AbstractEnvironment) env).getPropertySources();
                     StreamSupport.stream(propSrcs.spliterator(), false)
                             .filter(ps -> ps instanceof EnumerablePropertySource)
-                            .map(ps -> ((EnumerablePropertySource) ps).getPropertyNames())
+                            .map(ps -> ((EnumerablePropertySource<String>) ps).getPropertyNames())
                             .flatMap(Arrays::<String>stream)
                             .forEach(propName -> props.setProperty(propName, env.getProperty(propName)));
 
@@ -224,9 +231,9 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                             }
                         });
                     }
-                    if (addProperties && propertyRegex.length() > 0){
+                    if (addProperties && propertyRegex.length() > 0) {
                         props.forEach((key, val) -> {
-                            if (key.toString().matches(propertyRegex)){
+                            if (key.toString().matches(propertyRegex)) {
                                 key = key.toString().toUpperCase();
                                 key = key.toString().replaceAll("\\.", "_");
                                 environmentParams.put(key.toString(), val.toString());
@@ -237,7 +244,8 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                     log.debug("Command is: " + StringUtils.join(commands, ","));
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
-                    String jobInstanceId = Long.toString(contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
+                    String jobInstanceId = Long.toString(
+                            contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
                     String jobExecutionId = Long.toString(contribution.getStepExecution().getJobExecution().getId());
                     String jobName = contribution.getStepExecution().getJobExecution().getJobInstance().getJobName();
                     String stepName = contribution.getStepExecution().getStepName();
@@ -246,7 +254,7 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                     env.put("BAUTA_JOB_EXECUTION_ID", jobExecutionId);
                     env.put("BAUTA_STEP_NAME", stepName);
                     env.put("BAUTA_JOB_NAME", jobName);
-                    if (environmentParams != null){
+                    if (environmentParams != null) {
                         env.putAll(environmentParams);
                         log.debug("environmentParams: {}", environmentParams);
                     }
@@ -258,21 +266,19 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                     pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
 
                     Process process = pb.start();
-                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
+                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().threadId());
                     try {
                         log.warn("Process exit code: {}", process.waitFor());
                         return process.waitFor();
-                    }
-                    catch(InterruptedException ie) {
+                    } catch (InterruptedException ie) {
                         log.debug("Interrupted. Trying to close python process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
-                    }
-                    finally {
+                    } finally {
                         try {
                             process.getOutputStream().flush();
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             log.warn("Failed to flush process output stream");
                         }
                     }
@@ -280,33 +286,34 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
             });
 
             long t0 = System.currentTimeMillis();
-            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName());
-            taskExecutor.execute(systemCommandTask);
+            try (SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName())) {
+                taskExecutor.execute(systemCommandTask);
 
-            while (true) {
-                Thread.sleep(checkInterval);
+                while (true) {
+                    Thread.sleep(checkInterval);
 
-                if (systemCommandTask.isDone()) {
+                    if (systemCommandTask.isDone()) {
 
-                    int exitCode = systemCommandTask.get();
+                        int exitCode = systemCommandTask.get();
 
-                    log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
+                        log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
 
-                    checkForErrorsInLog(logFile);
+                        checkForErrorsInLog(logFile);
 
-                    if (exitCode != 0) {
-                        throw new JobExecutionException("python exited with code " + exitCode);
+                        if (exitCode != 0) {
+                            throw new JobExecutionException("python exited with code " + exitCode);
+                        }
+                        break;
+                    } else if (System.currentTimeMillis() - t0 > timeout) {
+                        kill(systemCommandTask, "timeout");
+                    } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
+                        kill(systemCommandTask, "terminateOnly");
+                    } else if (stopping) {
+                        // We are in the middle of executing a python script.
+                        // Only thing we can do is to terminate the processes that have been started.
+                        stopping = false;
+                        kill(systemCommandTask, "stop");
                     }
-                    break;
-                } else if (System.currentTimeMillis() - t0 > timeout) {
-                    kill (systemCommandTask, "timeout");
-                } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                    kill (systemCommandTask, "terminateOnly");
-                } else if (stopping) {
-                    // We are in the middle of executing a python script.
-                    // Only thing we can do is to terminate the processes that have been started.
-                    stopping = false;
-                    kill(systemCommandTask, "stop");
                 }
             }
         }
@@ -327,41 +334,38 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
         try (LineNumberReader reader = new LineNumberReader(new InputStreamReader(new FileInputStream(logFile)))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
-                //if (line.startsWith("Error")) {
-                //    throw new JobExecutionException("There were python errors: " + line);
-                //}
-
+                if (line.startsWith("SyntaxError:")) {
+                    throw new JobExecutionException("There were python errors: " + line);
+                }
             }
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to check log file for errors", ioe);
         }
     }
 
-    /**
-     * @param executable executable to be executed in a separate system process
-     */
-    public void setExecutable(String executable) {
-        this.executable = executable;
-    }
+    
 
     /**
-     * @param envp environment parameter values, inherited from parent process when not set (or set to null).
+     * @param envp environment parameter values, inherited from parent process when
+     *             not set (or set to null).
      */
     public void setEnvironmentParams(Map<String, String> envp) {
         this.environmentParams = envp;
     }
 
     /**
-     * @param dir working directory of the spawned process, inherited from parent process when not set (or set to null).
+     * @param dir working directory of the spawned process, inherited from parent
+     *            process when not set (or set to null).
      */
     public void setScriptDir(String dir) {
+        log.debug("Setting scriptDir to {}", dir);
         if (dir == null) {
             this.scriptDir = null;
             return;
         }
         this.scriptDir = new File(dir);
-        Assert.isTrue(scriptDir.exists(), "working directory must exist");
-        Assert.isTrue(scriptDir.isDirectory(), "working directory value must be a directory");
+        Assert.isTrue(scriptDir.exists(), "scriptDir must exist");
+        Assert.isTrue(scriptDir.isDirectory(), "scriptDir value must be a directory");
 
     }
 
@@ -374,27 +378,9 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    public void setJobExplorer(JobExplorer jobExplorer) {
-        this.jobExplorer = jobExplorer;
-    }
+    
 
-    /**
-     * Timeout in milliseconds.
-     *
-     * @param timeout upper limit for how long the execution of the external program is allowed to last.
-     */
-    public void setTimeout(long timeout) {
-        this.timeout = timeout;
-    }
-
-    /**
-     * The time interval how often the tasklet will check for termination status.
-     *
-     * @param checkInterval time interval in milliseconds (1 second by default).
-     */
-    public void setTerminationCheckInterval(long checkInterval) {
-        this.checkInterval = checkInterval;
-    }
+   
 
     /**
      * Will try to interrupt the thread executing the system executable.
@@ -407,7 +393,7 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
         stopping = true;
     }
 
-    private void kill(FutureTask task, String reason) throws JobExecutionException {
+    private void kill(FutureTask<Integer> task, String reason) throws JobExecutionException {
         if (killProcessesOnStop) {
             if (processUid == null) {
                 // This should not happen.
@@ -415,8 +401,10 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
                 return;
             }
             if (!runsOnWindows()) {
-                // On linux, there will be several sub-processes and there is no way to get access to the PIDs of these.
-                // Instead, we have added the processUid to the end of the command and we can now use the pkill command to
+                // On linux, there will be several sub-processes and there is no way to get
+                // access to the PIDs of these.
+                // Instead, we have added the processUid to the end of the command and we can
+                // now use the pkill command to
                 // kill all process with that UID.
                 ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", this.killSignal, "-f", processUid);
                 try {
@@ -428,11 +416,10 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
 
                 }
             } else {
-                //TODO: Handle in windows
+                // TODO: Handle in windows
                 log.warn("Killing processes is not implemented for windows OS");
             }
-        }
-        else {
+        } else {
             // Only think we can do here is to cancel the task
             task.cancel(true);
             // .. and throw an excecption to make the step as failed
@@ -441,7 +428,8 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
     }
 
     /**
-     * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
+     * For convenience and for backward compatibility, if you have only one single
+     * script file, you can use this method. Makes it a bit more
      * convenient in the Spring configuration.
      */
     public void setScriptFile(String scriptFile) {
@@ -450,43 +438,10 @@ public class PythonTasklet implements StepExecutionListener, StoppableTasklet, I
             scriptFiles.add(scriptFile);
             this.scriptFiles = scriptFiles;
         } else {
-            throw new IllegalArgumentException("Properties scriptFile and scriptFiles can not both have values. Only one can be used");
+            throw new IllegalArgumentException(
+                    "Properties scriptFile and scriptFiles can not both have values. Only one can be used");
         }
     }
 
-    public void setScriptFiles(List<String> scriptFiles) {
-        this.scriptFiles = scriptFiles;
-    }
-
-
-    /**
-     * A list of script parameters to be passed to the script. Equivalent to "python myscript.py param1 param2".
-     *
-     * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
-     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
-     */
-    public void setScriptParameters(List<String> scriptParameters) {
-        this.scriptParameters = scriptParameters;
-    }
-
-
-    public void setKillProcessesOnStop(boolean killProcessesOnStop) {
-        this.killProcessesOnStop = killProcessesOnStop;
-    }
-
-    public void setKillSignal(String killSignal) {
-        this.killSignal = killSignal;
-    }
-
-    public void setSetExplicitCodepage(boolean setExplicitCodepage) {
-        this.setExplicitCodepage = setExplicitCodepage;
-    }
-
-    public void setLogSuffix(String logSuffix) {
-        this.logSuffix = logSuffix;
-    }
-
-    public void setReportName(String reportName) {
-        this.reportName = reportName;
-    }
+    
 }

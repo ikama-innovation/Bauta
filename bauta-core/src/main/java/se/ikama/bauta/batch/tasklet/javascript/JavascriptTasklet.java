@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.listener.StepExecutionListenerSupport;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
 import org.springframework.batch.repeat.RepeatStatus;
@@ -19,7 +19,6 @@ import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
@@ -30,8 +29,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
-public class JavascriptTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
-
+public class JavascriptTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(JavascriptTasklet.class);
 
@@ -41,7 +39,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
     private static final String SCRIPT_PARAMETER_PREFIX_JOBPARAM = "jobparam.";
     private static final String SCRIPT_PARAMETER_PREFIX_ENV = "env.";
-
 
     private Map<String, String> environmentParams = null;
 
@@ -74,7 +71,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
     @Value("${bauta.reportDir}")
     protected String reportDir;
-
 
     @Override
     public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
@@ -136,11 +132,12 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
             }
             FutureTask<Integer> systemCommandTask = new FutureTask<Integer>(new Callable<Integer>() {
 
+                @SuppressWarnings("rawtypes")
                 @Override
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|"+executable+" " + scriptFile+" "+scriptParams;
+                    String cmd = "exit|" + executable + " " + scriptFile + " " + scriptParams;
                     if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -149,8 +146,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                             cmd = "chcp 65001|" + cmd;
                         }
                         commands.add(cmd);
-                    }
-                    else {
+                    } else {
                         commands.add("/bin/sh");
                         commands.add("-c");
                         // Add the processUid as the last script parameter
@@ -180,9 +176,9 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                             }
                         });
                     }
-                    if (addProperties && propertyRegex.length() > 0){
+                    if (addProperties && propertyRegex.length() > 0) {
                         props.forEach((key, val) -> {
-                            if (key.toString().matches(propertyRegex)){
+                            if (key.toString().matches(propertyRegex)) {
                                 key = key.toString().toUpperCase();
                                 key = key.toString().replaceAll("\\.", "_");
                                 environmentParams.put(key.toString(), val.toString());
@@ -194,7 +190,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
                     Map<String, String> env = pb.environment();
-                    if (environmentParams != null){
+                    if (environmentParams != null) {
                         env.putAll(environmentParams);
                     }
                     log.debug("environmentParams: {}", environmentParams);
@@ -206,20 +202,18 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                     pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
 
                     Process process = pb.start();
-                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
+                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getName());
                     try {
                         return process.waitFor();
-                    }
-                    catch(InterruptedException ie) {
+                    } catch (InterruptedException ie) {
                         log.debug("Interrupted. Trying to close Javascript process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
-                    }
-                    finally {
+                    } finally {
                         try {
                             process.getOutputStream().flush();
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             log.warn("Failed to flush process output stream");
                         }
                     }
@@ -227,33 +221,34 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
             });
 
             long t0 = System.currentTimeMillis();
-            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName());
-            taskExecutor.execute(systemCommandTask);
+            try (SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName())) {
+                taskExecutor.execute(systemCommandTask);
 
-            while (true) {
-                Thread.sleep(checkInterval);
+                while (true) {
+                    Thread.sleep(checkInterval);
 
-                if (systemCommandTask.isDone()) {
+                    if (systemCommandTask.isDone()) {
 
-                    int exitCode = systemCommandTask.get();
+                        int exitCode = systemCommandTask.get();
 
-                    log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
+                        log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
 
-                    checkForErrorsInLog(logFile);
+                        checkForErrorsInLog(logFile);
 
-                    if (exitCode != 0) {
-                        throw new JobExecutionException("Javascript exited with code " + exitCode);
+                        if (exitCode != 0) {
+                            throw new JobExecutionException("Javascript exited with code " + exitCode);
+                        }
+                        break;
+                    } else if (System.currentTimeMillis() - t0 > timeout) {
+                        kill(systemCommandTask, "timeout");
+                    } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
+                        kill(systemCommandTask, "terminateOnly");
+                    } else if (stopping) {
+                        // We are in the middle of executing a Javascript script.
+                        // Only thing we can do is to terminate the processes that have been started.
+                        stopping = false;
+                        kill(systemCommandTask, "stop");
                     }
-                    break;
-                } else if (System.currentTimeMillis() - t0 > timeout) {
-                    kill (systemCommandTask, "timeout");
-                } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                    kill (systemCommandTask, "terminateOnly");
-                } else if (stopping) {
-                    // We are in the middle of executing a Javascript script.
-                    // Only thing we can do is to terminate the processes that have been started.
-                    stopping = false;
-                    kill(systemCommandTask, "stop");
                 }
             }
         }
@@ -304,7 +299,6 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }
@@ -319,7 +313,7 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
         stopping = true;
     }
 
-    private void kill(FutureTask task, String reason) throws JobExecutionException {
+    private void kill(FutureTask<Integer> task, String reason) throws JobExecutionException {
         if (killProcessesOnStop) {
             if (processUid == null) {
                 // This should not happen.
@@ -327,8 +321,10 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
                 return;
             }
             if (!runsOnWindows()) {
-                // On linux, there will be several sub-processes and there is no way to get access to the PIDs of these.
-                // Instead, we have added the processUid to the end of the command and we can now use the pkill command to
+                // On linux, there will be several sub-processes and there is no way to get
+                // access to the PIDs of these.
+                // Instead, we have added the processUid to the end of the command and we can
+                // now use the pkill command to
                 // kill all process with that UID.
                 ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", this.killSignal, "-f", processUid);
                 try {
@@ -340,11 +336,10 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
 
                 }
             } else {
-                //TODO: Handle in windows
+                // TODO: Handle in windows
                 log.warn("Killing processes is not implemented for windows OS");
             }
-        }
-        else {
+        } else {
             // Only think we can do here is to cancel the task
             task.cancel(true);
             // .. and throw an excecption to make the step as failed
@@ -358,7 +353,8 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
             scriptFiles.add(scriptFile);
             this.scriptFiles = scriptFiles;
         } else {
-            throw new IllegalArgumentException("Properties scriptFile and scriptFiles can not both have values. Only one can be used");
+            throw new IllegalArgumentException(
+                    "Properties scriptFile and scriptFiles can not both have values. Only one can be used");
         }
     }
 
@@ -371,23 +367,23 @@ public class JavascriptTasklet extends StepExecutionListenerSupport implements S
     }
 
     /**
-     * Add Spring properties as environment variables when executing the script. 
+     * Add Spring properties as environment variables when executing the script.
      * If you dont want to add all properties, see {@link #setPropertyRegex(String)}
+     * 
      * @param addProperties
      */
-	public void setAddProperties(boolean addProperties) {
-		this.addProperties = addProperties;
-	}
+    public void setAddProperties(boolean addProperties) {
+        this.addProperties = addProperties;
+    }
 
-	/**
-	 * If {@link #addProperties} is set to true, only Spring properties matching the provided regexp will be added as environment variables.
-	 * @param propertyRegex
-	 */
-	public void setPropertyRegex(String propertyRegex) {
-		this.propertyRegex = propertyRegex;
-	}
-    
-    
-
+    /**
+     * If {@link #addProperties} is set to true, only Spring properties matching the
+     * provided regexp will be added as environment variables.
+     * 
+     * @param propertyRegex
+     */
+    public void setPropertyRegex(String propertyRegex) {
+        this.propertyRegex = propertyRegex;
+    }
 
 }

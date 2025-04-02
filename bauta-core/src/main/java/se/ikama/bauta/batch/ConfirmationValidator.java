@@ -27,6 +27,6 @@ public class ConfirmationValidator implements JobParametersValidator, JobParamet
 
     @Override
     public List<String> getOptionalKeys() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 }

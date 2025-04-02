@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.*;
-import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.SimpleSystemProcessExitCodeMapper;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
@@ -17,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 
 import java.io.File;
@@ -30,7 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 @Slf4j()
-public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
+public class ReportingSystemCommandTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
 
     @Setter
     private String command;
@@ -43,7 +41,6 @@ public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport 
 
     @Setter
     private long checkInterval = 300;
-
 
     @Setter
     private long timeout = 0;
@@ -60,7 +57,8 @@ public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport 
     protected String reportDir;
 
     /**
-     * Execute system executable (sql ..) and map its exit code to {@link ExitStatus}
+     * Execute system executable (sql ..) and map its exit code to
+     * {@link ExitStatus}
      * using {@link SystemProcessExitCodeMapper}.
      */
     @Override
@@ -77,7 +75,6 @@ public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport 
         List<String> urls = new ArrayList<>();
         urls.add(ReportUtils.generateReportUrl(stepExecution, logFileName));
         chunkContext.getStepContext().getStepExecution().getExecutionContext().put("reportUrls", urls);
-        ArrayList<String> scriptParameterValues = new ArrayList<>();
 
         chunkContext.getStepContext().getJobParameters();
 
@@ -96,15 +93,11 @@ public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport 
             @Override
             public Integer call() throws Exception {
                 ArrayList<String> commands = new ArrayList<>();
-                String scriptParams = StringUtils.join(scriptParameterValues, " ");
                 if (System.getProperty("os.name").toLowerCase().contains("win")) {
                     log.debug("Running on windows.");
                     commands.add("cmd.exe");
                     commands.add("/c");
-                    //commands.add("exit | " +  executable);
-                    //commands.add(easyConnectionIdentifier);
-                    //commands.add("@" + scriptFile);
-                    //commands.addAll(scriptParameterValues);
+
                     commands.add(command);
                 } else {
                     commands.add("/bin/sh");
@@ -134,59 +127,52 @@ public class ReportingSystemCommandTasklet extends StepExecutionListenerSupport 
         });
 
         long t0 = System.currentTimeMillis();
-        TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
-        taskExecutor.execute(systemCommandTask);
+        try (SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor()) {
+            taskExecutor.execute(systemCommandTask);
 
-        while (true) {
-            Thread.sleep(checkInterval);
+            while (true) {
+                Thread.sleep(checkInterval);
 
-            if (systemCommandTask.isDone()) {
+                if (systemCommandTask.isDone()) {
 
-                int exitCode = systemCommandTask.get();
+                    int exitCode = systemCommandTask.get();
 
-                log.debug("{} done. ExitCode: {}", command, exitCode);
-                // Not all errors in SQLcl leads to an error code being returned.
-                // The log file must be checked for erros.
+                    log.debug("{} done. ExitCode: {}", command, exitCode);
+                    // Not all errors in SQLcl leads to an error code being returned.
+                    // The log file must be checked for erros.
 
-                if (exitCode != 0) {
-                    throw new JobExecutionException("Command exited with code " + exitCode);
+                    if (exitCode != 0) {
+                        throw new JobExecutionException("Command exited with code " + exitCode);
+                    }
+                    break;
+                } else if (System.currentTimeMillis() - t0 > timeout) {
+                    systemCommandTask.cancel(true);
+                    throw new SystemCommandException(
+                            "Execution of system executable did not finish within the timeout");
+                } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
+                    systemCommandTask.cancel(true);
+                    throw new JobInterruptedException("Job interrupted while running command '" + command + "'");
+                } else if (stopping) {
+                    // We are in the middle of executing a SQL script. There is no way to stop and
+                    // restart in a graceful way, so
+                    // an interruptedexception is probably the best we can do.
+                    stopping = false;
+                    log.debug("Stop issued. Trying to cancel executable..");
+                    boolean cancelResult = systemCommandTask.cancel(true);
+                    log.debug("Cancel result: {}", cancelResult);
+                    throw new JobExecutionException("Job manually stopped while running command '" + command + "'");
                 }
-                break;
-            } else if (System.currentTimeMillis() - t0 > timeout) {
-                systemCommandTask.cancel(true);
-                throw new SystemCommandException("Execution of system executable did not finish within the timeout");
-            } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                systemCommandTask.cancel(true);
-                throw new JobInterruptedException("Job interrupted while running command '" + command + "'");
-            } else if (stopping) {
-                // We are in the middle of executing a SQL script. There is no way to stop and restart in a graceful way, so
-                // an interruptedexception is probably the best we can do.
-                stopping = false;
-                log.debug("Stop issued. Trying to cancel executable..");
-                boolean cancelResult = systemCommandTask.cancel(true);
-                log.debug("Cancel result: {}", cancelResult);
-                throw new JobExecutionException("Job manually stopped while running command '" + command + "'");
             }
         }
 
         return RepeatStatus.FINISHED;
     }
 
-
     @Override
     public void afterPropertiesSet() throws Exception {
         Assert.hasLength(command, "'command' property value is required");
         Assert.notNull(workingDirectory, "'workingDirectory' property value is required");
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
-    }
-
-    /**
-     * Timeout in milliseconds.
-     *
-     * @param timeout upper limit for how long the execution of the external program is allowed to last.
-     */
-    public void setTimeout(long timeout) {
-        this.timeout = timeout;
     }
 
     /**

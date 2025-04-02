@@ -78,17 +78,20 @@ public class SqlToCsvReportTasklet extends ReportTasklet implements ReportGenera
             }
         }
         */
+        /*
+         * TODO: 
+         * - Fix deprecations in CSVFormat
+         * - Fix possible memory leak in CSVPrinter
+         */
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile), Charset.forName(encoding).newEncoder())) {
             try (Connection con = dataSource.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setQueryTimeout(queryTimeout);
                 ps.setFetchSize(fetchSize);
-                try (ResultSet rs = ps.executeQuery()) {
-                    CSVFormat format = CSVFormat.DEFAULT.withDelimiter(delimiter);
+                CSVFormat format = CSVFormat.DEFAULT.builder().setDelimiter(delimiter).get();
+                try (ResultSet rs = ps.executeQuery();CSVPrinter csvPrinter = new CSVPrinter(writer, format)) {
                     if (this.generateHeader) {
-                        format = format.withHeader(rs);
+                        format = format.builder().setHeader(rs).get();
                     }
-
-                    CSVPrinter csvPrinter = new CSVPrinter(writer, format);
                     csvPrinter.printRecords(rs);
                 }
             }

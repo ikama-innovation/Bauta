@@ -17,7 +17,7 @@ bauta.jobBeansDir2: replaceme
 bauta.jobBeansDir3: replaceme
 
 bauta.dataDir: ${bauta.homeDir}/data
-bauta.scriptDir: ${bauta.homeDir/scripts
+bauta.scriptDir: ${bauta.homeDir}/scripts
 bauta.reportDir: ${bauta.homeDir}/reports
 bauta.logDir: ${bauta.homeDir}/logs
 bauta.confirmJobOperations: false

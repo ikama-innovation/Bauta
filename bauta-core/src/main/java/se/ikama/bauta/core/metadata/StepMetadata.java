@@ -1,10 +1,12 @@
 package se.ikama.bauta.core.metadata;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class StepMetadata extends SubFlow {
 
     public static enum StepType {

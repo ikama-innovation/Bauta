@@ -12,25 +12,18 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.web.format.DateTimeFormatters;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Offers a way to run PLSQL code asynchronously. Typically by calling a stored procedure.
@@ -183,7 +176,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         log.debug("Creating a new scheduled DBMS job. Job name will be '{}'", dbmsJobName);
         writeToLogFile("Scheduled job name will be " + dbmsJobName);
         schedule(dbmsJobName, contribution);
-        Map<String, Object> outParams = new HashMap<>();
+        Map<String, Object> outParams = new HashMap<String, Object>();
         outParams.put("JOB_NAME", dbmsJobName);
         chunkContext.getStepContext().getStepExecution().getExecutionContext().put("outParams", outParams);
         long checkInterval = 500;
@@ -238,10 +231,6 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         }
     }
 
-    private void writeToLogFile(Exception e) {
-        writeToLogFile(null, e);
-    }
-
     private void writeToLogFile(String message, Exception exception) {
         try (PrintWriter logWriter = new PrintWriter(new FileWriter(logFile, true))) {
             if (message != null) logWriter.println(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()) + "\t" + message);
@@ -276,7 +265,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
 
         // execute statement
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
-            boolean hasResult = stmt.execute(sql);
+            stmt.execute(sql);
         }
         writeToLogFile("Statement executed successfully");
         log.debug("Statement executed successfully");
@@ -297,7 +286,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
         try (Connection connection = dataSource.getConnection(); Statement stmt = connection.createStatement()) {
             // Experienced problems with this query just hanging indefinitely. Solving this by setting a timeout
             stmt.setQueryTimeout(10);
-            boolean hasResult = stmt.execute(sql);
+            stmt.execute(sql);
             log.debug("Stop statement executed successfully");
             writeToLogFile("Stop statement executed successfully ");
         } catch (Exception e) {
@@ -313,7 +302,7 @@ public class ScheduledJobTasklet implements StoppableTasklet {
      * @return True if job is still running.
      * @throws SQLException
      */
-    private boolean checkRunning(String dbmsJobName, StepContribution contribution, Map outParams) throws JobExecutionException {
+    private boolean checkRunning(String dbmsJobName, StepContribution contribution, Map<String, Object> outParams) throws JobExecutionException {
         String checkIfRunningSql = "select JOB_NAME, SESSION_ID, SLAVE_PROCESS_ID from USER_SCHEDULER_RUNNING_JOBS where job_name=?";
         try (Connection connection = dataSource.getConnection(); PreparedStatement stmt = connection.prepareStatement(checkIfRunningSql)) {
             int active  = ((BasicDataSource)dataSource).getNumActive();
@@ -351,14 +340,6 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             throw new RuntimeException("Unexpected error when checking status", e);
         }
         return false;
-    }
-
-    private void sleep(long sleepMs) {
-        try {
-            Thread.sleep(sleepMs);
-        } catch (InterruptedException ex) {
-            log.warn("Unexpected interruptedException", ex);
-        }
     }
 
     /**
@@ -461,7 +442,6 @@ public class ScheduledJobTasklet implements StoppableTasklet {
             DBMS_SCHEDULER.STOP_JOB ( job_name=>'MY_JOB_123' , force=> true );
         END;
          */
-        String lf = System.lineSeparator();
         StringBuilder plsql = new StringBuilder();
         plsql.append("begin SYS.DBMS_SCHEDULER.STOP_JOB(job_name=>'").append(jobName);
         plsql.append("', force=>").append(this.forceStop ? "TRUE" : "FALSE");

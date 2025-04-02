@@ -1,8 +1,6 @@
 package se.ikama.bauta.batch.tasklet;
 
 import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -19,7 +17,6 @@ import java.io.IOException;
  */
 public class DeleteFileTasklet implements Tasklet {
 
-    private static final Logger log = LoggerFactory.getLogger(DeleteFileTasklet.class);
     Resource resource = null;
 
     @Override

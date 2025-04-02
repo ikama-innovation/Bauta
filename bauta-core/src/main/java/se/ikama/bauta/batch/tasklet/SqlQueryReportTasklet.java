@@ -110,7 +110,7 @@ public class SqlQueryReportTasklet extends ThymeleafReportTasklet implements Rep
         return out;
     }
 
-    public class QueryResult implements ResultSetExtractor {
+    public class QueryResult implements ResultSetExtractor<Integer> {
 
         List<String> columnNames;
         List<Object> columnTypes;

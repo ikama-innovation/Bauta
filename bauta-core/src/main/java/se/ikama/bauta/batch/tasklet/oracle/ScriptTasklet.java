@@ -5,8 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
-import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
 import org.springframework.batch.core.step.tasklet.SystemCommandException;
@@ -17,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
 
@@ -32,7 +29,7 @@ import java.util.concurrent.FutureTask;
  * Runs multiple SQL/PLSQL scripts using SQL*Plus.
  * Requires SQL*Plus to be installed on the system running the tasklet.
  */
-public class ScriptTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
+public class ScriptTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(ScriptTasklet.class);
 
@@ -58,8 +55,6 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
 
     private long checkInterval = 300;
 
-    private JobExplorer jobExplorer;
-
     private boolean sendExitCommand = true;
 
     private volatile boolean stopping = true;
@@ -71,7 +66,8 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     protected String reportDir;
 
     /**
-     * Execute system executable (sqlplus ..) and map its exit code to {@link ExitStatus}
+     * Execute system executable (sqlplus ..) and map its exit code to
+     * {@link ExitStatus}
      * using {@link SystemProcessExitCodeMapper}.
      */
     @Override
@@ -160,36 +156,40 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
             });
 
             long t0 = System.currentTimeMillis();
-            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
-            taskExecutor.execute(systemCommandTask);
+            try (SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor()) {
+                taskExecutor.execute(systemCommandTask);
 
-            while (true) {
-                Thread.sleep(checkInterval);
+                while (true) {
+                    Thread.sleep(checkInterval);
 
-                if (systemCommandTask.isDone()) {
-                    int exitCode = systemCommandTask.get();
-                    log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
-                    // Not all errors in SQLplus leads to an error code being returned. 
-                    // The log file must be checked for erros.
-                    checkForErrorsInLog(logFile);
-                    if (exitCode != 0) {
-                        throw new JobExecutionException("SQLPLUS exited with code " + exitCode);
+                    if (systemCommandTask.isDone()) {
+                        int exitCode = systemCommandTask.get();
+                        log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
+                        // Not all errors in SQLplus leads to an error code being returned.
+                        // The log file must be checked for erros.
+                        checkForErrorsInLog(logFile);
+                        if (exitCode != 0) {
+                            throw new JobExecutionException("SQLPLUS exited with code " + exitCode);
+                        }
+                        break;
+                    } else if (System.currentTimeMillis() - t0 > timeout) {
+                        systemCommandTask.cancel(true);
+                        throw new SystemCommandException(
+                                "Execution of system executable did not finish within the timeout");
+                    } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
+                        systemCommandTask.cancel(true);
+                        throw new JobInterruptedException("Job interrupted while running script '" + scriptFile + "'");
+                    } else if (stopping) {
+                        // We are in the middle of executing a SQL script. There is no way to stop and
+                        // restart in a graceful way, so
+                        // an interruptedexception is probably the best we can do.
+                        stopping = false;
+                        log.debug("Stop issued. Trying to cancel executable..");
+                        boolean cancelResult = systemCommandTask.cancel(true);
+                        log.debug("Cancel result: {}", cancelResult);
+                        throw new JobExecutionException(
+                                "Job manually stopped while running script '" + scriptFile + "'");
                     }
-                    break;
-                } else if (System.currentTimeMillis() - t0 > timeout) {
-                    systemCommandTask.cancel(true);
-                    throw new SystemCommandException("Execution of system executable did not finish within the timeout");
-                } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                    systemCommandTask.cancel(true);
-                    throw new JobInterruptedException("Job interrupted while running script '" + scriptFile + "'");
-                } else if (stopping) {
-                    // We are in the middle of executing a SQL script. There is no way to stop and restart in a graceful way, so
-                    // an interruptedexception is probably the best we can do.
-                    stopping = false;
-                    log.debug("Stop issued. Trying to cancel executable..");
-                    boolean cancelResult = systemCommandTask.cancel(true);
-                    log.debug("Cancel result: {}", cancelResult);
-                    throw new JobExecutionException("Job manually stopped while running script '" + scriptFile + "'");
                 }
             }
         }
@@ -225,14 +225,16 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     }
 
     /**
-     * @param envp environment parameter values, inherited from parent process when not set (or set to null).
+     * @param envp environment parameter values, inherited from parent process when
+     *             not set (or set to null).
      */
     public void setEnvironmentParams(Map<String, String> envp) {
         this.environmentParams = envp;
     }
 
     /**
-     * @param dir working directory of the spawned process, inherited from parent process when not set (or set to null).
+     * @param dir working directory of the spawned process, inherited from parent
+     *            process when not set (or set to null).
      */
     public void setScriptDir(String dir) {
         if (dir == null) {
@@ -246,10 +248,14 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     }
 
     /**
-     * By default, when executing an sql file with SQLPLUS in a "one-liner" fashion, i.e. "sglplus .. @myscript.sql", SQLPLUS will not exit from the
+     * By default, when executing an sql file with SQLPLUS in a "one-liner" fashion,
+     * i.e. "sglplus .. @myscript.sql", SQLPLUS will not exit from the
      * prompt unless the script contains a final "exit" executable.
-     * @param sendExitCommand Set this to true if your script does not contain exit executable. Then an exit executable
-     * will be passed to SQLPlus after the script has finished.
+     * 
+     * @param sendExitCommand Set this to true if your script does not contain exit
+     *                        executable. Then an exit executable
+     *                        will be passed to SQLPlus after the script has
+     *                        finished.
      */
     public void setSendExitCommand(boolean sendExitCommand) {
         this.sendExitCommand = sendExitCommand;
@@ -265,14 +271,11 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-    public void setJobExplorer(JobExplorer jobExplorer) {
-        this.jobExplorer = jobExplorer;
-    }
-
     /**
      * Timeout in milliseconds.
      *
-     * @param timeout upper limit for how long the execution of the external program is allowed to last.
+     * @param timeout upper limit for how long the execution of the external program
+     *                is allowed to last.
      */
     public void setTimeout(long timeout) {
         this.timeout = timeout;
@@ -299,7 +302,8 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     }
 
     /**
-     * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
+     * For convenience and for backward compatibility, if you have only one single
+     * script file, you can use this method. Makes it a bit more
      * convenient in the Spring configuration.
      *
      * @param scriptFile The script file to run.
@@ -310,7 +314,8 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
             scriptFiles.add(scriptFile);
             this.scriptFiles = scriptFiles;
         } else {
-            throw new IllegalArgumentException("Properties scriptFile and scriptFiles can not both have values. Only one can be used");
+            throw new IllegalArgumentException(
+                    "Properties scriptFile and scriptFiles can not both have values. Only one can be used");
         }
     }
 
@@ -326,10 +331,13 @@ public class ScriptTasklet extends StepExecutionListenerSupport implements Stopp
     }
 
     /**
-     * A list of script parameters to be passed to the script. Equivalent to "sqlplus @myscript.sql param1 param2".
+     * A list of script parameters to be passed to the script. Equivalent to
+     * "sqlplus @myscript.sql param1 param2".
      *
-     * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
-     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
+     * @param scriptParameters A list of identifiers for either a job-parameter or a
+     *                         spring property. A job parameter is identified by
+     *                         jobparam.[job-param-key]. A spring property is
+     *                         identified by env.[spring-property-key]
      */
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;

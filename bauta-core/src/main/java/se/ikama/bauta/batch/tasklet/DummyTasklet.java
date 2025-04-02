@@ -7,7 +7,6 @@ import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
-import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 
 import java.util.Date;
@@ -52,7 +51,7 @@ public class DummyTasklet implements StoppableTasklet {
             //cc.setAttribute("job_name", "JABBA" + new Date());
             jobName = "Dummy" + new Date();
             //sc.incrementWriteCount(1);
-            Thread.currentThread().sleep(sleepTimeMs);
+            Thread.sleep(sleepTimeMs);
             log.debug("Done!");
 
 
@@ -66,7 +65,7 @@ public class DummyTasklet implements StoppableTasklet {
             }
 
             //cc.setAttribute("CHECK_COUNT", checkCount);
-            Thread.currentThread().sleep(sleepTimeMs);
+            Thread.sleep(sleepTimeMs);
             if (checkCount > repeats) {
                 finished = true;
             }

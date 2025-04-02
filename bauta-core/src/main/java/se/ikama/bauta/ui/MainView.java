@@ -22,14 +22,11 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.time.DurationFormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.launch.JobInstanceAlreadyExistsException;
-import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.env.Environment;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -37,7 +34,6 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -48,9 +44,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.html.ListItem;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.html.UnorderedList;
@@ -109,6 +103,9 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	@Value("${bauta.application.title}")
 	private String pageTitle;
 
+	@Autowired
+	Environment environment;
+
 	Grid<String> serverInfoGrid = null;
 	Span buildInfo = null;
 	ArrayList<Button> actionButtons = new ArrayList<>();
@@ -154,31 +151,28 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	@Override
 	protected void onAttach(AttachEvent attachEvent) {
 		setTheme(true);
-		// Toggle dark theme
-		/* 
-		ThemeList themeList = getElement().getThemeList();
-
-		if (themeList.contains(Lumo.DARK)) {
-			themeList.remove(Lumo.DARK);
-		} else {
-			themeList.add(Lumo.DARK);
-		}
-			*/
 
 		String browser = attachEvent.getSession().getBrowser().getBrowserApplication();
 		String address = attachEvent.getSession().getBrowser().getAddress();
-		if (SecurityUtils.isSecurityEnabled()) {
+		if (SecurityUtils.currentUser() != null) {
 			miUser.setText("" + SecurityUtils.currentUser());
 			miUser.addComponentAsFirst(VaadinIcon.USER.create());
 			// Must be ADMIN to rebuild/upgrade
+		}
+		if (SecurityUtils.isUserInRole("BATCH_EXECUTE") || SecurityUtils.isDevMode(environment)) {
 			if (bautaManager.isRebuildSupported()) {
-				bUpgradeInstance.setEnabled(SecurityUtils.isUserInRole("ADMIN"));
+				bUpgradeInstance.setEnabled(true);
+				bUpgradeInstance.setVisible(true);
 			} else {
 				bUpgradeInstance.setVisible(false);
+				bUpgradeInstance.setEnabled(false);
+				
 			}
 			if (bautaManager.isRefreshSupported()) {
-				bRefreshInstance.setEnabled(SecurityUtils.isUserInRole("ADMIN"));
+				bRefreshInstance.setEnabled(true);
+				bRefreshInstance.setVisible(true);
 			} else {
+				bRefreshInstance.setEnabled(false);
 				bRefreshInstance.setVisible(false);
 			}
 		}
@@ -277,7 +271,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		jobNameToJobButtons.clear();
 		jobNameToStepFLow.clear();
 		runningJobs.clear();
-		boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE");
+		boolean enabled = SecurityUtils.isUserInRole("BATCH_EXECUTE") || SecurityUtils.isDevMode(environment);
 		log.debug("Run enabled: " + enabled);
 		findScheduledJobs();
 
@@ -392,7 +386,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		try {
 			this.setContent(pages);
 		} catch (Exception e) {
-			this.setContent(new Label("Failed to create job view: " + e.getMessage()));
+			this.setContent(new Div("Failed to create job view: " + e.getMessage()));
 		}
 		HorizontalLayout rightPanel = new HorizontalLayout();
 		rightPanel.setPadding(false);
@@ -455,7 +449,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		rightPanel.add(download);
 		rightPanel.add(bRefreshInstance);
 		rightPanel.add(bUpgradeInstance);
-		if (SecurityUtils.isSecurityEnabled()) {
+		if (SecurityUtils.currentUser() != null) {
 			rightPanel.add(createUserMenu());
 		}
 
@@ -696,17 +690,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		return mainLayout;
 	}
 
-	private void doStartJob(JobInstanceInfo item, Map<String, String> params) {
-		try {
-			bautaManager.startJob(item.getName(), params);
-		} catch (JobParametersInvalidException e) {
-			showErrorMessage(e.getMessage());
-		} catch (JobInstanceAlreadyExistsException e) {
-			showErrorMessage("This job is already running");
-		} catch (NoSuchJobException e) {
-			showErrorMessage(e.getMessage());
-		}
-	}
 
 	private InputStream createJobReport() throws Exception {
 		StringBuilder sb = new StringBuilder();
@@ -847,7 +830,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 			jobs = bautaManager.jobHistory(jobName);
 		} catch (Exception e) {
 			log.error("Failed to generate job history", e);
-			return new Label("Failed to fetch job history: " + e.getMessage());
+			return new Div("Failed to fetch job history: " + e.getMessage());
 		}
 		for (JobInstanceInfo ji : jobs) {
 			log.debug("jobInstanceInfo: {}", ji);
@@ -918,67 +901,6 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		return vl;
 	}
 
-	private Dialog createJobParamsDialog(JobInstanceInfo job) {
-		Dialog dialog = new Dialog();
-		dialog.setWidth("700");
-		HashMap<String, TextField> requiredTextFields = new HashMap<>();
-		HashMap<String, TextField> optionalTextFields = new HashMap<>();
-
-		VerticalLayout formLayout = new VerticalLayout();
-		formLayout.setWidthFull();
-
-		formLayout.add(new H4("Job Parameters"));
-		if (job.getRequiredJobParamKeys() != null) {
-			for (String key : job.getRequiredJobParamKeys()) {
-				TextField paramField = new TextField();
-				paramField.setLabel(key);
-				paramField.setRequired(true);
-				// paramField.setRequiredIndicatorVisible(true);
-				paramField.setWidthFull();
-				formLayout.add(paramField);
-				requiredTextFields.put(key, paramField);
-			}
-		}
-		if (job.getOptionalJobParamKeys() != null) {
-			for (String key : job.getOptionalJobParamKeys()) {
-				TextField paramField = new TextField();
-				paramField.setRequired(false);
-				paramField.setLabel(key);
-				paramField.setWidthFull();
-				formLayout.add(paramField);
-				optionalTextFields.put(key, paramField);
-			}
-		}
-
-		Button startButton = new Button("Start", clickEvent -> {
-			HashMap<String, String> params = new HashMap<>();
-			for (Map.Entry<String, TextField> field : requiredTextFields.entrySet()) {
-				if (StringUtils.isNotEmpty(field.getValue().getValue())) {
-					params.put(field.getKey(), field.getValue().getValue());
-				}
-				// TODO: Add early validation of required fields
-			}
-			for (Map.Entry<String, TextField> field : optionalTextFields.entrySet()) {
-				if (StringUtils.isNotEmpty(field.getValue().getValue())) {
-					params.put(field.getKey(), field.getValue().getValue());
-				}
-			}
-			dialog.close();
-			doStartJob(job, params);
-
-		});
-		startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-		Button cancelButton = new Button("Cancel", clickEvent -> {
-			dialog.close();
-		});
-		HorizontalLayout hl = new HorizontalLayout();
-		hl.add(startButton);
-		hl.add(cancelButton);
-		formLayout.add(hl);
-		dialog.add(formLayout);
-
-		return dialog;
-	}
 
 	@Override
 	public void onJobChange(JobInstanceInfo jobInstanceInfo) {
@@ -1037,12 +959,12 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 		}
 	}
 
-	public void openDateTimeDialog(ComboBox cbShowTimeList) {
+	public void openDateTimeDialog(ComboBox<String> cbShowTimeList) {
 		Dialog dateTimeDialog = createDateTimeDialog(cbShowTimeList);
 		dateTimeDialog.open();
 	}
 
-	private Dialog createDateTimeDialog(ComboBox cbShowTimeList) {
+	private Dialog createDateTimeDialog(ComboBox<String> cbShowTimeList) {
 		Dialog dialog = new Dialog();
 		dialog.setWidth("450px");
 		dialog.setCloseOnOutsideClick(false);

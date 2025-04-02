@@ -68,7 +68,7 @@ public class MongoToCsvReportTasklet extends ReportTasklet implements ReportGene
 	public ReportGenerationResult generateReport(File reportFile, StepContribution sc, ChunkContext cc)
 			throws Exception {
 		log.info("Exporting to file. {}", reportFile);
-		CSVFormat format = CSVFormat.DEFAULT.withDelimiter(delimiter);
+		CSVFormat format = CSVFormat.DEFAULT.builder().setDelimiter(delimiter).get();
 		MutableBoolean first = new MutableBoolean(true);
 
 		try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(reportFile),

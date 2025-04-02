@@ -7,9 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -55,8 +53,6 @@ public class JobMetadataReader {
 	@Value("${bauta.jobBeansDir3}")
     private String jobBeansDir3;
 
-    private final String jobBeanFilenamePattern = "job_(.*)\\.xml";
-
     @Getter
     private Map<String, JobMetadata> jobMetadata = null;
 
@@ -81,7 +77,7 @@ public class JobMetadataReader {
     }
 
     private Map<String, JobMetadata> parseAll() throws URISyntaxException, IOException {
-        TreeMap<String, JobMetadata> out = new TreeMap();
+        var out = new TreeMap<String, JobMetadata>();
         Resource[] resources1 = ResourcePatternUtils
                 .getResourcePatternResolver(resourceLoader)
                 .getResources("file://"+jobBeansDir + "/*.xml");
@@ -259,7 +255,6 @@ public class JobMetadataReader {
                     String class_ = ce.getAttribute("class");
                     String parent = ce.getAttribute("parent");
                     boolean isScriptTasklet = false;
-                    boolean hasAction = false;
                     if (class_ != null && class_.length() > 0) {
                         if ("se.ikama.bauta.batch.tasklet.oracle.ScheduledJobTasklet".equals(class_)) {
                             step.setStepType(StepMetadata.StepType.SCH);

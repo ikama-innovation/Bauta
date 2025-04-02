@@ -20,6 +20,7 @@ import se.ikama.bauta.core.BautaManager;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 @Slf4j
 public class JobButtons extends FlexLayout {
@@ -33,10 +34,8 @@ public class JobButtons extends FlexLayout {
     boolean enabled;
 
     private boolean confirmJobOperations;
-    private MainView mainView;
-
+    
     public JobButtons(BasicJobInstanceInfo jobInstanceInfo, MainView mainView, BautaManager bautaManager) {
-        this.mainView = mainView;
         this.bautaManager = bautaManager;
         this.jobInstanceInfo = jobInstanceInfo;
         this.setFlexDirection(FlexLayout.FlexDirection.COLUMN);
@@ -177,7 +176,7 @@ public class JobButtons extends FlexLayout {
         }
     }
 
-    private void doStartJob(BasicJobInstanceInfo item, Map<String, String> params) {
+    private void doStartJob(BasicJobInstanceInfo item, Properties params) {
         try {
             bautaManager.startJob(item.getName(), params);
         } catch (JobParametersInvalidException e) {
@@ -248,7 +247,7 @@ public class JobButtons extends FlexLayout {
         }
 
         Button startButton = new Button("Start", clickEvent -> {
-            HashMap<String, String> params = new HashMap<>();
+            Properties params = new Properties();
             for (Map.Entry<String, TextField> field : requiredTextFields.entrySet()) {
                 if (StringUtils.isNotEmpty(field.getValue().getValue())) {
                     params.put(field.getKey(), field.getValue().getValue());

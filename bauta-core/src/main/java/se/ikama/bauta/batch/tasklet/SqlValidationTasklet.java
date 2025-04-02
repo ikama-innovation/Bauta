@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.beans.factory.InitializingBean;
@@ -130,8 +129,6 @@ public class SqlValidationTasklet extends ThymeleafReportTasklet implements Repo
         jdbct.setQueryTimeout(queryTimeout);
         for (SqlValidation validation : validations) {
             String sql = validation.getSqlQuery();
-            int active  = ((BasicDataSource)dataSource).getNumActive();
-            int idle  = ((BasicDataSource)dataSource).getNumIdle();
             try {
                 long t = System.nanoTime();
                 jdbct.query(sql, validation);

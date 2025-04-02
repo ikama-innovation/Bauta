@@ -221,7 +221,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         }
     }
 
-    public Long startJob(String jobName, String jobParams) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
+    public Long startJob(String jobName, Properties jobParams) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
         if (StringUtils.isNumeric(jobName)) {
             int i = Integer.parseInt(jobName);
             jobName = listJobNames().toArray(new String[0])[i];
@@ -232,41 +232,45 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
             throw new JobInstanceAlreadyExistsException("Job " + jobName+" is already running");
         }
         DateTimeFormatter dtf = DateTimeFormatter.ISO_DATE_TIME;
-        StringBuilder paramsStr = new StringBuilder();
-        paramsStr.append("start=").append(dtf.format(LocalDateTime.now()));
-        String user = SecurityUtils.currentUser();
-        paramsStr.append(",user=").append(user);
+        if (jobParams == null) {
+            jobParams = new Properties();
+        }
+        jobParams.setProperty("start", dtf.format(LocalDateTime.now()));
+        String user = SecurityUtils.currentUser() != null ?  SecurityUtils.currentUser() : "-";
+        jobParams.setProperty("user", user);
         if (env.containsProperty("bauta.application.git.commit.id.abbrev")) {
-            paramsStr.append(",revision=");
-            paramsStr.append(env.getProperty("bauta.application.git.commit.id.abbrev","?"));
+            StringBuilder rev = new StringBuilder().append(env.getProperty("bauta.application.git.commit.id.abbrev","?"));
             if (env.containsProperty("bauta.application.git.total.commit.count")) {
-                paramsStr.append("(").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
+                rev.append("(").append(env.getProperty("bauta.application.git.total.commit.count")).append(")");
+            }
+            jobParams.setProperty("revision", rev.toString());
+        }
+        log.debug("Starting job {} with jobParams: {}", jobName, jobParams);
+        return jobOperator.start(jobName, jobParams);
+    }
+
+    /**
+     * Start a job with parameters as a string. The string should be a comma separated list of key=value pairs.
+     * @param jobName
+     * @param jobParamsAsString
+     * @throws JobParametersInvalidException
+     * @throws JobInstanceAlreadyExistsException
+     * @throws NoSuchJobException
+     */
+    public void startJob(String jobName, String jobParamsAsString) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
+        Properties jobParams = new Properties();
+        if (jobParamsAsString != null) {
+            String[] params = jobParamsAsString.split(",");
+            for (String param : params) {
+                String[] kv = param.split("=");
+                if (kv.length == 2) {
+                    jobParams.put(kv[0], kv[1]);
+                }
             }
         }
-        if (jobParams != null) {
-            paramsStr.append(","+jobParams);
-        }
-        log.debug("Starting job {} with jobParams: {}", jobName, paramsStr);
-        Properties jobProperties = PropertiesUtils.fromCommaSeparatedString(paramsStr.toString());
-        // TODO: Verify conversion. Rework jobParams as string
-        return jobOperator.start(jobName, jobProperties);
+        startJob(jobName, jobParams);
     }
-    public Long startJob(String jobName, Map<String, String> params) throws JobParametersInvalidException, JobInstanceAlreadyExistsException, NoSuchJobException {
-        StringBuilder paramsStr = new StringBuilder();
-        boolean first = true;
-        if (params != null && params.size() > 0) {
-            for(var param : params.entrySet()) {
-                if (!first) {
-                    paramsStr.append(",");
-                }
-                else {
-                    first = false;
-                }
-                paramsStr.append(param.getKey()).append("=").append(param.getValue());
-            }
-        }
-        return startJob(jobName, paramsStr.toString());
-    }
+
 
     public void stopJob(String jobName) {
         if (StringUtils.isNumeric(jobName)) {
@@ -640,6 +644,7 @@ public class BautaManager implements StepExecutionListener, JobExecutionListener
         return jobInstanceInfo;
     }
 
+    @SuppressWarnings("unchecked")
     private void extractStepInfo(StepInfo si, StepExecution se) {
         si.setExecutionStatus(se.getStatus().name());
         si.setJobExecutionId(se.getJobExecutionId());

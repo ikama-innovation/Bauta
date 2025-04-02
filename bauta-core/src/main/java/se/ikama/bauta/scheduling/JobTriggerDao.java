@@ -1,6 +1,5 @@
 package se.ikama.bauta.scheduling;
 
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -66,8 +65,9 @@ public class JobTriggerDao implements RowMapper<JobTrigger> {
     public List<JobTrigger> getJobCompletionTriggersFor(String completedJobName) {
 
         String args[] = {completedJobName};
+        int argTypes[] = {java.sql.Types.VARCHAR};
         JdbcTemplate template = new JdbcTemplate(dataSource);
-        List<JobTrigger> out = template.query("select ID,JOB_NAME, TRIGGER_TYPE,TRIGGERING_JOB_NAME, CRON, JOB_PARAMETERS from SCHEDULING_TRIGGER  where TRIGGERING_JOB_NAME=?", args, this);
+        List<JobTrigger> out = template.query("select ID,JOB_NAME, TRIGGER_TYPE,TRIGGERING_JOB_NAME, CRON, JOB_PARAMETERS from SCHEDULING_TRIGGER  where TRIGGERING_JOB_NAME=?", args, argTypes, this);
         return out;
     }
     

@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 @Getter
 @Setter
-public class SqlValidation implements ResultSetExtractor {
+public class SqlValidation implements ResultSetExtractor<Integer> {
     public enum ValidationResultStatus {OK, ValidationFailed, SqlFailed}
 
     /**

@@ -8,8 +8,7 @@ import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.listener.StepExecutionListenerSupport;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.StoppableTasklet;
 import org.springframework.batch.core.step.tasklet.SystemProcessExitCodeMapper;
@@ -19,22 +18,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.util.Assert;
 import se.ikama.bauta.batch.tasklet.ReportUtils;
-import se.ikama.bauta.core.metadata.JobMetadata;
-import se.ikama.bauta.core.metadata.JobMetadataReader;
-import se.ikama.bauta.core.metadata.StepMetadata;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
-
-public class PhpTasklet extends StepExecutionListenerSupport implements StoppableTasklet, InitializingBean {
-
+public class PhpTasklet implements StepExecutionListener, StoppableTasklet, InitializingBean {
 
     private static final Logger log = LoggerFactory.getLogger(PhpTasklet.class);
 
@@ -44,7 +36,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
 
     private static final String SCRIPT_PARAMETER_PREFIX_JOBPARAM = "jobparam.";
     private static final String SCRIPT_PARAMETER_PREFIX_ENV = "env.";
-
 
     private Map<String, String> environmentParams = null;
 
@@ -57,7 +48,8 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private long checkInterval = 300;
 
     /**
-     * In order to properly stop the running php process, we need to kill the process on the OS level using kill/pkill.
+     * In order to properly stop the running php process, we need to kill the
+     * process on the OS level using kill/pkill.
      * If you for some reason need to disable this feature, set this to false.
      */
     private boolean killProcessesOnStop = true;
@@ -72,7 +64,6 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      *
      */
     private boolean setExplicitCodepage = false;
-
 
     private volatile boolean stopping = true;
 
@@ -89,11 +80,12 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     private String reportName = null;
 
     /**
-     * A unique id for the group of processes that are started for each script. The uid is added to the command line
-     * to make it possible to find and kill all processes with a command line containing this uid.
+     * A unique id for the group of processes that are started for each script. The
+     * uid is added to the command line
+     * to make it possible to find and kill all processes with a command line
+     * containing this uid.
      */
     private String processUid;
-
 
     @Autowired
     Environment env;
@@ -102,7 +94,8 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     protected String reportDir;
 
     /**
-     * Execute system executable (php ..) and map its exit code to {@link ExitStatus}
+     * Execute system executable (php ..) and map its exit code to
+     * {@link ExitStatus}
      * using {@link SystemProcessExitCodeMapper}.
      */
     @Override
@@ -110,8 +103,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
         StringBuilder reportFileName = new StringBuilder();
         if (reportName != null) {
             reportFileName.append(reportName);
-        }
-        else {
+        } else {
             reportFileName.append(contribution.getStepExecution().getStepName());
         }
         reportFileName.append(".").append(logSuffix);
@@ -177,7 +169,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                 public Integer call() throws Exception {
                     ArrayList<String> commands = new ArrayList<>();
                     String scriptParams = StringUtils.join(scriptParameterValues, " ");
-                    String cmd = "exit|"+executable+" "+scriptFile+" "+scriptParams;
+                    String cmd = "exit|" + executable + " " + scriptFile + " " + scriptParams;
                     if (runsOnWindows()) {
                         log.debug("Running on windows.");
                         commands.add("cmd.exe");
@@ -186,8 +178,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                             cmd = "chcp 65001|" + cmd;
                         }
                         commands.add(cmd);
-                    }
-                    else {
+                    } else {
                         commands.add("/bin/sh");
                         commands.add("-c");
                         // Add the processUid as the last script parameter
@@ -203,7 +194,8 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                     log.debug("Command is: " + StringUtils.join(commands, ","));
                     ProcessBuilder pb = new ProcessBuilder(commands);
 
-                    String jobInstanceId = Long.toString(contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
+                    String jobInstanceId = Long.toString(
+                            contribution.getStepExecution().getJobExecution().getJobInstance().getInstanceId());
                     String jobExecutionId = Long.toString(contribution.getStepExecution().getJobExecution().getId());
                     String jobName = contribution.getStepExecution().getJobExecution().getJobInstance().getJobName();
                     String stepName = contribution.getStepExecution().getStepName();
@@ -213,7 +205,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                     env.put("BAUTA_STEP_NAME", stepName);
                     env.put("BAUTA_JOB_NAME", jobName);
                     env.putAll(environmentParams);
-                    
+
                     log.debug("environmentParams: {}", environmentParams);
                     log.debug("Environment: {}", pb.environment());
 
@@ -223,20 +215,18 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                     pb.redirectError(ProcessBuilder.Redirect.appendTo(logFile));
 
                     Process process = pb.start();
-                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().getId());
+                    log.debug("Starting process for {}. {}", scriptFile, Thread.currentThread().threadId());
                     try {
                         return process.waitFor();
-                    }
-                    catch(InterruptedException ie) {
+                    } catch (InterruptedException ie) {
                         log.debug("Interrupted. Trying to close php process..");
                         process.destroyForcibly();
                         log.debug("After destroy.");
                         return -1;
-                    }
-                    finally {
+                    } finally {
                         try {
                             process.getOutputStream().flush();
-                        } catch(Exception e) {
+                        } catch (Exception e) {
                             log.warn("Failed to flush process output stream");
                         }
                     }
@@ -244,34 +234,35 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
             });
 
             long t0 = System.currentTimeMillis();
-            TaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName());
-            taskExecutor.execute(systemCommandTask);
+            try (SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor(stepExecution.getStepName())) {
+                taskExecutor.execute(systemCommandTask);
 
-            while (true) {
-                Thread.sleep(checkInterval);
+                while (true) {
+                    Thread.sleep(checkInterval);
 
-                if (systemCommandTask.isDone()) {
+                    if (systemCommandTask.isDone()) {
 
-                    int exitCode = systemCommandTask.get();
+                        int exitCode = systemCommandTask.get();
 
-                    log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
+                        log.debug("{} done. ExitCode: {}", scriptFile, exitCode);
 
-                    checkForErrorsInLog(logFile);
+                        checkForErrorsInLog(logFile);
 
-                    if (exitCode != 0) {
+                        if (exitCode != 0) {
 
-                        throw new JobExecutionException("php exited with code " + exitCode);
+                            throw new JobExecutionException("php exited with code " + exitCode);
+                        }
+                        break;
+                    } else if (System.currentTimeMillis() - t0 > timeout) {
+                        kill(systemCommandTask, "timeout");
+                    } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
+                        kill(systemCommandTask, "terminateOnly");
+                    } else if (stopping) {
+                        // We are in the middle of executing a PHP script.
+                        // Only thing we can do is to terminate the processes that have been started.
+                        stopping = false;
+                        kill(systemCommandTask, "stop");
                     }
-                    break;
-                } else if (System.currentTimeMillis() - t0 > timeout) {
-                    kill (systemCommandTask, "timeout");
-                } else if (chunkContext.getStepContext().getStepExecution().isTerminateOnly()) {
-                    kill (systemCommandTask, "terminateOnly");
-                } else if (stopping) {
-                    // We are in the middle of executing a PHP script.
-                    // Only thing we can do is to terminate the processes that have been started.
-                    stopping = false;
-                    kill(systemCommandTask, "stop");
                 }
             }
         }
@@ -290,13 +281,12 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
      */
     private void checkForErrorsInLog(File logFile) throws JobExecutionException {
         try (LineNumberReader reader = new LineNumberReader(new InputStreamReader(new FileInputStream(logFile)))) {
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                //if (line.startsWith("Error")) {
-                //    throw new JobExecutionException("There were PHP errors: " + line);
-                //}
-
-            }
+            //String line = null;
+            //while ((line = reader.readLine()) != null) {
+                // if (line.startsWith("Error")) {
+                // throw new JobExecutionException("There were PHP errors: " + line);
+                // }
+            //}
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to check log file for errors", ioe);
         }
@@ -310,14 +300,16 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     }
 
     /**
-     * @param envp environment parameter values, inherited from parent process when not set (or set to null).
+     * @param envp environment parameter values, inherited from parent process when
+     *             not set (or set to null).
      */
     public void setEnvironmentParams(Map<String, String> envp) {
         this.environmentParams = envp;
     }
 
     /**
-     * @param dir working directory of the spawned process, inherited from parent process when not set (or set to null).
+     * @param dir working directory of the spawned process, inherited from parent
+     *            process when not set (or set to null).
      */
     public void setScriptDir(String dir) {
         if (dir == null) {
@@ -339,11 +331,11 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
         Assert.isTrue(timeout > 0, "timeout value must be greater than zero");
     }
 
-
     /**
      * Timeout in milliseconds.
      *
-     * @param timeout upper limit for how long the execution of the external program is allowed to last.
+     * @param timeout upper limit for how long the execution of the external program
+     *                is allowed to last.
      */
     public void setTimeout(long timeout) {
         this.timeout = timeout;
@@ -369,7 +361,7 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
         stopping = true;
     }
 
-    private void kill(FutureTask task, String reason) throws JobExecutionException {
+    private void kill(FutureTask<Integer> task, String reason) throws JobExecutionException {
         if (killProcessesOnStop) {
             if (processUid == null) {
                 // This should not happen.
@@ -377,8 +369,10 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
                 return;
             }
             if (!runsOnWindows()) {
-                // On linux, there will be several sub-processes and there is no way to get access to the PIDs of these.
-                // Instead, we have added the processUid to the end of the command and we can now use the pkill command to
+                // On linux, there will be several sub-processes and there is no way to get
+                // access to the PIDs of these.
+                // Instead, we have added the processUid to the end of the command and we can
+                // now use the pkill command to
                 // kill all process with that UID.
                 ProcessBuilder pb = new ProcessBuilder("pkill", "--signal", this.killSignal, "-f", processUid);
                 try {
@@ -390,11 +384,10 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
 
                 }
             } else {
-                //TODO: Handle in windows
+                // TODO: Handle in windows
                 log.warn("Killing processes is not implemented for windows OS");
             }
-        }
-        else {
+        } else {
             // Only think we can do here is to cancel the task
             task.cancel(true);
             // .. and throw an excecption to make the step as failed
@@ -403,7 +396,8 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
     }
 
     /**
-     * For convenience and for backward compatibility, if you have only one single script file, you can use this method. Makes it a bit more
+     * For convenience and for backward compatibility, if you have only one single
+     * script file, you can use this method. Makes it a bit more
      * convenient in the Spring configuration.
      */
     public void setScriptFile(String scriptFile) {
@@ -412,7 +406,8 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
             scriptFiles.add(scriptFile);
             this.scriptFiles = scriptFiles;
         } else {
-            throw new IllegalArgumentException("Properties scriptFile and scriptFiles can not both have values. Only one can be used");
+            throw new IllegalArgumentException(
+                    "Properties scriptFile and scriptFiles can not both have values. Only one can be used");
         }
     }
 
@@ -420,17 +415,18 @@ public class PhpTasklet extends StepExecutionListenerSupport implements Stoppabl
         this.scriptFiles = scriptFiles;
     }
 
-
     /**
-     * A list of script parameters to be passed to the script. Equivalent to "php myscript.php param1 param2".
+     * A list of script parameters to be passed to the script. Equivalent to "php
+     * myscript.php param1 param2".
      *
-     * @param scriptParameters A list of identifiers for either a job-parameter or a spring property. A job parameter is identified by
-     *                         jobparam.[job-param-key]. A spring property is identified by env.[spring-property-key]
+     * @param scriptParameters A list of identifiers for either a job-parameter or a
+     *                         spring property. A job parameter is identified by
+     *                         jobparam.[job-param-key]. A spring property is
+     *                         identified by env.[spring-property-key]
      */
     public void setScriptParameters(List<String> scriptParameters) {
         this.scriptParameters = scriptParameters;
     }
-
 
     public void setKillProcessesOnStop(boolean killProcessesOnStop) {
         this.killProcessesOnStop = killProcessesOnStop;

@@ -3,7 +3,6 @@ package se.ikama.bauta.security;
 import com.vaadin.flow.server.HandlerHelper;
 import com.vaadin.flow.shared.ApplicationConstants;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.env.Environment;
@@ -18,17 +17,18 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 public final class SecurityUtils {
-
-    private static Boolean enabled = null;
+    
     /**
      * Tests if the request is an internal framework request. The test consists of
      * checking if the request parameter is present and if its value is consistent
@@ -43,8 +43,8 @@ public final class SecurityUtils {
         return parameterValue != null
                 && Stream.of(HandlerHelper.RequestType.values()).anyMatch(r -> r.getIdentifier().equals(parameterValue));
     }
+
     public static boolean isAccessGranted(Class<?> securedClass) {
-        if (!isSecurityEnabled()) return true;
         // Allow if no roles are required.
         Secured secured = AnnotationUtils.findAnnotation(securedClass, Secured.class);
         if (secured == null) {
@@ -60,8 +60,8 @@ public final class SecurityUtils {
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(allowedRoles::contains);
     }
+
     public static boolean isUserInRole(String role) {
-        if (!isSecurityEnabled()) return true;
         String roleWithPrefix = "ROLE_"+role;
         Authentication userAuthentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -72,24 +72,22 @@ public final class SecurityUtils {
                     .anyMatch(roleWithPrefix::equals);
     }
 
-
-    /**
-     * Tests if some user is authenticated. As Spring Security always will create an {@link AnonymousAuthenticationToken}
-     * we have to ignore those tokens explicitly.
-     */
     public static boolean isUserLoggedIn() {
-        if (!isSecurityEnabled()) return true;
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null
-                && !(authentication instanceof AnonymousAuthenticationToken)
-                && authentication.isAuthenticated();
+        return currentUser() != null;
     }
+
+
     public static String currentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            return authentication.getName();
+        if (authentication == null) {
+            log.info("No authentication found");
+            return null;
         }
-        else return null;
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            log.info("User is anonymous");
+            return null;
+        }
+        return authentication.getName();
     }
 
     public static Collection<String> currentUserRoles() {
@@ -103,9 +101,29 @@ public final class SecurityUtils {
 			return null;
 		}
 	}
-
-    public static boolean isSecurityEnabled() {
-        return currentUser() != null && !"anonymousUser".equals(currentUser());
-            
+    
+    public static boolean isDevMode(Environment env) {
+        
+        return env.acceptsProfiles(Profiles.of("dev"));
     }
+
+    public static boolean isProdMode() {
+        WebApplicationContext context = ContextLoader.getCurrentWebApplicationContext();
+        if (context == null) {
+            return false;
+        }
+        Environment env = context.getEnvironment();
+        return env.acceptsProfiles(Profiles.of("prod"));
+    }
+
+    public static String getServerInfo() {
+        WebApplicationContext context = ContextLoader.getCurrentWebApplicationContext();
+        if (context == null) {
+            return "No application context";
+        }
+        ApplicationContext appContext = WebApplicationContextUtils
+                .getRequiredWebApplicationContext(context.getServletContext());
+        return appContext.getId();
+    }
+    
 }
