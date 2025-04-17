@@ -32,18 +32,18 @@ public class LoginView extends Div implements BeforeEnterObserver {
     private Paragraph loggedOutMessage = new Paragraph();
     private Span serverInfo = new Span();
     private Paragraph welcomeMessage = new Paragraph();
+    Anchor loginLink;
 
     @Autowired
 	BautaManager bautaManager;
 
 
 
-    // URL that Spring Security uses to connect to Google services
-    private static final String OAUTH_URL = "/oauth2/authorization/keycloak";
+    @Value("${bauta.security.idp.authLoginPage:/oauth2/authorization/keycloak}")
+    private final String authLoginPage = "/oauth2/authorization/keycloak";
 
     private void setTheme(boolean dark) {
         var js = "document.documentElement.setAttribute('theme', $0)";
-
         getElement().executeJs(js, dark ? Lumo.DARK : Lumo.LIGHT);
     }
 
@@ -52,7 +52,7 @@ public class LoginView extends Div implements BeforeEnterObserver {
 		setTheme(true);
         serverInfo.setText(bautaManager.getShortServerInfo());
         welcomeMessage.setText("Welcome to " + applicationTitle);
-        
+        loginLink.setHref(authLoginPage);
 
     }
 
@@ -84,8 +84,8 @@ public class LoginView extends Div implements BeforeEnterObserver {
         body.add(welcomeMessage);
         
 
-        // Navigate to OATH URL
-        Anchor loginLink = new Anchor(OAUTH_URL, "Login with IDP");
+        // Navigate to IDP login page
+        loginLink = new Anchor(authLoginPage, "Login with IDP");
         
         loginLink.getElement().getThemeList().add("primary"); // or "secondary"
         loginLink.getElement().getClassList().add("vaadin-button"); // make it visually a button
