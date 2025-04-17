@@ -3,6 +3,8 @@ package se.ikama.bauta.config;
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +14,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -39,7 +45,13 @@ public class SecurityConfiguration extends VaadinWebSecurity {
      */
     @Value("${bauta.security.idp.role.admin:bauta-admin}")
     private String idpRoleAdmin;
-
+    
+    /**
+     * Is PKCE enabled 
+     */
+    @Value("${bauta.security.idp.pkceEnabled:false}")
+    private boolean idpPkceEnabled;
+    
     /**
      * The IDP role that enables users to view the result of batch jobs. Will be
      * mapped to the internal ROLE_BATCH_VIEW role".
@@ -57,6 +69,9 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     @Value("${bauta.security.idp.authLoginPage:/oauth2/authorization/keycloak}")
     private String idpAuthLoginPage;
 
+    @Autowired
+    ClientRegistrationRepository repo;
+
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -73,6 +88,16 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         http.csrf(csrf -> csrf.disable());
         super.configure(http);
         setOAuth2LoginPage(http, idpAuthLoginPage, "{baseUrl}/ui/login");
+        
+        // PKCE support
+        if (idpPkceEnabled) {
+            log.info("Enabling PKCE");
+            var base_uri = OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI;
+            var resolver = new DefaultOAuth2AuthorizationRequestResolver(repo, base_uri);
+            resolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+
+            http.oauth2Login(login -> login.authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig.authorizationRequestResolver(resolver)));
+        }
 
         /*
          * http.logout(logout -> logout
