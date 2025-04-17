@@ -1,7 +1,8 @@
 .login-view {
 }
 .login-overlay {
-    max-width: 400em;
+    max-width: 500em;
+    min-width: 350px;
     /*background-color: var(--lumo-base-color);*/
     border-radius: var(--lumo-border-radius-m);
     box-shadow: var(--lumo-box-shadow-m);
