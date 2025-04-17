@@ -40,7 +40,7 @@ public class LoginView extends Div implements BeforeEnterObserver {
 
 
     @Value("${bauta.security.idp.authLoginPage:/oauth2/authorization/keycloak}")
-    private final String authLoginPage = "/oauth2/authorization/keycloak";
+    private String authLoginPage;
 
     private void setTheme(boolean dark) {
         var js = "document.documentElement.setAttribute('theme', $0)";
@@ -85,7 +85,7 @@ public class LoginView extends Div implements BeforeEnterObserver {
         
 
         // Navigate to IDP login page
-        loginLink = new Anchor(authLoginPage, "Login with IDP");
+        loginLink = new Anchor("/replaceme", "Login with IDP");
         
         loginLink.getElement().getThemeList().add("primary"); // or "secondary"
         loginLink.getElement().getClassList().add("vaadin-button"); // make it visually a button
