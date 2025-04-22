@@ -34,8 +34,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SecurityConfiguration extends VaadinWebSecurity {
 
-
-
     @Value("${bauta.security.configFilePath:}")
     private String securityConfigFilePath;
 
@@ -112,57 +110,49 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     }
 
     @Bean
-    public GrantedAuthoritiesMapper userAuthoritiesMapperForKeycloak() {
+    public GrantedAuthoritiesMapper grantedAuthoritiesMapper() {
         return authorities -> {
-            Set<GrantedAuthority> mappedAuthorities = new HashSet<>();
+            Set<String> unmappedRoles = new HashSet<String>();
             for (var authority : authorities) {
-
-                if (authority instanceof OidcUserAuthority) {
-                    var oidcUserAuthority = (OidcUserAuthority) authority;
-                    log.debug("OICD Authority: {}", oidcUserAuthority.getAuthority());
-                    var userInfo = oidcUserAuthority.getUserInfo();
-                    log.debug("User info: {}", userInfo.getClaims());
-                    var idToken = oidcUserAuthority.getIdToken();
-                    log.debug("Id token: {}", idToken.getClaims());
-
-                    if (userInfo.hasClaim("realm_access")) {
-                        Map<String, Object> realmAccess = userInfo.getClaimAsMap("realm_access");
-                        @SuppressWarnings("unchecked")
-                        Collection<String> roles = (Collection<String>) realmAccess.get("roles");
-                        mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
-                    }
+                log.debug("Authority: {}:{}", authority.getClass(), authority);
+                if (OAuth2UserAuthority.class.isAssignableFrom(authority.getClass())) {
+                    var oidcUserAuthority = (OAuth2UserAuthority) authority;
+                    log.debug("User attributes: {}", oidcUserAuthority.getAttributes());
+                    extractRolesFromClaims(oidcUserAuthority.getAttributes(), unmappedRoles);      
                 } else if (authority instanceof SimpleGrantedAuthority) {
                     SimpleGrantedAuthority simpleGrantedAuthority = (SimpleGrantedAuthority) authority;
+                    unmappedRoles.add(simpleGrantedAuthority.getAuthority());
                     log.debug("SimpleGrantedAuthority: {}", simpleGrantedAuthority.getAuthority());
-
-                } else {
-                    log.debug("Mapping OAuth2 user");
-                    var oauth2UserAuthority = (OAuth2UserAuthority) authority;
-                    Map<String, Object> userAttributes = oauth2UserAuthority.getAttributes();
-                    // Keyckloak style
-                    if (userAttributes.containsKey("realm_access")) {
-                        @SuppressWarnings("unchecked")
-                        var realmAccess = (Map<String, Object>) userAttributes.get("realm_access");
-                        if (realmAccess.containsKey("roles")) {
-                            @SuppressWarnings("unchecked")
-                            var roles = (Collection<String>) realmAccess.get("roles");
-                            mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
-                        }
-                    }
-                    // Ping federate style
-                    if (userAttributes.containsKey("roles")) {
-                        @SuppressWarnings("unchecked")
-                        var roles = (Collection<String>) userAttributes.get("roles");
-                        mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
-                    }
                 }
             }
-
+            Collection<GrantedAuthority> mappedAuthorities = mapClaimsToAuthorities(unmappedRoles);
             return mappedAuthorities;
         };
     }
 
-    Collection<GrantedAuthority> generateAuthoritiesFromClaim(Collection<String> roles) {
+    /**
+     * Extracts roles from the claims. Supports Keycloak and Ping Federate style of providing roles.
+     * @param claims
+     * @param roles
+     */
+    private void extractRolesFromClaims(Map<String, Object> claims, Set<String> roles) {
+        if (claims.containsKey("realm_access")) {
+            Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
+            if (realmAccess.containsKey("roles")) {
+                @SuppressWarnings("unchecked")
+                Collection<String> r = (Collection<String>) realmAccess.get("roles");
+                roles.addAll(r);
+            }
+        }
+        // Ping federate style
+        if (claims.containsKey("roles")) {
+            @SuppressWarnings("unchecked")
+            var r = (Collection<String>) claims.get("roles");
+            roles.addAll(r);
+        }
+    }
+
+    Collection<GrantedAuthority> mapClaimsToAuthorities(Collection<String> roles) {
         log.debug("Mapping roles: " + roles);
         Map<String, String> roleMap = Map.of(
                 idpRoleAdmin, "ROLE_ADMIN",

@@ -1,5 +1,6 @@
 package se.ikama.bauta.ui;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -37,10 +38,11 @@ public class LoginView extends Div implements BeforeEnterObserver {
     @Autowired
 	BautaManager bautaManager;
 
-
-
     @Value("${bauta.security.idp.authLoginPage:/oauth2/authorization/keycloak}")
     private String authLoginPage;
+
+    @Value("${server.servlet.context-path:/}")
+    private String contextPath;
 
     private void setTheme(boolean dark) {
         var js = "document.documentElement.setAttribute('theme', $0)";
@@ -52,8 +54,14 @@ public class LoginView extends Div implements BeforeEnterObserver {
 		setTheme(true);
         serverInfo.setText(bautaManager.getShortServerInfo());
         welcomeMessage.setText("Welcome to " + applicationTitle);
-        loginLink.setHref(authLoginPage);
-
+        if (!StringUtils.equals("/", contextPath)) {
+            var loginLinkHref = contextPath + authLoginPage;
+            log.debug("Setting login link to: {}", loginLinkHref);
+            loginLink.setHref(loginLinkHref);
+        } else {
+            log.debug("Setting login link to {}", authLoginPage);
+            loginLink.setHref(authLoginPage);
+        }
     }
 
 
