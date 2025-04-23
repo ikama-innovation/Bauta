@@ -5,10 +5,10 @@
     <parent>
         <groupId>se.ikama</groupId>
         <artifactId>bauta</artifactId>
-        <version>2.0.8</version>
+        <version>2.0.9</version>
     </parent>
     <artifactId>bauta-standalone</artifactId>
-    <version>2.0.8</version>
+    <version>2.0.9</version>
     <name>bauta-standalone</name>
     <description>Standalone version for Bauta</description>
     <dependencies>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>se.ikama</groupId>
             <artifactId>bauta-starter</artifactId>
-            <version>2.0.8</version>
+            <version>2.0.9</version>
         </dependency>     
     </dependencies>
     <build>
