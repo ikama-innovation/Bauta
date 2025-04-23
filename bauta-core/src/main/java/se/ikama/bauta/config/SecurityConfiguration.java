@@ -13,13 +13,19 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
-import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
-import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.Collection;
@@ -43,13 +49,13 @@ public class SecurityConfiguration extends VaadinWebSecurity {
      */
     @Value("${bauta.security.idp.role.admin:bauta-admin}")
     private String idpRoleAdmin;
-    
+
     /**
-     * Is PKCE enabled 
+     * Is PKCE enabled
      */
     @Value("${bauta.security.idp.pkceEnabled:false}")
     private boolean idpPkceEnabled;
-    
+
     /**
      * The IDP role that enables users to view the result of batch jobs. Will be
      * mapped to the internal ROLE_BATCH_VIEW role".
@@ -86,7 +92,7 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         http.csrf(csrf -> csrf.disable());
         super.configure(http);
         setOAuth2LoginPage(http, idpAuthLoginPage, "{baseUrl}/ui/login");
-        
+
         // PKCE support
         if (idpPkceEnabled) {
             log.info("Enabling PKCE");
@@ -94,7 +100,11 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             var resolver = new DefaultOAuth2AuthorizationRequestResolver(repo, base_uri);
             resolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
 
-            http.oauth2Login(login -> login.authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig.authorizationRequestResolver(resolver)));
+            http.oauth2Login(login -> {
+                login.authorizationEndpoint(authorizationEndpointConfig -> authorizationEndpointConfig
+                        .authorizationRequestResolver(resolver));
+                login.userInfoEndpoint(info -> info.oidcUserService(customOidcUserService()));
+            });
         }
 
         /*
@@ -110,28 +120,97 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     }
 
     @Bean
-    public GrantedAuthoritiesMapper grantedAuthoritiesMapper() {
-        return authorities -> {
-            Set<String> unmappedRoles = new HashSet<String>();
-            for (var authority : authorities) {
-                log.debug("Authority: {}:{}", authority.getClass(), authority);
-                if (OAuth2UserAuthority.class.isAssignableFrom(authority.getClass())) {
-                    var oidcUserAuthority = (OAuth2UserAuthority) authority;
-                    log.debug("User attributes: {}", oidcUserAuthority.getAttributes());
-                    extractRolesFromClaims(oidcUserAuthority.getAttributes(), unmappedRoles);      
-                } else if (authority instanceof SimpleGrantedAuthority) {
-                    SimpleGrantedAuthority simpleGrantedAuthority = (SimpleGrantedAuthority) authority;
-                    unmappedRoles.add(simpleGrantedAuthority.getAuthority());
-                    log.debug("SimpleGrantedAuthority: {}", simpleGrantedAuthority.getAuthority());
-                }
-            }
-            Collection<GrantedAuthority> mappedAuthorities = mapClaimsToAuthorities(unmappedRoles);
-            return mappedAuthorities;
+    public OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService() {
+        return userRequest -> {
+            // Load the default user
+            OidcUser oidcUser = new OidcUserService().loadUser(userRequest);
+
+            // Get access token
+            OAuth2AccessToken accessToken = userRequest.getAccessToken();
+            String accessTokenValue = accessToken.getTokenValue();
+            // Get ID token
+            var idToken = userRequest.getIdToken();
+            String idTokenValue = idToken.getTokenValue();
+            log.debug("accessTokenValue: {}", accessTokenValue);
+            log.debug("idTokenValue: {}", accessTokenValue);
+
+            // Get the dynamic JWK Set URI from the configured provider
+            String jwkSetUri = userRequest.getClientRegistration()
+                    .getProviderDetails()
+                    .getJwkSetUri();
+
+            // Decode the JWT access token dynamically using the JWK URI
+            JwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+            Jwt accessTokenJwt = decoder.decode(accessTokenValue);
+            Jwt idTokenJwt = decoder.decode(idTokenValue);
+            // Extract claims and map to authorities
+            Map<String, Object> accessTokenClaims = accessTokenJwt.getClaims();
+            Map<String, Object> idTokenClaims = idTokenJwt.getClaims();
+            log.debug("Decoded accessToken: {}", accessTokenClaims);
+            log.debug("Decoded idToken: {}", idTokenClaims);
+            Collection<GrantedAuthority> mappedAuthorities = mapClaimsToAuthorities(accessTokenClaims, idTokenClaims);
+            log.debug("Mapped authorities: {}", mappedAuthorities);
+            // Return a new OidcUser with your custom authorities
+            return new DefaultOidcUser(mappedAuthorities, oidcUser.getIdToken(), oidcUser.getUserInfo());
         };
     }
 
+    private Collection<GrantedAuthority> mapClaimsToAuthorities(Map<String, Object> accessTokenClaims,
+            Map<String, Object> idTokenClaims) {
+        Set<String> unmappedRoles = new HashSet<String>();
+        extractRolesFromClaims(accessTokenClaims, unmappedRoles);
+        extractRolesFromClaims(idTokenClaims, unmappedRoles);
+
+        Collection<GrantedAuthority> mappedAuthorities = mapClaimsToAuthorities(unmappedRoles);
+        return mappedAuthorities;
+    }
+
+    /*
+     * @Bean
+     * public GrantedAuthoritiesMapper grantedAuthoritiesMapper() {
+     * return authorities -> {
+     * Set<String> unmappedRoles = new HashSet<String>();
+     * for (var authority : authorities) {
+     * log.debug("Authority: {}:{}", authority.getClass(), authority);
+     * if (OAuth2UserAuthority.class.isAssignableFrom(authority.getClass())) {
+     * var oidcUserAuthority = (OAuth2UserAuthority) authority;
+     * var principal = oidcUserAuthority.getAttributes().get(oidcUserAuthority.
+     * getUserNameAttributeName());
+     * log.debug("Principal: {}", principal);
+     * var authorizedClient =
+     * authorizedClientService.loadAuthorizedClient("keycloak",
+     * principal.toString());
+     * if (authorizedClient != null) {
+     * String accessToken = authorizedClient.getAccessToken().getTokenValue();
+     * log.debug("Access token: {}", accessToken);
+     * }
+     * log.debug("User attributes: {}", oidcUserAuthority.getAttributes());
+     * if (authority instanceof OidcUserAuthority) {
+     * log.debug("ID Token: {}",
+     * ((OidcUserAuthority)oidcUserAuthority).getIdToken().getClaims());
+     * log.debug("User Info: {}",
+     * ((OidcUserAuthority)oidcUserAuthority).getUserInfo().getClaims());
+     * }
+     * extractRolesFromClaims(oidcUserAuthority.getAttributes(), unmappedRoles);
+     * } else if (authority instanceof SimpleGrantedAuthority) {
+     * SimpleGrantedAuthority simpleGrantedAuthority = (SimpleGrantedAuthority)
+     * authority;
+     * unmappedRoles.add(simpleGrantedAuthority.getAuthority());
+     * log.debug("SimpleGrantedAuthority: {}",
+     * simpleGrantedAuthority.getAuthority());
+     * }
+     * }
+     * Collection<GrantedAuthority> mappedAuthorities =
+     * mapClaimsToAuthorities(unmappedRoles);
+     * return mappedAuthorities;
+     * };
+     * }
+     */
+
     /**
-     * Extracts roles from the claims. Supports Keycloak and Ping Federate style of providing roles.
+     * Extracts roles from the claims. Supports Keycloak and Ping Federate style of
+     * providing roles.
+     * 
      * @param claims
      * @param roles
      */
@@ -164,5 +243,5 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         log.debug("Mapped roles: " + out);
         return out;
     }
-     
+
 }
