@@ -462,7 +462,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	}
 
 	private Component createUserMenu() {
-
+		
 		MenuBar mbUser = new MenuBar();
 		miUser = mbUser.addItem("replace_me_with_username");
 		miUser.addComponentAsFirst(VaadinIcon.USER.create());
