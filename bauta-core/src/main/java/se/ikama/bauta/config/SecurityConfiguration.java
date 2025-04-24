@@ -4,6 +4,7 @@ import com.vaadin.flow.spring.security.VaadinWebSecurity;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +33,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Profile("!dev")
 @EnableWebSecurity
@@ -73,6 +73,9 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     @Value("${bauta.security.idp.authLoginPage:/oauth2/authorization/keycloak}")
     private String idpAuthLoginPage;
 
+    @Value("${server.servlet.context-path:/}")
+    private String contextPath;
+
     @Autowired
     ClientRegistrationRepository repo;
 
@@ -87,11 +90,14 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         http.authorizeHttpRequests(
                 authorize -> authorize.requestMatchers(new AntPathRequestMatcher("/reports/**/*")).permitAll());
 
-        http.logout(logout -> logout.logoutSuccessUrl("{baseUrl}/ui/login").clearAuthentication(true)
+        final var logoutSuccessUrl = StringUtils.equals("/", contextPath) ? "/ui/login?logout=true" :  contextPath + "/ui/login?logout=true";
+        log.debug("Logout success URL: {}", logoutSuccessUrl);
+        
+        http.logout(logout -> logout.logoutSuccessUrl(logoutSuccessUrl).clearAuthentication(true)
                 .invalidateHttpSession(true).deleteCookies("JSESSIONID"));
         http.csrf(csrf -> csrf.disable());
         super.configure(http);
-        setOAuth2LoginPage(http, idpAuthLoginPage, "{baseUrl}/ui/login");
+        setOAuth2LoginPage(http, idpAuthLoginPage, "{baseUrl}/ui/login?logout=true");
 
         // PKCE support
         if (idpPkceEnabled) {
@@ -132,15 +138,24 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             var idToken = userRequest.getIdToken();
             String idTokenValue = idToken.getTokenValue();
             log.debug("accessTokenValue: {}", accessTokenValue);
-            log.debug("idTokenValue: {}", accessTokenValue);
+            log.debug("idTokenValue: {}", idTokenValue);
 
             // Get the dynamic JWK Set URI from the configured provider
-            String jwkSetUri = userRequest.getClientRegistration()
+            //String jwkSetUri = userRequest.getClientRegistration()
+            //        .getProviderDetails()
+            //        .getJwkSetUri();
+            String issuerUri = userRequest.getClientRegistration()
                     .getProviderDetails()
-                    .getJwkSetUri();
+                    .getIssuerUri();
+
+            String nameAttributeKey = userRequest.getClientRegistration()
+                    .getProviderDetails()
+                    .getUserInfoEndpoint()
+                    .getUserNameAttributeName();
 
             // Decode the JWT access token dynamically using the JWK URI
-            JwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+            log.debug("Passing this issuerUri to jwtdecoder: {}", issuerUri);
+            JwtDecoder decoder = NimbusJwtDecoder.withIssuerLocation(issuerUri).build();
             Jwt accessTokenJwt = decoder.decode(accessTokenValue);
             Jwt idTokenJwt = decoder.decode(idTokenValue);
             // Extract claims and map to authorities
@@ -151,7 +166,7 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             Collection<GrantedAuthority> mappedAuthorities = mapClaimsToAuthorities(accessTokenClaims, idTokenClaims);
             log.debug("Mapped authorities: {}", mappedAuthorities);
             // Return a new OidcUser with your custom authorities
-            return new DefaultOidcUser(mappedAuthorities, oidcUser.getIdToken(), oidcUser.getUserInfo());
+            return new DefaultOidcUser(mappedAuthorities, oidcUser.getIdToken(), oidcUser.getUserInfo(), nameAttributeKey);
         };
     }
 
@@ -233,13 +248,15 @@ public class SecurityConfiguration extends VaadinWebSecurity {
 
     Collection<GrantedAuthority> mapClaimsToAuthorities(Collection<String> roles) {
         log.debug("Mapping roles: " + roles);
-        Map<String, String> roleMap = Map.of(
-                idpRoleAdmin, "ROLE_ADMIN",
-                idpRoleBatchView, "ROLE_BATCH_VIEW",
-                idpRoleBatchExecute, "ROLE_BATCH_EXECUTE");
-        Collection<GrantedAuthority> out = roles.stream()
-                .map(role -> new SimpleGrantedAuthority(roleMap.get(role) != null ? roleMap.get(role) : role))
-                .collect(Collectors.toList());
+        Set<GrantedAuthority> out = new HashSet<>();
+        for (String role : roles) {
+            if (role.equalsIgnoreCase(idpRoleAdmin)) 
+                out.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            if (role.equalsIgnoreCase(idpRoleBatchView)) 
+                out.add(new SimpleGrantedAuthority("ROLE_BATCH_VIEW"));
+            if (role.equalsIgnoreCase(idpRoleBatchExecute)) 
+                out.add(new SimpleGrantedAuthority("ROLE_BATCH_EXECUTE"));
+        }
         log.debug("Mapped roles: " + out);
         return out;
     }
