@@ -10,6 +10,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.StreamResource;
@@ -30,8 +31,12 @@ public class LoginView extends Div implements BeforeEnterObserver {
     @Value("${bauta.application.title}")
 	private String applicationTitle;
 
-    private Paragraph loggedOutMessage = new Paragraph();
+    @Value("${bauta.version}")
+    String version;
+
+    private Span loggedOutMessage = new Span();
     private Span serverInfo = new Span();
+    private Span bautaInfo = new Span();
     private Paragraph welcomeMessage = new Paragraph();
     Anchor loginLink;
 
@@ -53,6 +58,7 @@ public class LoginView extends Div implements BeforeEnterObserver {
 	protected void onAttach(AttachEvent attachEvent) {
 		setTheme(true);
         serverInfo.setText(bautaManager.getShortServerInfo());
+        bautaInfo.setText("Bauta " + version);
         welcomeMessage.setText("Welcome to " + applicationTitle);
         if (!StringUtils.equals("/", contextPath)) {
             var loginLinkHref = contextPath + authLoginPage;
@@ -62,8 +68,9 @@ public class LoginView extends Div implements BeforeEnterObserver {
             log.debug("Setting login link to {}", authLoginPage);
             loginLink.setHref(authLoginPage);
         }
+        loginLink.setRouterIgnore(true);
+        
     }
-
 
     public LoginView() {
         setClassName("login-view");
@@ -71,7 +78,7 @@ public class LoginView extends Div implements BeforeEnterObserver {
         loginOverlay.setMargin(false);
         loginOverlay.setPadding(false);
         loginOverlay.setSpacing(false);
-        loginOverlay.setMaxWidth("300px");
+        loginOverlay.setMaxWidth("500px");
         loginOverlay.setClassName("login-overlay");
         Image img = new Image(new StreamResource("bauta_splash.jpg",
 				() -> getClass().getResourceAsStream("/static/images/bauta_splash.jpg")), "Bauta splash");
@@ -85,19 +92,26 @@ public class LoginView extends Div implements BeforeEnterObserver {
         var body = new Div();
         body.setClassName("login-body");
         serverInfo.setClassName("server-info");
-        body.add(serverInfo);
-        loggedOutMessage = new Paragraph("You have been logged out.");
-        loggedOutMessage.setVisible(false);
-        body.add(loggedOutMessage);
-        body.add(welcomeMessage);
-        
+        bautaInfo.setClassName("bauta-info");
 
-        // Navigate to IDP login page
-        loginLink = new Anchor("/replaceme", "Login with IDP");
+        HorizontalLayout infoLayout = new HorizontalLayout();
+        infoLayout.add(serverInfo);
+        infoLayout.add(bautaInfo);
+        body.add(infoLayout);
         
-        loginLink.getElement().getThemeList().add("primary"); // or "secondary"
-        loginLink.getElement().getClassList().add("vaadin-button"); // make it visually a button
-        loginLink.setRouterIgnore(true);
+        loggedOutMessage = new Span("You have been logged out.");
+        loggedOutMessage.setVisible(false);
+        loggedOutMessage.getElement().getThemeList().add("badge success");
+        welcomeMessage.addClassName("welcome");
+        body.add(welcomeMessage);
+        Paragraph loggedOutParagraph = new Paragraph(loggedOutMessage);
+        body.add(loggedOutParagraph);
+        
+        // Navigate to IDP login page
+        // Need to be an Anchor instead of a button because of the Vaadin router
+        // not being able to navigate to external URLs
+        loginLink = new Anchor("/replaceme", "Login with IDP");
+        loginLink.setClassName("login-link");
         
         body.add(loginLink);
         loginOverlay.add(body);
