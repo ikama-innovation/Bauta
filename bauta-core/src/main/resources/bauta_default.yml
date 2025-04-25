@@ -1,9 +1,7 @@
 # Vaadin tweaks
 # In order to serve resources at /reports/*, the following configuration is needed
 vaadin.urlMapping: /ui/*
-vaadin.heartbeatInterval: 30
-vaadin.closeIdleConnections: true
-vaadin.pushMode=AUTOMATIC
+vaadin.heartbeatInterval: 5
 
 server.servlet.session.timeout: 300
 

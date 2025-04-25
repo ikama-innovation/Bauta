@@ -240,9 +240,14 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         }
         // Ping federate style
         if (claims.containsKey("roles")) {
-            @SuppressWarnings("unchecked")
-            var r = (Collection<String>) claims.get("roles");
-            roles.addAll(r);
+            Object o = claims.get("roles");
+            if (o instanceof String) {
+                roles.add((String) o);
+            } else if (o instanceof Collection) {
+                @SuppressWarnings("unchecked")
+                Collection<String> r = (Collection<String>) o;
+                roles.addAll(r);
+            }
         }
     }
 

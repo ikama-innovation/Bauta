@@ -57,6 +57,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
@@ -462,7 +463,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	}
 
 	private Component createUserMenu() {
-		
+
 		MenuBar mbUser = new MenuBar();
 		miUser = mbUser.addItem("replace_me_with_username");
 		miUser.addComponentAsFirst(VaadinIcon.USER.create());
@@ -939,6 +940,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 				sortJobGrid();
 				findScheduledJobs();
 				updateJobCountBar();
+				//log.debug("Pushing UI: {}, {}", ui.isAttached(), ui.isEnabled());
 				ui.push();
 			});
 		}
@@ -947,6 +949,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 	@Override
 	public void onStepChange(BasicJobInstanceInfo basicJobInstanceInfo, StepInfo stepInfo) {
 		log.debug("{}, onstepChange {} ", hashCode(), stepInfo);
+		
 		if (this.getUI().isPresent()) {
 			UI ui = this.getUI().get();
 			ui.access(() -> {
@@ -954,6 +957,7 @@ public class MainView extends AppLayout implements JobEventListener, HasDynamicT
 				stepFlow.update(stepInfo);
 				StepProgressBar stepProgressBar = jobNameToProgressBar.get(basicJobInstanceInfo.getName());
 				stepProgressBar.update(basicJobInstanceInfo);
+				//log.debug("Pushing UI: {}, {}", ui.isAttached(), ui.isEnabled());
 				ui.push();
 			});
 		}
