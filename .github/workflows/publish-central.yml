@@ -1,0 +1,53 @@
+name: Publish to Maven Central
+
+on:
+  push:
+    tags: ['v*.*.*']   # push a tag like v1.2.3 to publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+          # This imports your ASCII-armored private key into the GPG keyring used by Maven
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase:  ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Configure Maven server credentials for Central
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <!-- Must match <publishingServerId> in your pom (e.g., "central") -->
+                <id>central</id>
+                <username>${env.CENTRAL_USERNAME}</username>
+                <password>${env.CENTRAL_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+
+      # Optional: show the imported key (no private data is printed)
+      - name: Verify GPG key import
+        run: |
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: Build, sign, and publish
+        run: mvn -B -DskipTests -P production,release deploy
+        env:
+          # Some setups require this so Maven can pass the passphrase to gpg in batch
+          MAVEN_OPTS: "-Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}"
