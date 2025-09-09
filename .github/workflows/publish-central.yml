@@ -31,8 +31,8 @@ jobs:
               <server>
                 <!-- Must match <publishingServerId> in your pom (e.g., "central") -->
                 <id>central</id>
-                <username>${env.CENTRAL_USERNAME}</username>
-                <password>${env.CENTRAL_PASSWORD}</password>
+                <username>${secrets.CENTRAL_USERNAME}</username>
+                <password>${secrets.CENTRAL_PASSWORD}</password>
               </server>
             </servers>
           </settings>
