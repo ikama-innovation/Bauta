@@ -9,7 +9,7 @@
         <version>2.0.15</version>
     </parent>
     <properties>
-        <vaadin.version>24.8.6</vaadin.version>
+        <vaadin.version>24.8.8</vaadin.version>
     </properties>
     <repositories>  
         <repository>
