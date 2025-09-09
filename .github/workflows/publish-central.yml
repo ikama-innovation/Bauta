@@ -19,16 +19,18 @@ jobs:
           java-version: '21'
           cache: 'maven'
           server-id: 'central'
-          server-username: ${{ secrets.CENTRAL_USERNAME }}
-          server-password: ${{ secrets.CENTRAL_PASSWORD }}
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
           # This imports your ASCII-armored private key into the GPG keyring used by Maven
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase:  ${{ secrets.GPG_PASSPHRASE }}
+          gpg-passphrase:  MAVEN_GPG_PASSPHRASE
         
 
       - name: Build, sign, and publish
         run: mvn -e -X -B -ntp -DskipTests -P production,release deploy
         env:
+          MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          MAVEN_GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+
           
