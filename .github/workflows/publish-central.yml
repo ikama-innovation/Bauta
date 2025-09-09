@@ -27,7 +27,7 @@ jobs:
         
 
       - name: Build, sign, and publish
-        run: mvn -B -ntp -DskipTests -P production,release deploy
+        run: mvn -e -B -ntp -DskipTests -P production,release deploy
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           MAVEN_GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
