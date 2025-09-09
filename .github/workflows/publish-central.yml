@@ -13,41 +13,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
+          server-id: 'central'
+          server-username: CENTRAL_USERNAME
+          server-passwword: CENTRAL_PASSWORD
           # This imports your ASCII-armored private key into the GPG keyring used by Maven
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase:  ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Configure Maven server credentials for Central
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<'XML'
-          <settings>
-            <servers>
-              <server>
-                <!-- Must match <publishingServerId> in your pom (e.g., "central") -->
-                <id>central</id>
-                <username>${env.CENTRAL_USERNAME}</username>
-                <password>${env.CENTRAL_PASSWORD}</password>
-              </server>
-            </servers>
-          </settings>
-          XML
+          gpg-passphrase:  GPG_PASSPHRASE
         env:
+          # These env vars are looked up by setup-java per the names above
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-
-      # Optional: show the imported key (no private data is printed)
-      - name: Verify GPG key import
-        run: |
-          gpg --list-secret-keys --keyid-format LONG
+          GPG_PASSPHRASE:  ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Build, sign, and publish
-        run: mvn -B -DskipTests -P production,release deploy
-        env:
-          # Some setups require this so Maven can pass the passphrase to gpg in batch
-          MAVEN_OPTS: "-Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} -Dgpg.keyname=${{ secrets.GPG_KEYNAME }}"
+        run: mvn -B -ntp -DskipTests -P production,release deploy
