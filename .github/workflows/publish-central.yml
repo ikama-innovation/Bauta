@@ -20,7 +20,7 @@ jobs:
           cache: 'maven'
           server-id: 'central'
           server-username: CENTRAL_USERNAME
-          server-passwword: CENTRAL_PASSWORD
+          server-password: CENTRAL_PASSWORD
           # This imports your ASCII-armored private key into the GPG keyring used by Maven
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase:  GPG_PASSPHRASE
