@@ -31,8 +31,8 @@ jobs:
               <server>
                 <!-- Must match <publishingServerId> in your pom (e.g., "central") -->
                 <id>central</id>
-                <username>${secrets.CENTRAL_USERNAME}</username>
-                <password>${secrets.CENTRAL_PASSWORD}</password>
+                <username>${env.CENTRAL_USERNAME}</username>
+                <password>${env.CENTRAL_PASSWORD}</password>
               </server>
             </servers>
           </settings>
@@ -50,4 +50,4 @@ jobs:
         run: mvn -B -DskipTests -P production,release deploy
         env:
           # Some setups require this so Maven can pass the passphrase to gpg in batch
-          MAVEN_OPTS: "-Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}"
+          MAVEN_OPTS: "-Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} -Dgpg.keyname=${{ secrets.GPG_KEYNAME }}"
