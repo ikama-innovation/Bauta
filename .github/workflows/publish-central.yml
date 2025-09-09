@@ -24,6 +24,11 @@ jobs:
           # This imports your ASCII-armored private key into the GPG keyring used by Maven
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase:  ${{ secrets.GPG_PASSPHRASE }}
+        
 
       - name: Build, sign, and publish
         run: mvn -B -ntp -DskipTests -P production,release deploy
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+          
