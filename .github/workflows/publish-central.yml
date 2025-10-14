@@ -23,7 +23,7 @@ jobs:
           server-password: MAVEN_PASSWORD
           # This imports your ASCII-armored private key into the GPG keyring used by Maven
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase:  MAVEN_GPG_PASSPHRASE
+          gpg-passphrase:  ${{ secrets.GPG_PASSPHRASE }}
         
 
       - name: Build, sign, and publish
