@@ -153,7 +153,7 @@ public class PhpTasklet implements StepExecutionListener, StoppableTasklet, Init
         }
         chunkContext.getStepContext().getJobParameters();
         for (String scriptFile : scriptFiles) {
-            log.warn("Handling {}", scriptFile);
+            log.debug("Handling {}", scriptFile);
             if (StringUtils.equals(logSuffix, "log")) {
                 try (PrintWriter pw = new PrintWriter(new FileWriter(logFile, true))) {
                     String line = StringUtils.repeat("-", scriptFile.length());
