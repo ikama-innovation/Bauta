@@ -41,3 +41,4 @@ vite.generated.ts
 
 /.project
 
+bauta-core/.vaadin-node-tasks.lock

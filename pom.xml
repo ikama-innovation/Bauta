@@ -6,7 +6,7 @@
 
     <groupId>se.ikama</groupId>
     <artifactId>bauta</artifactId>
-    <version>2.0.20</version>
+    <version>${revision}</version>
     <name>bauta</name>
     <packaging>pom</packaging>
     <description>Bauta is a batch automation framework based on Spring Batch.</description>
@@ -40,11 +40,12 @@
         </developer>
     </developers>
     <properties>
+        <revision>2.0.21</revision>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-boot.version>3.5.5</spring-boot.version>
-        <junit.version>4.13.1</junit.version>
-        <lombok.version>1.18.40</lombok.version>
+        <spring-boot.version>3.5.8</spring-boot.version>
+        <junit.version>4.13.2</junit.version>
+        <lombok.version>1.18.42</lombok.version>
         <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
         <timeZone>Europe/Stockholm</timeZone>
         <bautabuildtimestamp>${maven.build.timestamp}</bautabuildtimestamp>
